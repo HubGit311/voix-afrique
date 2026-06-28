@@ -1,0 +1,1147 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Voix d'Afrique — Coach IA</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:#080810;color:#EDE8F0;font-family:'Lora',serif;min-height:100vh}
+  :root{
+    --bg:#080810;--surface:#0F0F1A;--card:#161624;--border:#252538;
+    --gold:#D4A843;--gold-l:#F0C76A;--green:#27AE60;--red:#C0392B;
+    --orange:#E67E22;--text:#EDE8F0;--muted:#7A7A9A;
+  }
+  nav{
+    border-bottom:1px solid var(--border);padding:14px 24px;
+    display:flex;align-items:center;justify-content:space-between;
+    position:sticky;top:0;background:rgba(8,8,16,.94);
+    backdrop-filter:blur(16px);z-index:100;
+  }
+  .logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
+  .logo-icon{
+    width:32px;height:32px;border-radius:7px;
+    background:linear-gradient(135deg,var(--gold),var(--gold-l));
+    display:flex;align-items:center;justify-content:center;font-size:15px;
+  }
+  .logo-name{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:17px;color:var(--text);line-height:1}
+  .logo-sub{font-family:monospace;font-size:9px;color:var(--gold);letter-spacing:2px}
+  .page{max-width:780px;margin:0 auto;padding:48px 20px;display:none}
+  .page.active{display:block}
+
+  /* HOME */
+  .hero{text-align:center;margin-bottom:56px}
+  .pill{
+    display:inline-block;padding:5px 18px;
+    background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);
+    border-radius:20px;margin-bottom:28px;
+    font-family:monospace;font-size:11px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;
+  }
+  h1{font-family:'Cormorant Garamond',serif;font-size:clamp(38px,7vw,68px);font-weight:700;line-height:1.05;margin-bottom:20px}
+  .gradient-text{background:linear-gradient(135deg,var(--gold),var(--gold-l));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+  .hero-sub{color:var(--muted);font-size:16px;line-height:1.8;max-width:500px;margin:0 auto 40px}
+  .stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
+  .stat-val{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold)}
+  .stat-lab{font-family:monospace;font-size:11px;color:var(--muted);letter-spacing:1px}
+  .section-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text);margin-bottom:6px}
+  .section-sub{font-family:monospace;font-size:13px;color:var(--muted);margin-bottom:24px;letter-spacing:.5px}
+  .exercises{display:flex;flex-direction:column;gap:14px}
+  .ex-card{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:14px;padding:22px 26px;cursor:pointer;
+    transition:all .2s ease;display:flex;align-items:center;gap:20px;
+  }
+  .ex-card:hover{background:var(--card);border-color:rgba(212,168,67,.35);transform:translateX(5px)}
+  .ex-icon{
+    width:52px;height:52px;border-radius:12px;flex-shrink:0;
+    background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.2);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .ex-title{color:var(--text);font-weight:700;font-size:15px;font-family:'Cormorant Garamond',serif;margin-bottom:4px}
+  .ex-desc{color:var(--muted);font-size:13px}
+  .ex-score{font-size:11px;color:var(--gold);font-family:monospace;margin-left:auto;white-space:nowrap}
+  .badge{
+    display:inline-block;padding:3px 10px;border-radius:20px;
+    font-size:10px;font-weight:700;font-family:monospace;letter-spacing:1px;text-transform:uppercase;
+    margin-left:8px;
+  }
+  .footer-note{text-align:center;margin-top:40px;padding-top:24px;border-top:1px solid var(--border);
+    color:var(--muted);font-size:11px;font-family:monospace}
+
+  /* RECORD */
+  .back-btn{
+    background:none;border:none;color:var(--muted);cursor:pointer;
+    font-size:13px;font-family:monospace;margin-bottom:28px;
+    display:flex;align-items:center;gap:6px;padding:0;
+  }
+  .ex-header{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:24px}
+  .zone{
+    background:var(--surface);border:1px solid var(--border);
+    border-radius:18px;padding:40px 28px;text-align:center;
+    display:flex;flex-direction:column;align-items:center;gap:22px;
+  }
+  .mic-btn{
+    background:linear-gradient(135deg,var(--gold),var(--gold-l));
+    color:#080810;border:none;border-radius:10px;
+    padding:13px 34px;font-size:13px;font-weight:800;
+    cursor:pointer;font-family:monospace;letter-spacing:2px;width:100%;
+  }
+  .stop-btn{
+    background:none;border:1px solid var(--red);color:var(--red);
+    border-radius:8px;padding:10px 28px;font-size:12px;
+    font-weight:700;cursor:pointer;font-family:monospace;width:100%;
+  }
+  .timer-big{font-family:'Cormorant Garamond',serif;font-size:56px;font-weight:700;line-height:1}
+  .rec-label{color:var(--red);font-size:10px;font-family:monospace;letter-spacing:2px;margin-top:4px}
+  .progress-bar-bg{width:100%;height:4px;background:var(--border);border-radius:2px}
+  .progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--gold),var(--red));transition:width 1s linear}
+  .waveform{display:flex;gap:3px;align-items:center;height:48px}
+  .wave-bar{width:3px;border-radius:2px;background:var(--red)}
+  .transcript-box{
+    background:var(--card);border:1px solid var(--border);border-radius:10px;
+    padding:14px 16px;width:100%;text-align:left;max-height:100px;overflow:hidden;
+  }
+  .transcript-label{font-size:10px;color:var(--muted);font-family:monospace;letter-spacing:1px;margin-bottom:6px;text-transform:uppercase}
+  .transcript-text{color:var(--muted);font-size:13px;font-style:italic;line-height:1.6}
+  .mic-status{
+    padding:10px 16px;border-radius:8px;font-size:12px;font-family:monospace;
+    width:100%;text-align:center;
+  }
+  .spinner{
+    width:64px;height:64px;border-radius:50%;
+    border:3px solid var(--border);border-top:3px solid var(--gold);
+    animation:spin .9s linear infinite;
+  }
+  .analyzing-title{font-family:'Cormorant Garamond',serif;color:var(--gold);font-size:22px;margin-bottom:8px}
+  .analyzing-msg{color:var(--muted);font-size:13px;font-family:monospace;min-height:18px}
+
+  /* RESULT */
+  .score-header{
+    background:var(--card);border:1px solid rgba(212,168,67,.25);
+    border-radius:18px;padding:32px 36px;
+    display:flex;align-items:center;gap:32px;margin-bottom:22px;flex-wrap:wrap;
+  }
+  .score-ring{position:relative;flex-shrink:0}
+  .result-tag{color:var(--gold);font-size:10px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+  .result-title{font-family:'Cormorant Garamond',serif;font-size:26px;color:var(--text);margin-bottom:10px}
+  .result-conseil{color:var(--muted);font-size:14px;line-height:1.7}
+  .metrics-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px}
+  .metrics-title{font-size:11px;color:var(--muted);font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:18px}
+  .metric-row{margin-bottom:14px}
+  .metric-top{display:flex;justify-content:space-between;margin-bottom:5px}
+  .metric-lbl{font-size:11px;color:var(--muted);font-family:monospace;text-transform:uppercase;letter-spacing:1px}
+  .metric-val{font-size:12px;font-weight:700;font-family:monospace}
+  .metric-bg{height:5px;background:var(--border);border-radius:3px}
+  .metric-fill{height:100%;border-radius:3px;transition:width 1.4s ease}
+  .parasites-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+  .parasite-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(192,57,43,.12);color:var(--red);border:1px solid rgba(192,57,43,.3);font-family:monospace}
+  .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:20px}
+  .result-card{border-radius:14px;padding:22px}
+  .result-card-title{font-size:11px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+  .result-item{display:flex;gap:10px;margin-bottom:10px;align-items:flex-start}
+  .result-item-text{font-size:13px;line-height:1.6}
+  .defi-box{
+    background:rgba(212,168,67,.05);border:1px solid rgba(212,168,67,.25);
+    border-radius:14px;padding:22px;margin-bottom:28px;
+    display:flex;gap:16px;align-items:flex-start;
+  }
+  .defi-title{font-size:11px;color:var(--gold);font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:6px}
+  .defi-text{font-size:14px;line-height:1.7}
+  .actions{display:flex;gap:12px;flex-wrap:wrap}
+  .btn-primary{
+    background:linear-gradient(135deg,var(--gold),var(--gold-l));
+    color:#080810;border:none;border-radius:10px;
+    padding:13px 30px;font-size:13px;font-weight:800;
+    cursor:pointer;font-family:monospace;letter-spacing:1px;flex:1;
+  }
+  .btn-secondary{
+    background:var(--surface);color:var(--text);
+    border:1px solid var(--border);border-radius:10px;
+    padding:13px 30px;font-size:13px;font-weight:600;
+    cursor:pointer;font-family:monospace;flex:1;
+  }
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @keyframes waveAnim{from{transform:scaleY(.3)}to{transform:scaleY(1)}}
+
+  /* HISTORY */
+  .history-link{
+    display:flex;align-items:center;gap:8px;cursor:pointer;
+    font-family:monospace;font-size:11px;color:var(--gold);
+    padding:6px 14px;border:1px solid rgba(212,168,67,.3);border-radius:20px;
+    background:rgba(212,168,67,.06);transition:all .2s ease;
+  }
+  .history-link:hover{background:rgba(212,168,67,.12)}
+  .progress-chart-box{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:24px;margin-bottom:24px}
+  .chart-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:18px;flex-wrap:wrap;gap:8px}
+  .chart-svg-wrap{width:100%;overflow-x:auto}
+  .session-row{
+    background:var(--surface);border:1px solid var(--border);border-radius:12px;
+    padding:16px 20px;display:flex;align-items:center;gap:16px;margin-bottom:10px;
+  }
+  .session-score-badge{
+    width:44px;height:44px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Cormorant Garamond',serif;font-weight:700;font-size:15px;
+    border:2px solid;
+  }
+  .session-info{flex:1;min-width:0}
+  .session-title{font-size:13px;color:var(--text);font-weight:600;font-family:'Lora',serif}
+  .session-date{font-size:11px;color:var(--muted);font-family:monospace}
+  .delta-tag{
+    font-size:11px;font-family:monospace;font-weight:700;padding:3px 9px;border-radius:12px;flex-shrink:0;
+  }
+  .empty-state{text-align:center;padding:60px 20px;color:var(--muted)}
+  .empty-state-icon{font-size:48px;margin-bottom:16px;opacity:.5}
+  .comparison-box{
+    background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.25);
+    border-radius:14px;padding:18px 22px;margin-bottom:20px;
+    display:flex;align-items:center;gap:14px;
+  }
+  .stats-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:24px}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px 12px;text-align:center}
+  .stat-box-val{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:700;color:var(--gold)}
+  .stat-box-lab{font-size:10px;color:var(--muted);font-family:monospace;letter-spacing:.5px;margin-top:4px}
+
+  /* VOICE FEEDBACK */
+  .voice-btn{
+    display:inline-flex;align-items:center;gap:8px;
+    background:rgba(91,79,232,.1);border:1px solid rgba(91,79,232,.35);
+    color:#8B7FFF;border-radius:20px;padding:7px 16px;
+    font-size:12px;font-family:monospace;font-weight:700;
+    cursor:pointer;transition:all .2s ease;flex-shrink:0;
+  }
+  .voice-btn:hover{background:rgba(91,79,232,.18)}
+  .voice-btn.playing{background:rgba(91,79,232,.22);animation:pulseGlow 1.2s ease-in-out infinite}
+  .voice-btn:disabled{opacity:.5;cursor:not-allowed}
+  @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(91,79,232,.4)}50%{box-shadow:0 0 0 6px rgba(91,79,232,0)}}
+
+  /* GAMIFICATION */
+  .level-card{
+    background:linear-gradient(135deg,rgba(212,168,67,.1),rgba(212,168,67,.02));
+    border:1px solid rgba(212,168,67,.3);border-radius:16px;padding:22px 26px;
+    display:flex;align-items:center;gap:20px;margin-bottom:24px;flex-wrap:wrap;
+  }
+  .level-icon{
+    width:60px;height:60px;border-radius:14px;flex-shrink:0;
+    background:linear-gradient(135deg,var(--gold),var(--gold-l));
+    display:flex;align-items:center;justify-content:center;font-size:28px;
+  }
+  .level-name{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:700;color:var(--text)}
+  .level-xp{font-size:11px;color:var(--muted);font-family:monospace;margin-top:2px}
+  .xp-bar-bg{width:100%;height:8px;background:var(--border);border-radius:4px;margin-top:10px;overflow:hidden}
+  .xp-bar-fill{height:100%;border-radius:4px;background:linear-gradient(90deg,var(--gold),var(--gold-l));transition:width 1s ease}
+  .streak-pill{
+    display:flex;align-items:center;gap:6px;
+    background:rgba(230,126,34,.12);border:1px solid rgba(230,126,34,.35);
+    border-radius:20px;padding:6px 14px;font-size:12px;font-family:monospace;
+    color:var(--orange);font-weight:700;flex-shrink:0;margin-left:auto;
+  }
+  .badges-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:12px;margin-bottom:24px}
+  .badge-card{
+    background:var(--surface);border:1px solid var(--border);border-radius:14px;
+    padding:18px 12px;text-align:center;transition:all .2s ease;
+  }
+  .badge-card.unlocked{border-color:rgba(212,168,67,.4);background:var(--card)}
+  .badge-card.locked{opacity:.4}
+  .badge-icon{font-size:30px;margin-bottom:8px;display:block}
+  .badge-name{font-size:11px;font-weight:700;color:var(--text);font-family:'Lora',serif;line-height:1.3;margin-bottom:3px}
+  .badge-desc{font-size:9px;color:var(--muted);font-family:monospace;line-height:1.4}
+  .toast-badge{
+    position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);
+    background:var(--card);border:1px solid var(--gold);border-radius:14px;
+    padding:16px 24px;display:flex;align-items:center;gap:14px;
+    box-shadow:0 8px 32px rgba(0,0,0,.5);z-index:1000;
+    transition:transform .4s cubic-bezier(.34,1.56,.64,1);max-width:90vw;
+  }
+  .toast-badge.show{transform:translateX(-50%) translateY(0)}
+  .toast-icon{font-size:32px;flex-shrink:0}
+  .toast-title{font-size:10px;color:var(--gold);font-family:monospace;letter-spacing:1px;text-transform:uppercase}
+  .toast-name{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);font-weight:700}
+</style>
+</head>
+<body>
+
+<nav>
+  <a class="logo" onclick="stopVoiceFeedback();showPage('home')">
+    <div class="logo-icon">🎤</div>
+    <div>
+      <div class="logo-name">Voix d'Afrique</div>
+      <div class="logo-sub">IA COACH · DAKAR</div>
+    </div>
+  </a>
+  <div style="display:flex;align-items:center;gap:12px">
+    <div class="history-link" onclick="stopVoiceFeedback();showHistoryPage()">📊 Historique</div>
+    <div id="nav-score" style="font-family:monospace;font-size:11px;color:var(--muted)"></div>
+  </div>
+</nav>
+
+<!-- ══ HOME ══════════════════════════════════════════════════════════════════ -->
+<div id="page-home" class="page active">
+  <div class="hero">
+    <div class="pill">✦ Coach IA · Dakar, Sénégal</div>
+    <h1>Parlez avec<br><span class="gradient-text">Puissance & Impact</span></h1>
+    <p class="hero-sub">Votre coach IA analyse votre voix en temps réel et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
+    <div class="stats">
+      <div><div class="stat-val">247</div><div class="stat-lab">Apprenants actifs</div></div>
+      <div><div class="stat-val">89%</div><div class="stat-lab">Taux de progression</div></div>
+      <div><div class="stat-val">4.9★</div><div class="stat-lab">Satisfaction</div></div>
+    </div>
+  </div>
+
+  <div class="level-card" id="level-card-home"></div>
+
+  <div class="section-title">Choisissez votre exercice</div>
+  <div class="section-sub">Enregistrez-vous · Feedback IA réel en 30 secondes</div>
+
+  <div class="exercises" id="exercises-list"></div>
+
+  <div class="footer-note">🤖 Feedback généré par Claude (Anthropic) · 🎙️ Micro requis · 🔒 Audio non stocké</div>
+</div>
+
+<!-- ══ RECORD ═════════════════════════════════════════════════════════════════ -->
+<div id="page-record" class="page">
+  <button class="back-btn" onclick="showPage('home')">← Retour</button>
+
+  <div class="ex-header" id="rec-header"></div>
+
+  <div class="zone" id="rec-zone"></div>
+</div>
+
+<!-- ══ RESULT ═════════════════════════════════════════════════════════════════ -->
+<div id="page-result" class="page">
+  <div id="result-content"></div>
+</div>
+
+<!-- ══ HISTORY ════════════════════════════════════════════════════════════════ -->
+<div id="page-history" class="page">
+  <button class="back-btn" onclick="showPage('home')">← Retour</button>
+  <div class="section-title">📊 Votre progression</div>
+  <div class="section-sub">Suivez votre évolution session après session</div>
+  <div id="history-content"></div>
+</div>
+
+<!-- ══ BADGE TOAST ════════════════════════════════════════════════════════════ -->
+<div id="badge-toast" class="toast-badge">
+  <span class="toast-icon" id="toast-icon">🏆</span>
+  <div>
+    <div class="toast-title">Badge débloqué !</div>
+    <div class="toast-name" id="toast-name"></div>
+  </div>
+</div>
+
+<script>
+// ── Data ──────────────────────────────────────────────────────────────────────
+const EXERCISES = [
+  {id:1,emoji:"🎯",title:"Pitch Investisseur",description:"Présentez votre projet en 60 secondes à un investisseur.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:0,
+   context:"Vous parlez à un investisseur potentiel qui vous accorde 60 secondes. Soyez percutant, clair et convaincant."},
+  {id:4,emoji:"🛍️",title:"Négociation au Marché",description:"Défendez votre prix face à un client exigeant, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:0,
+   context:"Vous êtes commerçant(e) à Sandaga. Un client négocie fort. Restez ferme et convaincant(e) sans le braquer."},
+  {id:5,emoji:"👨‍👩‍👧",title:"Discours de Cérémonie",description:"Prenez la parole à un mariage ou baptême, en 75 secondes.",duration:75,niveau:"Débutant",color:"#27AE60",xpRequis:50,
+   context:"C'est le mariage d'un proche. La famille vous a demandé de dire quelques mots devant tous les invités."},
+  {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motivez votre équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
+   context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer."},
+  {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défendez un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
+   context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible."},
+  {id:7,emoji:"💰",title:"Pitch devant un Bailleur",description:"Convaincez un bailleur de fonds international, en 100 secondes.",duration:100,niveau:"Intermédiaire",color:"#E67E22",xpRequis:200,
+   context:"Une ONG internationale évalue votre projet pour un financement. Montrez l'impact concret et la rigueur de votre démarche."},
+  {id:3,emoji:"🌍",title:"Vision pour l'Afrique",description:"Partagez votre vision pour le Sénégal de demain en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:300,
+   context:"Vous avez la parole devant une grande assemblée citoyenne à Dakar. Inspirez, convainquez, mobilisez."},
+  {id:8,emoji:"📺",title:"Interview Télévisée",description:"Répondez avec assurance à des questions pièges, en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:400,
+   context:"Vous êtes interviewé(e) sur une chaîne nationale sur un sujet sensible. Restez calme, clair(e) et maître de votre message."},
+  {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défendez une cause sociale devant une foule, en 2m30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
+   context:"Vous portez la voix d'une cause importante (éducation, environnement, droits) devant un grand rassemblement public."},
+];
+
+function getExerciseUnlockStatus(ex, currentXP){
+  return currentXP >= ex.xpRequis;
+}
+
+const scores = {};
+let currentEx = null;
+let elapsed = 0;
+let timerInterval = null;
+let recognition = null;
+let transcriptFull = "";
+let analyzing = false;
+let micStream = null;
+let currentUtterance = null;
+let voiceText = "";
+
+// ── Stockage local de l'historique ──────────────────────────────────────────
+const STORAGE_KEY = 'voixdafrique_sessions';
+
+function loadSessions(){
+  try{
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  }catch(_){ return []; }
+}
+
+function saveSession(session){
+  const sessions = loadSessions();
+  sessions.push(session);
+  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }catch(_){}
+}
+
+function getLastSessionForExercise(exId){
+  const sessions = loadSessions().filter(s=>s.exId===exId);
+  return sessions.length ? sessions[sessions.length-1] : null;
+}
+
+// Initialise les scores affichés sur la home depuis l'historique sauvegardé
+function hydrateScoresFromHistory(){
+  const sessions = loadSessions();
+  sessions.forEach(s=>{ scores[s.exId] = s.score; });
+}
+
+// ── Gamification : Niveaux ──────────────────────────────────────────────────
+const LEVELS = [
+  {seuil:0,   nom:"Débutant Curieux",   emoji:"🌱"},
+  {seuil:100, nom:"Apprenti Orateur",    emoji:"🎤"},
+  {seuil:300, nom:"Orateur Confirmé",    emoji:"🗣️"},
+  {seuil:600, nom:"Voix Influente",      emoji:"⭐"},
+  {seuil:1000,nom:"Maître de la Parole", emoji:"👑"},
+  {seuil:1500,nom:"Légende de Voix d'Afrique",emoji:"🏆"},
+];
+
+function computeXP(sessions){
+  // XP = score de chaque session, + bonus pour les sessions sans mot parasite
+  return sessions.reduce((total,s)=> total + s.score + (s.totalParasites===0 ? 15 : 0), 0);
+}
+
+function getLevelInfo(xp){
+  let current = LEVELS[0], next = LEVELS[1] || null;
+  for(let i=0;i<LEVELS.length;i++){
+    if(xp >= LEVELS[i].seuil){ current = LEVELS[i]; next = LEVELS[i+1] || null; }
+  }
+  const progress = next ? Math.min(100, Math.round(((xp-current.seuil)/(next.seuil-current.seuil))*100)) : 100;
+  return {current, next, progress, xp};
+}
+
+// ── Gamification : Streak (jours consécutifs) ───────────────────────────────
+function computeStreak(sessions){
+  if(sessions.length===0) return 0;
+  const days = [...new Set(sessions.map(s=>new Date(s.date).toDateString()))]
+    .map(d=>new Date(d)).sort((a,b)=>b-a);
+
+  let streak = 1;
+  const today = new Date(); today.setHours(0,0,0,0);
+  const mostRecent = new Date(days[0]); mostRecent.setHours(0,0,0,0);
+  const diffFromToday = Math.round((today-mostRecent)/86400000);
+  if(diffFromToday > 1) return 0; // streak cassé si pas de session hier ou aujourd'hui
+
+  for(let i=0;i<days.length-1;i++){
+    const d1 = new Date(days[i]); d1.setHours(0,0,0,0);
+    const d2 = new Date(days[i+1]); d2.setHours(0,0,0,0);
+    const diff = Math.round((d1-d2)/86400000);
+    if(diff===1) streak++;
+    else break;
+  }
+  return streak;
+}
+
+// ── Gamification : Badges ───────────────────────────────────────────────────
+const BADGES = [
+  {id:'first_session', emoji:'🎙️', nom:'Premier Pas',        desc:'1ère session complétée',      check: s => s.length>=1},
+  {id:'five_sessions',  emoji:'🔥', nom:'Sur la Lancée',       desc:'5 sessions complétées',        check: s => s.length>=5},
+  {id:'ten_sessions',   emoji:'💪', nom:'Persévérant',         desc:'10 sessions complétées',       check: s => s.length>=10},
+  {id:'perfect_score',  emoji:'💯', nom:'Score Parfait',       desc:'Un score de 95+ obtenu',       check: s => s.some(x=>x.score>=95)},
+  {id:'no_parasites',   emoji:'✨', nom:'Discours Pur',        desc:'0 mot parasite en session',    check: s => s.some(x=>x.totalParasites===0)},
+  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.map(x=>x.exId)).size>=5},
+  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 9 exercices essayés',       check: s => new Set(s.map(x=>x.exId)).size>=9},
+  {id:'streak_3',       emoji:'📅', nom:'Régularité',          desc:'3 jours de suite',             check: s => computeStreak(s)>=3},
+  {id:'good_debit',     emoji:'⚡', nom:'Rythme Idéal',        desc:'Débit entre 120-150 mots/min', check: s => s.some(x=>x.debit>=120 && x.debit<=150)},
+];
+
+function getUnlockedBadges(sessions){
+  return BADGES.filter(b=>b.check(sessions));
+}
+
+function showBadgeToast(badge){
+  const toast = document.getElementById('badge-toast');
+  document.getElementById('toast-icon').textContent = badge.emoji;
+  document.getElementById('toast-name').textContent = badge.nom;
+  toast.classList.add('show');
+  setTimeout(()=> toast.classList.remove('show'), 3500);
+}
+
+// Détecte et affiche les nouveaux badges débloqués après une session
+function checkNewBadges(sessionsBefore, sessionsAfter){
+  const before = new Set(getUnlockedBadges(sessionsBefore).map(b=>b.id));
+  const after = getUnlockedBadges(sessionsAfter);
+  const newOnes = after.filter(b=>!before.has(b.id));
+  newOnes.forEach((b,i)=> setTimeout(()=> showBadgeToast(b), i*4000));
+}
+
+// ── Utils ─────────────────────────────────────────────────────────────────────
+const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+
+function countWords(t){ return t.trim().split(/\s+/).filter(Boolean).length; }
+
+function detectParasites(t){
+  const MOTS=["euh","heu","hm","donc","voilà","genre","enfin","ben","bah","quoi"];
+  const lower=t.toLowerCase(), found={};
+  MOTS.forEach(m=>{
+    const matches=lower.match(new RegExp(`\\b${m}\\b`,'g'));
+    if(matches) found[m]=matches.length;
+  });
+  return found;
+}
+
+// ── Pages ─────────────────────────────────────────────────────────────────────
+function showPage(name){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.getElementById('page-'+name).classList.add('active');
+  window.scrollTo(0,0);
+}
+
+// ── Home ──────────────────────────────────────────────────────────────────────
+function renderHome(){
+  renderLevelCard('level-card-home');
+
+  const sessions = loadSessions();
+  const currentXP = computeXP(sessions);
+
+  const list = document.getElementById('exercises-list');
+  list.innerHTML = EXERCISES.map(ex=>{
+    const unlocked = getExerciseUnlockStatus(ex, currentXP);
+    if(unlocked){
+      return `
+        <div class="ex-card" onclick="startExercise(${ex.id})">
+          <div class="ex-icon">${ex.emoji}</div>
+          <div style="flex:1">
+            <div class="ex-title">
+              ${ex.title}
+              <span class="badge" style="background:${ex.color}18;color:${ex.color};border:1px solid ${ex.color}44">${ex.niveau}</span>
+              ${scores[ex.id]?`<span class="ex-score">Score : ${scores[ex.id]}/100</span>`:''}
+            </div>
+            <div class="ex-desc">${ex.description}</div>
+          </div>
+          <div style="color:var(--muted);font-size:18px">›</div>
+        </div>`;
+    } else {
+      return `
+        <div class="ex-card" style="opacity:.45;cursor:not-allowed" onclick="event.stopPropagation()">
+          <div class="ex-icon" style="background:rgba(122,122,154,.1);border-color:rgba(122,122,154,.2)">🔒</div>
+          <div style="flex:1">
+            <div class="ex-title">
+              ${ex.title}
+              <span class="badge" style="background:rgba(122,122,154,.15);color:var(--muted);border:1px solid rgba(122,122,154,.3)">${ex.niveau}</span>
+            </div>
+            <div class="ex-desc">Débloqué à ${ex.xpRequis} XP (vous avez ${currentXP} XP)</div>
+          </div>
+        </div>`;
+    }
+  }).join('');
+}
+
+function renderLevelCard(targetId){
+  const el = document.getElementById(targetId);
+  if(!el) return;
+  const sessions = loadSessions();
+  const xp = computeXP(sessions);
+  const {current, next, progress} = getLevelInfo(xp);
+  const streak = computeStreak(sessions);
+
+  el.innerHTML = `
+    <div class="level-icon">${current.emoji}</div>
+    <div style="flex:1;min-width:160px">
+      <div class="level-name">${current.nom}</div>
+      <div class="level-xp">${xp} XP ${next ? `· ${next.seuil - xp} XP avant "${next.nom}"` : '· Niveau maximum !'}</div>
+      <div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${progress}%"></div></div>
+    </div>
+    ${streak>0 ? `<div class="streak-pill">🔥 ${streak} jour${streak>1?'s':''} de suite</div>` : ''}
+  `;
+}
+
+// ── Record ────────────────────────────────────────────────────────────────────
+function startExercise(id){
+  const ex = EXERCISES.find(e=>e.id===id);
+  if(!ex) return;
+  const currentXP = computeXP(loadSessions());
+  if(!getExerciseUnlockStatus(ex, currentXP)) return; // sécurité anti-triche
+  currentEx = ex;
+  elapsed = 0; transcriptFull = ""; analyzing = false;
+  renderRecordPage();
+  showPage('record');
+}
+
+function renderRecordPage(){
+  document.getElementById('rec-header').innerHTML=`
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+      <span style="font-size:24px">${currentEx.emoji}</span>
+      <div>
+        <span class="badge" style="background:${currentEx.color}18;color:${currentEx.color};border:1px solid ${currentEx.color}44">${currentEx.niveau}</span>
+        <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:20px;margin-top:4px">${currentEx.title}</div>
+      </div>
+    </div>
+    <p style="color:var(--muted);font-size:14px;font-style:italic;line-height:1.6">${currentEx.context}</p>
+  `;
+  renderReadyZone();
+}
+
+function renderReadyZone(){
+  document.getElementById('rec-zone').innerHTML=`
+    <div style="width:90px;height:90px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid rgba(212,168,67,.3);display:flex;align-items:center;justify-content:center;font-size:36px">🎙️</div>
+    <div>
+      <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:22px;margin-bottom:8px">Prêt à vous lancer ?</div>
+      <div style="color:var(--muted);font-size:13px;font-family:monospace">Durée : ${fmt(currentEx.duration)} · Le micro s'active automatiquement</div>
+    </div>
+    <div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left">
+      <div style="color:var(--gold);font-size:12px;font-family:monospace;line-height:1.7">
+        💡 Cliquez sur Démarrer · Autorisez le micro · Parlez clairement en français
+      </div>
+    </div>
+    <button class="mic-btn" onclick="requestMicAndStart()">🎙️ DÉMARRER L'ENREGISTREMENT</button>
+  `;
+}
+
+function requestMicAndStart(){
+  // Sur Android Chrome, la Web Speech API gère le micro seule
+  // getUserMedia crée un conflit — on le supprime complètement
+  startRecording();
+}
+
+function startRecording(){
+  elapsed = 0; transcriptFull = ""; analyzing = false;
+  micStream = null;
+
+  // 1. Rendre le DOM EN PREMIER
+  renderRecordingZone();
+
+  // 2. Démarrer la Web Speech API
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if(!SR){
+    const el = document.getElementById('mic-status');
+    if(el) el.innerHTML = '⚠️ Reconnaissance vocale non supportée.<br>Utilisez Chrome sur Android.';
+    return;
+  }
+
+  function createAndStart(){
+    recognition = new SR();
+    recognition.lang = 'fr-FR';
+    recognition.continuous = false; // false est plus stable sur Android Chrome
+    recognition.interimResults = true;
+    recognition.maxAlternatives = 1;
+
+    recognition.onstart = () => {
+      const el = document.getElementById('mic-status');
+      if(el) el.textContent = "🎙️ Micro actif — parlez !";
+    };
+
+    recognition.onresult = e => {
+      let final = "", interim = "";
+      for(let i = e.resultIndex; i < e.results.length; i++){
+        const t = e.results[i][0].transcript;
+        if(e.results[i].isFinal) final += t + " ";
+        else interim += t;
+      }
+      if(final) transcriptFull += final;
+      const display = (transcriptFull + interim).trim();
+      const el = document.getElementById('live-transcript');
+      if(el) el.textContent = display ? `"…${display.slice(-200)}"` : "En attente de voix…";
+    };
+
+    recognition.onerror = e => {
+      const el = document.getElementById('mic-status');
+      if(e.error === 'no-speech') return; // normal, on relance
+      if(e.error === 'aborted') return;   // arrêt volontaire
+      if(e.error === 'network'){
+        if(el) el.textContent = "⚠️ Erreur réseau Google — vérifiez votre connexion";
+        return;
+      }
+      if(e.error === 'not-allowed'){
+        if(el) el.textContent = "⚠️ Micro refusé — autorisez dans les paramètres Chrome";
+        return;
+      }
+      if(el) el.textContent = `⚠️ ${e.error}`;
+    };
+
+    recognition.onend = () => {
+      // Relance automatiquement tant qu'on n'analyse pas
+      if(!analyzing){
+        setTimeout(()=>{ try{ createAndStart(); }catch(_){} }, 100);
+      }
+    };
+
+    try { recognition.start(); } catch(_){}
+  }
+
+  // Délai 400ms pour laisser le DOM se stabiliser sur mobile
+  setTimeout(createAndStart, 400);
+
+  // Timer
+  timerInterval = setInterval(()=>{
+    elapsed++;
+    const left = currentEx.duration - elapsed;
+    const el = document.getElementById('timer-display');
+    if(el){
+      el.textContent = fmt(left);
+      el.style.color = left <= 10 ? 'var(--red)' : 'var(--text)';
+    }
+    const bar = document.getElementById('progress-fill');
+    if(bar) bar.style.width = `${(elapsed/currentEx.duration)*100}%`;
+
+    if(elapsed >= currentEx.duration && !analyzing){
+      stopAndAnalyze();
+    }
+  }, 1000);
+}
+
+function renderRecordingZone(){
+  // Génère les barres de la waveform
+  const bars = Array.from({length:18},(_,i)=>`
+    <div class="wave-bar" style="animation:waveAnim ${.35+(i%5)*.12}s ease-in-out infinite alternate;height:${12+Math.abs(Math.sin(i))*24}px"></div>
+  `).join('');
+
+  document.getElementById('rec-zone').innerHTML=`
+    <div class="waveform">${bars}</div>
+    <div>
+      <div class="timer-big" id="timer-display">${fmt(currentEx.duration)}</div>
+      <div class="rec-label">● ENREGISTREMENT EN COURS</div>
+    </div>
+    <div class="progress-bar-bg" style="width:100%">
+      <div class="progress-bar" id="progress-fill" style="width:0%"></div>
+    </div>
+    <div class="transcript-box">
+      <div class="transcript-label">🎙️ Transcription en direct</div>
+      <div class="transcript-text" id="live-transcript">En attente de voix…</div>
+    </div>
+    <div id="mic-status" style="color:var(--muted);font-size:11px;font-family:monospace"></div>
+    <button class="stop-btn" onclick="stopAndAnalyze()">⏹ Terminer et analyser</button>
+  `;
+}
+
+function stopAndAnalyze(){
+  if(analyzing) return;
+  analyzing = true;
+
+  clearInterval(timerInterval);
+  if(recognition){ try{ recognition.abort(); recognition=null; }catch(_){} }
+
+  showAnalyzingZone();
+  runAnalysis();
+}
+
+function showAnalyzingZone(){
+  document.getElementById('rec-zone').innerHTML=`
+    <div class="spinner"></div>
+    <div>
+      <div class="analyzing-title">Claude analyse votre discours…</div>
+      <div class="analyzing-msg" id="analyzing-msg">Transcription reçue…</div>
+    </div>
+  `;
+  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Claude pour feedback personnalisé…","Génération de votre rapport IA…"];
+  let i=0;
+  const t=setInterval(()=>{
+    i=(i+1)%msgs.length;
+    const el=document.getElementById('analyzing-msg');
+    if(el) el.textContent=msgs[i];
+    if(i===msgs.length-1) clearInterval(t);
+  }, 900);
+}
+
+async function runAnalysis(){
+  const text = transcriptFull.trim();
+  const duration = elapsed || currentEx.duration;
+  const nbMots = countWords(text);
+  const debit = duration>0 ? Math.round(nbMots/(duration/60)) : 0;
+  const parasites = detectParasites(text);
+  const totalParasites = Object.values(parasites).reduce((a,b)=>a+b,0);
+
+  let feedback;
+  let lastError = null;
+
+  // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
+  for(let attempt=1; attempt<=2 && !feedback; attempt++){
+    try{
+      const prompt=`Tu es un coach expert en prise de parole en public, spécialisé pour le contexte africain (Sénégal, Dakar).
+
+Un apprenant vient de faire l'exercice : "${currentEx.title}"
+Contexte : ${currentEx.context}
+
+Métriques analysées :
+- Transcription : "${text||"(aucune transcription — micro peut-être non autorisé)"}"
+- Durée : ${duration}s | Mots : ${nbMots} | Débit : ${debit} mots/min (idéal 120–150)
+- Mots parasites : ${JSON.stringify(parasites)} (total : ${totalParasites})
+
+Génère un feedback bienveillant et motivant. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
+{"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}`;
+
+      // Appel à notre fonction Netlify sécurisée (la clé API reste côté serveur)
+      const res = await fetch("/.netlify/functions/claude-feedback-1",{
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({prompt})
+      });
+
+      if(!res.ok){
+        const errBody = await res.text().catch(()=>'(corps illisible)');
+        throw new Error(`HTTP ${res.status} ${res.statusText} — ${errBody.slice(0,200)}`);
+      }
+
+      const data = await res.json();
+      const raw = (data.content||[]).map(b=>b.text||"").join("");
+      if(!raw.trim()) throw new Error("Réponse vide de l'API (aucun bloc texte)");
+
+      // Extraction robuste : on isole le premier objet JSON valide dans la réponse,
+      // même s'il y a du texte ou des balises markdown autour
+      const jsonMatch = raw.match(/\{[\s\S]*\}/);
+      const cleanJson = jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g,"").trim();
+      const parsed = JSON.parse(cleanJson);
+
+      // Validation minimale de la structure attendue
+      if(typeof parsed.score !== 'number' || !parsed.titre_feedback || !parsed.conseil_coach){
+        throw new Error("JSON reçu mais structure incomplète : " + cleanJson.slice(0,150));
+      }
+
+      feedback = parsed;
+    }catch(e){
+      lastError = e;
+      console.warn(`Tentative ${attempt}/2 échouée :`, e.message || e);
+      if(attempt < 2) await new Promise(r=>setTimeout(r, 800)); // petite pause avant retry
+    }
+  }
+
+  if(!feedback){
+    const errMsg = (lastError && (lastError.message || String(lastError))) || 'inconnue';
+    console.error('Échec définitif de l\'analyse IA après 2 tentatives. Dernière erreur :', lastError);
+    const transcriptionVide = nbMots === 0;
+    feedback = transcriptionVide
+      ? {score:50,titre_feedback:"Aucune voix détectée",
+         conseil_coach:`Nous n'avons pas pu analyser votre voix cette fois. Vérifiez que le micro est bien autorisé et réessayez en parlant clairement. [Diagnostic : ${errMsg}]`,
+         points_forts:["Vous avez tenté l'exercice","Bonne initiative de pratique","Persévérance"],
+         ameliorations:["Vérifiez l'autorisation du micro dans les paramètres du navigateur","Parlez dès l'apparition du chronomètre","Évitez les environnements bruyants"],
+         defi_suivant:"Réessayez cet exercice en vérifiant que le micro est actif."}
+      : {score:65,titre_feedback:"Bonne session ! (analyse simplifiée)",
+         conseil_coach:`Votre voix a bien été captée. Le coach IA était temporairement indisponible, mais continuez à pratiquer. [Diagnostic : ${errMsg}]`,
+         points_forts:["Vous avez osé vous lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
+         ameliorations:["Structurez en 3 parties : intro, corps, conclusion","Travaillez les silences intentionnels","Réduisez les mots parasites si besoin"],
+         defi_suivant:"Répétez cet exercice 3 fois cette semaine."};
+  }
+
+  scores[currentEx.id]=feedback.score;
+  updateNavScore();
+
+  // Comparaison avec la session précédente AVANT de sauvegarder la nouvelle
+  const previous = getLastSessionForExercise(currentEx.id);
+  const sessionsBefore = loadSessions();
+
+  // Sauvegarde de cette session dans l'historique
+  saveSession({
+    exId: currentEx.id,
+    exTitle: currentEx.title,
+    score: feedback.score,
+    debit, totalParasites, nbMots, duration,
+    date: new Date().toISOString(),
+  });
+
+  const sessionsAfter = loadSessions();
+  checkNewBadges(sessionsBefore, sessionsAfter);
+
+  showResult(feedback,{debit,parasites,totalParasites,nbMots,duration}, previous);
+}
+
+// ── Result ────────────────────────────────────────────────────────────────────
+function showResult(fb, met, previous){
+  // Texte complet à lire à voix haute par le coach IA
+  voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Votre prochain défi : ${fb.defi_suivant}`;
+
+  const scoreColor = fb.score>=80?'#27AE60':fb.score>=60?'#D4A843':'#C0392B';
+  const r=44, circ=2*Math.PI*r, prog=(fb.score/100)*circ;
+
+  const debitColor = met.debit>160?'#C0392B':met.debit>120?'#27AE60':'#E67E22';
+  const parasiteColor = met.totalParasites>10?'#C0392B':met.totalParasites>5?'#E67E22':'#27AE60';
+
+  const parasiteTags = Object.entries(met.parasites).map(([m,c])=>
+    `<span class="parasite-tag">"${m}" ×${c}</span>`).join('');
+
+  // Bloc de comparaison avec la session précédente
+  let comparisonHTML = '';
+  if(previous){
+    const deltaScore = fb.score - previous.score;
+    const deltaParasites = met.totalParasites - previous.totalParasites;
+    const scoreTrend = deltaScore > 0 ? `+${deltaScore}` : `${deltaScore}`;
+    const scoreEmoji = deltaScore > 0 ? '📈' : deltaScore < 0 ? '📉' : '➡️';
+    const parasiteTrend = deltaParasites <= 0
+      ? `${Math.abs(deltaParasites)} mot(s) parasite(s) de moins`
+      : `${deltaParasites} mot(s) parasite(s) de plus`;
+    comparisonHTML = `
+      <div class="comparison-box">
+        <span style="font-size:28px;flex-shrink:0">${scoreEmoji}</span>
+        <div>
+          <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:3px">
+            Score ${deltaScore>0?'en hausse':deltaScore<0?'en baisse':'stable'} de ${scoreTrend} points vs dernière fois
+          </div>
+          <div style="font-size:12px;color:var(--muted);font-family:monospace">${parasiteTrend}</div>
+        </div>
+      </div>`;
+  }
+
+  document.getElementById('result-content').innerHTML=`
+    <div class="score-header">
+      <div class="score-ring">
+        <svg width="130" height="130" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#252538" stroke-width="7"/>
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="${scoreColor}" stroke-width="7"
+            stroke-dasharray="${prog} ${circ}" stroke-linecap="round" transform="rotate(-90 50 50)"
+            style="transition:stroke-dasharray 1.8s ease"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:${scoreColor}">${fb.score}</span>
+          <span style="font-size:10px;color:var(--muted);font-family:monospace">/100</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div class="result-tag">Feedback IA · ${currentEx.title}</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
+          <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
+        </div>
+        <div class="result-conseil">${fb.conseil_coach}</div>
+      </div>
+    </div>
+
+    ${comparisonHTML}
+
+    <div class="metrics-box">
+      <div class="metrics-title">📊 Analyse Vocale</div>
+      ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
+      ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
+      ${metricBar("Volume du discours", met.nbMots, 400, "#5B4FE8", " mots")}
+      ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:monospace">Débit idéal : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
+    </div>
+
+    <div class="two-col">
+      <div class="result-card" style="background:rgba(39,174,96,.06);border:1px solid rgba(39,174,96,.18)">
+        <div class="result-card-title" style="color:#27AE60">✦ Points Forts</div>
+        ${fb.points_forts.map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
+      </div>
+      <div class="result-card" style="background:rgba(230,126,34,.06);border:1px solid rgba(230,126,34,.18)">
+        <div class="result-card-title" style="color:#E67E22">◆ À Améliorer</div>
+        ${fb.ameliorations.map(a=>`<div class="result-item"><span style="color:#E67E22;flex-shrink:0">→</span><span class="result-item-text" style="color:var(--text)">${a}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="defi-box">
+      <span style="font-size:24px;flex-shrink:0">🎯</span>
+      <div>
+        <div class="defi-title">Défi pour progresser</div>
+        <div class="defi-text" style="color:var(--text)">${fb.defi_suivant}</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button class="btn-primary" onclick="stopVoiceFeedback();startExercise(${currentEx.id})">🔄 RÉESSAYER</button>
+      <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">← Autres exercices</button>
+    </div>
+  `;
+  showPage('result');
+}
+
+function metricBar(label, value, max, color, unit){
+  const pct=Math.min((value/max)*100,100);
+  return`<div class="metric-row">
+    <div class="metric-top">
+      <span class="metric-lbl">${label}</span>
+      <span class="metric-val" style="color:${color}">${value}${unit}</span>
+    </div>
+    <div class="metric-bg"><div class="metric-fill" style="width:${pct}%;background:${color}"></div></div>
+  </div>`;
+}
+
+// ── Feedback vocal (Claude vous parle) ──────────────────────────────────────
+function pickFrenchVoice(){
+  const voices = window.speechSynthesis.getVoices();
+  // Préférence : voix française, idéalement une voix féminine/naturelle si disponible
+  return voices.find(v=>v.lang==='fr-FR') || voices.find(v=>v.lang && v.lang.startsWith('fr')) || null;
+}
+
+function toggleVoiceFeedback(){
+  const btn = document.getElementById('voice-btn');
+  if(!btn) return;
+
+  // Si une lecture est en cours, on l'arrête (toggle off)
+  if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
+    window.speechSynthesis.cancel();
+    btn.textContent = '🔊 Écouter';
+    btn.classList.remove('playing');
+    return;
+  }
+
+  if(!voiceText){ return; }
+
+  const utter = new SpeechSynthesisUtterance(voiceText);
+  utter.lang = 'fr-FR';
+  utter.rate = 1;
+  utter.pitch = 1;
+  utter.volume = 1;
+  const voice = pickFrenchVoice();
+  if(voice) utter.voice = voice;
+
+  utter.onstart = () => {
+    btn.textContent = '⏸ Lecture en cours…';
+    btn.classList.add('playing');
+  };
+  utter.onend = () => {
+    btn.textContent = '🔊 Écouter';
+    btn.classList.remove('playing');
+  };
+  utter.onerror = (e) => {
+    btn.textContent = '🔊 Écouter';
+    btn.classList.remove('playing');
+    console.warn('Erreur synthèse vocale :', e.error);
+  };
+
+  currentUtterance = utter;
+  window.speechSynthesis.speak(utter);
+}
+
+// Certains navigateurs chargent les voix de façon asynchrone — on les précharge
+if('speechSynthesis' in window){
+  window.speechSynthesis.getVoices();
+  window.speechSynthesis.onvoiceschanged = () => window.speechSynthesis.getVoices();
+}
+
+// Arrête la lecture vocale si on quitte la page résultat
+function stopVoiceFeedback(){
+  if(window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+}
+
+function goHome(){ showPage('home'); renderHome(); }
+function updateNavScore(){
+  const n=Object.keys(scores).length;
+  document.getElementById('nav-score').textContent=n>0?`${n}/3 exercices`:'';
+}
+
+// ── Historique ────────────────────────────────────────────────────────────────
+function showHistoryPage(){
+  renderHistory();
+  showPage('history');
+}
+
+function renderHistory(){
+  const sessions = loadSessions().slice().reverse(); // plus récent en premier
+  const container = document.getElementById('history-content');
+
+  if(sessions.length === 0){
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">🎙️</div>
+        <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:8px">Aucune session pour l'instant</div>
+        <div style="font-size:13px;font-family:monospace">Faites votre premier exercice pour démarrer votre suivi !</div>
+      </div>`;
+    return;
+  }
+
+  // Stats résumées
+  const allScores = sessions.map(s=>s.score);
+  const avgScore = Math.round(allScores.reduce((a,b)=>a+b,0)/allScores.length);
+  const bestScore = Math.max(...allScores);
+  const totalSessions = sessions.length;
+
+  // Graphique d'évolution (chronologique, donc on inverse à nouveau pour le tracé)
+  const chronological = sessions.slice().reverse();
+  const chartSVG = buildProgressChart(chronological);
+
+  const unlockedIds = new Set(getUnlockedBadges(chronological).map(b=>b.id));
+  const badgesHTML = BADGES.map(b=>{
+    const unlocked = unlockedIds.has(b.id);
+    return `
+      <div class="badge-card ${unlocked?'unlocked':'locked'}">
+        <span class="badge-icon">${unlocked ? b.emoji : '🔒'}</span>
+        <div class="badge-name">${b.nom}</div>
+        <div class="badge-desc">${b.desc}</div>
+      </div>`;
+  }).join('');
+
+  const sessionRows = sessions.map(s=>{
+    const color = s.score>=80?'#27AE60':s.score>=60?'#D4A843':'#C0392B';
+    const date = new Date(s.date);
+    const dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    return `
+      <div class="session-row">
+        <div class="session-score-badge" style="border-color:${color};color:${color}">${s.score}</div>
+        <div class="session-info">
+          <div class="session-title">${s.exTitle}</div>
+          <div class="session-date">${dateStr} · ${s.debit} mots/min · ${s.totalParasites} parasites</div>
+        </div>
+      </div>`;
+  }).join('');
+
+  container.innerHTML = `
+    <div class="level-card" id="level-card-history"></div>
+
+    <div class="stats-summary">
+      <div class="stat-box"><div class="stat-box-val">${totalSessions}</div><div class="stat-box-lab">SESSIONS</div></div>
+      <div class="stat-box"><div class="stat-box-val">${avgScore}</div><div class="stat-box-lab">SCORE MOYEN</div></div>
+      <div class="stat-box"><div class="stat-box-val">${bestScore}</div><div class="stat-box-lab">MEILLEUR SCORE</div></div>
+    </div>
+
+    <div class="section-title" style="font-size:18px">🏆 Badges</div>
+    <div class="badges-grid">${badgesHTML}</div>
+
+    <div class="progress-chart-box">
+      <div class="chart-header">
+        <span style="font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--text)">Évolution du score</span>
+        <span style="font-size:11px;color:var(--muted);font-family:monospace">${chronological.length} session(s)</span>
+      </div>
+      <div class="chart-svg-wrap">${chartSVG}</div>
+    </div>
+
+    <div class="section-title" style="font-size:18px;margin-top:8px">Sessions récentes</div>
+    <div style="margin-top:14px">${sessionRows}</div>
+  `;
+  renderLevelCard('level-card-history');
+}
+
+function buildProgressChart(sessions){
+  if(sessions.length === 1){
+    return `<div style="text-align:center;padding:30px;color:var(--muted);font-family:monospace;font-size:12px">
+      Faites une 2ᵉ session pour voir votre courbe de progression
+    </div>`;
+  }
+
+  const w = Math.max(320, sessions.length * 60);
+  const h = 160;
+  const padX = 24, padY = 20;
+  const maxScore = 100;
+
+  const points = sessions.map((s,i)=>{
+    const x = padX + (i/(sessions.length-1)) * (w - padX*2);
+    const y = padY + (1 - s.score/maxScore) * (h - padY*2);
+    return {x, y, score: s.score};
+  });
+
+  const pathD = points.map((p,i)=> (i===0?'M':'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1)).join(' ');
+  const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${h-padY} L${points[0].x.toFixed(1)},${h-padY} Z`;
+
+  const dots = points.map(p=>{
+    const color = p.score>=80?'#27AE60':p.score>=60?'#D4A843':'#C0392B';
+    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${color}" stroke="#080810" stroke-width="2"/>
+            <text x="${p.x.toFixed(1)}" y="${(p.y-10).toFixed(1)}" text-anchor="middle" font-size="10" font-family="monospace" fill="${color}" font-weight="700">${p.score}</text>`;
+  }).join('');
+
+  // Lignes de référence horizontales
+  const gridLines = [0,25,50,75,100].map(v=>{
+    const y = padY + (1 - v/maxScore) * (h - padY*2);
+    return `<line x1="${padX}" y1="${y}" x2="${w-padX}" y2="${y}" stroke="#252538" stroke-width="1" stroke-dasharray="3,3"/>`;
+  }).join('');
+
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+    ${gridLines}
+    <path d="${areaD}" fill="#D4A84314"/>
+    <path d="${pathD}" fill="none" stroke="#D4A843" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    ${dots}
+  </svg>`;
+}
+
+// Init
+hydrateScoresFromHistory();
+renderHome();
+updateNavScore();
+</script>
+</body>
+</html>
