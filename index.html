@@ -770,7 +770,7 @@ Génère un feedback bienveillant et motivant. Réponds UNIQUEMENT en JSON valid
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}`;
 
       // Appel à notre fonction Netlify sécurisée (la clé API reste côté serveur)
-      const res = await fetch("/.netlify/functions/claude-feedback-1",{
+      const res = await fetch("/.netlify/functions/claude-feedback",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({prompt})
