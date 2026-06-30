@@ -87,6 +87,25 @@
     padding:13px 34px;font-size:13px;font-weight:800;
     cursor:pointer;font-family:monospace;letter-spacing:2px;width:100%;
   }
+  .example-toggle-btn{
+    background:rgba(91,79,232,.1);border:1px solid rgba(91,79,232,.35);
+    color:#8B7FFF;border-radius:10px;padding:11px 20px;
+    font-size:12px;font-weight:700;cursor:pointer;font-family:monospace;
+    width:100%;transition:all .2s ease;
+  }
+  .example-toggle-btn:hover{background:rgba(91,79,232,.18)}
+  .example-box{
+    background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.25);
+    border-radius:10px;padding:16px 18px;width:100%;text-align:left;
+  }
+  .example-label{
+    font-size:10px;color:#8B7FFF;font-family:monospace;letter-spacing:1px;
+    text-transform:uppercase;margin-bottom:8px;font-weight:700;
+  }
+  .example-text{
+    font-size:13px;color:var(--text);font-family:'Lora',serif;
+    line-height:1.7;font-style:italic;
+  }
   .stop-btn{
     background:none;border:1px solid var(--red);color:var(--red);
     border-radius:8px;padding:10px 28px;font-size:12px;
@@ -369,23 +388,32 @@
 // ── Data ──────────────────────────────────────────────────────────────────────
 const EXERCISES = [
   {id:1,emoji:"🎯",title:"Pitch Investisseur",description:"Présentez votre projet en 60 secondes à un investisseur.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:0,
-   context:"Vous parlez à un investisseur potentiel qui vous accorde 60 secondes. Soyez percutant, clair et convaincant."},
+   context:"Vous parlez à un investisseur potentiel qui vous accorde 60 secondes. Soyez percutant, clair et convaincant.",
+   exemple:"Bonjour, je m'appelle Awa et je dirige Téranga Fresh, une plateforme qui connecte directement les maraîchers de Niayes aux familles dakaroises, sans intermédiaire. Aujourd'hui, 40% des légumes pourrissent avant d'atteindre le marché à cause des circuits trop longs. Nous avons déjà 200 familles abonnées et nos producteurs gagnent 30% de plus. Nous cherchons 15 millions de FCFA pour étendre la livraison à Pikine et Guédiawaye d'ici 6 mois. Je serais ravie de vous montrer nos chiffres en détail."},
   {id:4,emoji:"🛍️",title:"Négociation au Marché",description:"Défendez votre prix face à un client exigeant, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:0,
-   context:"Vous êtes commerçant(e) à Sandaga. Un client négocie fort. Restez ferme et convaincant(e) sans le braquer."},
+   context:"Vous êtes commerçant(e) à Sandaga. Un client négocie fort. Restez ferme et convaincant(e) sans le braquer.",
+   exemple:"Je comprends que vous cherchiez le meilleur prix, et je respecte ça. Mais regardez la qualité de ce tissu : c'est du bazin véritable, pas de l'imitation. Je l'ai eu directement du grossiste à Touba, pas de revendeur entre nous deux. À ce prix, vous ne trouverez pas mieux dans tout le marché. Je peux vous faire un petit geste si vous prenez deux pièces, mais en dessous de ce prix, je travaillerais à perte. Qu'en dites-vous ?"},
   {id:5,emoji:"👨‍👩‍👧",title:"Discours de Cérémonie",description:"Prenez la parole à un mariage ou baptême, en 75 secondes.",duration:75,niveau:"Débutant",color:"#27AE60",xpRequis:50,
-   context:"C'est le mariage d'un proche. La famille vous a demandé de dire quelques mots devant tous les invités."},
+   context:"C'est le mariage d'un proche. La famille vous a demandé de dire quelques mots devant tous les invités.",
+   exemple:"Chers parents, chers amis, c'est avec une immense joie que je prends la parole aujourd'hui. J'ai connu Fatou depuis l'école primaire, et je peux vous dire qu'elle a toujours eu un cœur immense pour les siens. Aujourd'hui, en la voyant unie à Moussa, je vois deux familles qui s'agrandissent, deux histoires qui n'en font plus qu'une. Que Dieu vous accorde longue vie ensemble, beaucoup d'enfants, et que votre foyer soit toujours rempli de paix. Je vous souhaite tout le bonheur du monde."},
   {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motivez votre équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
-   context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer."},
+   context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer.",
+   exemple:"Je sais que les deux dernières semaines ont été dures. Les chiffres n'étaient pas là, et certains d'entre vous doutent. C'est normal. Mais regardez le chemin parcouru : il y a six mois, on partait de zéro. Aujourd'hui, on a une équipe soudée et un produit que nos clients adorent. Ce qui nous manque, ce n'est pas le talent — c'est la confiance. Alors aujourd'hui, je vous demande une chose : donnons tout, ensemble, pendant les 30 prochains jours. Pas pour moi, pas pour l'entreprise — pour ce qu'on construit tous ensemble. On y va ?"},
   {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défendez un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
-   context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible."},
+   context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible.",
+   exemple:"Monsieur le Maire, mesdames et messieurs les conseillers, je viens vous présenter un projet porté par 30 familles de notre quartier : la réhabilitation du terrain vague de la rue 14 en jardin communautaire. Aujourd'hui, cet espace attire les déchets et l'insécurité. Demain, il pourrait nourrir nos familles et rassembler nos enfants. Nous avons déjà mobilisé des bénévoles et obtenu un partenariat avec une ONG locale pour les semences. Nous demandons simplement l'autorisation municipale et un accès à l'eau. Ce projet ne coûtera rien à la mairie, mais changera la vie de tout un quartier."},
   {id:7,emoji:"💰",title:"Pitch devant un Bailleur",description:"Convaincez un bailleur de fonds international, en 100 secondes.",duration:100,niveau:"Intermédiaire",color:"#E67E22",xpRequis:200,
-   context:"Une ONG internationale évalue votre projet pour un financement. Montrez l'impact concret et la rigueur de votre démarche."},
+   context:"Une ONG internationale évalue votre projet pour un financement. Montrez l'impact concret et la rigueur de votre démarche.",
+   exemple:"Notre organisation forme des jeunes filles déscolarisées de Kaolack aux métiers du numérique. En deux ans, nous avons formé 150 jeunes filles, dont 80% ont trouvé un emploi ou créé leur propre activité dans les six mois suivants. Notre coût par bénéficiaire est de 45 000 FCFA, soit trois fois moins que la moyenne du secteur, car nous utilisons des formateurs locaux et des outils open-source. Avec un financement de 20 millions de FCFA sur 18 mois, nous pourrions former 400 jeunes filles supplémentaires dans trois nouvelles régions. Nous avons un système de suivi rigoureux et publions nos résultats trimestriellement. Je peux vous partager notre rapport d'impact détaillé dès aujourd'hui."},
   {id:3,emoji:"🌍",title:"Vision pour l'Afrique",description:"Partagez votre vision pour le Sénégal de demain en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:300,
-   context:"Vous avez la parole devant une grande assemblée citoyenne à Dakar. Inspirez, convainquez, mobilisez."},
+   context:"Vous avez la parole devant une grande assemblée citoyenne à Dakar. Inspirez, convainquez, mobilisez.",
+   exemple:"Mes chers compatriotes, nous sommes à un tournant. Le Sénégal de demain ne se construira pas en attendant que d'autres le fassent à notre place. Il se construira par chacun de nous, dans nos quartiers, nos écoles, nos entreprises. J'imagine un Sénégal où nos jeunes n'ont plus besoin de traverser l'océan pour réussir, parce que les opportunités existent ici, chez nous. Un Sénégal où nos terres nourrissent nos familles avant d'enrichir d'autres pays. Un Sénégal où la technologie sert notre développement, pas seulement notre consommation. Cela commence aujourd'hui, avec nous, dans cette salle. Ne soyons pas spectateurs de notre avenir — soyons-en les bâtisseurs."},
   {id:8,emoji:"📺",title:"Interview Télévisée",description:"Répondez avec assurance à des questions pièges, en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:400,
-   context:"Vous êtes interviewé(e) sur une chaîne nationale sur un sujet sensible. Restez calme, clair(e) et maître de votre message."},
+   context:"Vous êtes interviewé(e) sur une chaîne nationale sur un sujet sensible. Restez calme, clair(e) et maître de votre message.",
+   exemple:"C'est une question légitime, et je vais y répondre directement. Oui, nous avons rencontré des difficultés au début du projet, je ne vais pas le nier. Mais ce qui compte, c'est ce que nous avons appris et comment nous avons ajusté notre approche. Aujourd'hui, les résultats parlent d'eux-mêmes : nos indicateurs sont en hausse de 60% par rapport à l'année dernière. Je préfère qu'on parle de transparence plutôt que de perfection — nous assumons nos erreurs et nous progressons. C'est exactement ce que les Sénégalais attendent de nous, et c'est ce que nous continuerons à faire."},
   {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défendez une cause sociale devant une foule, en 2m30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
-   context:"Vous portez la voix d'une cause importante (éducation, environnement, droits) devant un grand rassemblement public."},
+   context:"Vous portez la voix d'une cause importante (éducation, environnement, droits) devant un grand rassemblement public.",
+   exemple:"Aujourd'hui, je ne parle pas seulement en mon nom. Je parle au nom de milliers d'enfants qui marchent chaque matin des kilomètres pour rejoindre une école qui manque de tout. Je parle au nom de ces enseignants qui donnent sans compter, malgré des classes de 80 élèves. Ce n'est pas une fatalité — c'est un choix que nous pouvons changer ensemble. Chaque enfant scolarisé aujourd'hui, c'est une famille qui sortira de la pauvreté demain. Je demande à chacun d'entre vous, à nos décideurs, à nos entreprises : investissons dans l'éducation comme on investirait dans notre avenir commun, parce que c'est exactement ce que c'est. L'éducation n'attend pas. Nos enfants n'attendent pas. Agissons maintenant."},
 ];
 
 function getExerciseUnlockStatus(ex, currentXP){
@@ -700,8 +728,23 @@ function renderReadyZone(){
         💡 Cliquez sur Démarrer · Autorisez le micro · Parlez clairement en français
       </div>
     </div>
+    <button class="example-toggle-btn" onclick="toggleExample()" id="example-toggle-btn">
+      📖 Voir un exemple de bonne réponse
+    </button>
+    <div class="example-box" id="example-box" style="display:none">
+      <div class="example-label">✦ Exemple de réponse réussie</div>
+      <div class="example-text">${currentEx.exemple}</div>
+    </div>
     <button class="mic-btn" onclick="requestMicAndStart()">🎙️ DÉMARRER L'ENREGISTREMENT</button>
   `;
+}
+
+function toggleExample(){
+  const box = document.getElementById('example-box');
+  const btn = document.getElementById('example-toggle-btn');
+  const isHidden = box.style.display === 'none';
+  box.style.display = isHidden ? 'block' : 'none';
+  btn.textContent = isHidden ? '🙈 Masquer l\'exemple' : '📖 Voir un exemple de bonne réponse';
 }
 
 function requestMicAndStart(){
