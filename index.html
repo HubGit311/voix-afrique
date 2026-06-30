@@ -461,6 +461,7 @@ let recognition = null;
 let transcriptFull = "";
 let analyzing = false;
 let micStream = null;
+let segmentTimestamps = []; // timestamps de chaque segment de parole validé, pour détecter les pauses
 let currentUtterance = null;
 let voiceText = "";
 
@@ -583,6 +584,37 @@ function detectParasites(t){
     if(matches) found[m]=matches.length;
   });
   return found;
+}
+
+// ── Score de fluidité ────────────────────────────────────────────────────────
+// Analyse les intervalles entre segments de parole validés pour détecter
+// les pauses longues (hésitations) et la régularité globale du rythme.
+function computeFluencyScore(timestamps){
+  if(!timestamps || timestamps.length < 2){
+    return { score: null, longPauses: 0, avgGapSec: 0, regularity: null };
+  }
+
+  const gaps = [];
+  for(let i=1;i<timestamps.length;i++){
+    gaps.push((timestamps[i]-timestamps[i-1]) / 1000); // en secondes
+  }
+
+  const avgGapSec = gaps.reduce((a,b)=>a+b,0) / gaps.length;
+
+  // Une pause "longue" = significativement plus longue que la normale (hésitation probable)
+  const LONG_PAUSE_THRESHOLD = 3.5; // secondes
+  const longPauses = gaps.filter(g => g > LONG_PAUSE_THRESHOLD).length;
+
+  // Régularité : écart-type des intervalles, plus c'est bas plus le débit est régulier
+  const variance = gaps.reduce((sum,g)=> sum + Math.pow(g-avgGapSec,2), 0) / gaps.length;
+  const stdDev = Math.sqrt(variance);
+  const regularity = Math.max(0, 100 - Math.round(stdDev*15)); // converti en score 0-100
+
+  // Score final : pénalise les pauses longues, valorise la régularité
+  let score = regularity - (longPauses * 8);
+  score = Math.max(0, Math.min(100, Math.round(score)));
+
+  return { score, longPauses, avgGapSec: Math.round(avgGapSec*10)/10, regularity };
 }
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
@@ -756,6 +788,7 @@ function requestMicAndStart(){
 function startRecording(){
   elapsed = 0; transcriptFull = ""; analyzing = false;
   micStream = null;
+  segmentTimestamps = []; // réinitialise le suivi des pauses pour cette session
 
   // 1. Rendre le DOM EN PREMIER
   renderRecordingZone();
@@ -787,7 +820,10 @@ function startRecording(){
         if(e.results[i].isFinal) final += t + " ";
         else interim += t;
       }
-      if(final) transcriptFull += final;
+      if(final){
+        transcriptFull += final;
+        segmentTimestamps.push(Date.now()); // marque le moment de chaque segment validé
+      }
       const display = (transcriptFull + interim).trim();
       const el = document.getElementById('live-transcript');
       if(el) el.textContent = display ? `"…${display.slice(-200)}"` : "En attente de voix…";
@@ -899,6 +935,7 @@ async function runAnalysis(){
   const debit = duration>0 ? Math.round(nbMots/(duration/60)) : 0;
   const parasites = detectParasites(text);
   const totalParasites = Object.values(parasites).reduce((a,b)=>a+b,0);
+  const fluency = computeFluencyScore(segmentTimestamps);
 
   let feedback;
   let lastError = null;
@@ -989,6 +1026,7 @@ Génère un feedback bienveillant et motivant. Réponds UNIQUEMENT en JSON valid
     exTitle: currentEx.title,
     score: feedback.score,
     debit, totalParasites, nbMots, duration,
+    fluencyScore: fluency.score,
     date: new Date().toISOString(),
     dailyBonus: isDailyBonus,
   });
@@ -996,7 +1034,7 @@ Génère un feedback bienveillant et motivant. Réponds UNIQUEMENT en JSON valid
   const sessionsAfter = loadSessions();
   checkNewBadges(sessionsBefore, sessionsAfter);
 
-  showResult(feedback,{debit,parasites,totalParasites,nbMots,duration}, previous, isDailyBonus);
+  showResult(feedback,{debit,parasites,totalParasites,nbMots,duration,fluency}, previous, isDailyBonus);
 }
 
 // ── Result ────────────────────────────────────────────────────────────────────
@@ -1079,7 +1117,9 @@ function showResult(fb, met, previous, dailyBonus){
       ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
       ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
       ${metricBar("Volume du discours", met.nbMots, 400, "#5B4FE8", " mots")}
+      ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
       ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
+      ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:11px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
       <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:monospace">Débit idéal : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
     </div>
 
