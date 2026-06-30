@@ -601,18 +601,21 @@ function computeFluencyScore(timestamps){
 
   const avgGapSec = gaps.reduce((a,b)=>a+b,0) / gaps.length;
 
-  // Une pause "longue" = significativement plus longue que la normale (hésitation probable)
-  const LONG_PAUSE_THRESHOLD = 3.5; // secondes
+  // Note technique : sur Android Chrome, la reconnaissance vocale redémarre par segments
+  // courts, ce qui crée naturellement de nombreuses micro-pauses entre segments —
+  // ce ne sont pas de vraies hésitations de l'utilisateur. Le seuil et la pénalité
+  // sont donc calibrés pour ne signaler que les pauses vraiment significatives.
+  const LONG_PAUSE_THRESHOLD = 5; // secondes — plus tolérant que le segment-à-segment habituel
   const longPauses = gaps.filter(g => g > LONG_PAUSE_THRESHOLD).length;
 
   // Régularité : écart-type des intervalles, plus c'est bas plus le débit est régulier
   const variance = gaps.reduce((sum,g)=> sum + Math.pow(g-avgGapSec,2), 0) / gaps.length;
   const stdDev = Math.sqrt(variance);
-  const regularity = Math.max(0, 100 - Math.round(stdDev*15)); // converti en score 0-100
+  const regularity = Math.max(40, 100 - Math.round(stdDev*6)); // plancher à 40 pour éviter les scores extrêmes
 
-  // Score final : pénalise les pauses longues, valorise la régularité
-  let score = regularity - (longPauses * 8);
-  score = Math.max(0, Math.min(100, Math.round(score)));
+  // Score final : part d'une base solide, pénalité légère et plafonnée par pause longue
+  let score = regularity - Math.min(longPauses * 4, 35); // pénalité max de 35 points, jamais plus
+  score = Math.max(10, Math.min(100, Math.round(score))); // plancher à 10 : jamais 0 pur
 
   return { score, longPauses, avgGapSec: Math.round(avgGapSec*10)/10, regularity };
 }
