@@ -311,7 +311,64 @@
   .toast-icon{font-size:32px;flex-shrink:0}
   .toast-title{font-size:10px;color:var(--gold);font-family:monospace;letter-spacing:1px;text-transform:uppercase}
   .toast-name{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);font-weight:700}
+  /* AUTH */
+  .auth-bar{
+    display:flex;align-items:center;gap:10px;padding:8px 16px;
+    background:rgba(39,174,96,.08);border-bottom:1px solid rgba(39,174,96,.2);
+    font-size:12px;font-family:monospace;
+  }
+  .auth-bar.signed-out{background:rgba(212,168,67,.06);border-color:rgba(212,168,67,.2)}
+  .auth-avatar{width:28px;height:28px;border-radius:50%;object-fit:cover;border:2px solid rgba(39,174,96,.4)}
+  .auth-name{color:var(--text);flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .auth-btn{
+    background:none;border:1px solid;border-radius:8px;
+    padding:5px 12px;font-size:11px;font-family:monospace;cursor:pointer;font-weight:700;
+    transition:all .15s ease;white-space:nowrap;
+  }
+  .auth-btn.signin{border-color:var(--gold);color:var(--gold)}
+  .auth-btn.signin:hover{background:rgba(212,168,67,.1)}
+  .auth-btn.signout{border-color:var(--muted);color:var(--muted)}
+  .auth-btn.signout:hover{background:rgba(122,122,154,.1)}
+  .sync-indicator{font-size:10px;color:var(--green);font-family:monospace;display:none}
+  .sync-indicator.visible{display:inline}
 </style>
+
+<!-- Firebase SDK via CDN -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
+  import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
+  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyCN_gvo3qdUbUDUFjc__artJyTQNmhpS-w",
+    authDomain: "voix-afrique.firebaseapp.com",
+    projectId: "voix-afrique",
+    storageBucket: "voix-afrique.firebasestorage.app",
+    messagingSenderId: "258066291963",
+    appId: "1:258066291963:web:f0ea10de1c5e8fd5e3245e"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db = getFirestore(app);
+  const provider = new GoogleAuthProvider();
+
+  // Expose globally so the main script can call them
+  window._fbAuth = auth;
+  window._fbDb = db;
+  window._fbProvider = provider;
+  window._fbSignIn = () => signInWithPopup(auth, provider);
+  window._fbSignOut = () => signOut(auth);
+  window._fbGetDoc = getDoc;
+  window._fbSetDoc = setDoc;
+  window._fbDoc = doc;
+
+  // Watch auth state
+  onAuthStateChanged(auth, user => {
+    window._fbUser = user || null;
+    if(window._onAuthReady) window._onAuthReady(user);
+  });
+</script>
 </head>
 <body>
 
@@ -328,6 +385,12 @@
     <div id="nav-score" style="font-family:monospace;font-size:11px;color:var(--muted)"></div>
   </div>
 </nav>
+
+<!-- ══ AUTH BAR ════════════════════════════════════════════════════════════════ -->
+<div id="auth-bar" class="auth-bar signed-out">
+  <span style="color:var(--gold);font-size:11px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
+  <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
+</div>
 
 <!-- ══ HOME ══════════════════════════════════════════════════════════════════ -->
 <div id="page-home" class="page active">
@@ -454,6 +517,96 @@ function isDailyChallengeCompletedToday(exId){
 }
 
 const scores = {};
+let currentUser = null;
+
+// ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
+function renderAuthBar(user){
+  const bar = document.getElementById('auth-bar');
+  if(!bar) return;
+  if(user){
+    bar.className = 'auth-bar';
+    bar.innerHTML = `
+      ${user.photoURL ? `<img class="auth-avatar" src="${user.photoURL}" alt="">` : '👤'}
+      <span class="auth-name">${user.displayName || user.email}</span>
+      <span class="sync-indicator visible" id="sync-dot">✓ Sauvegardé</span>
+      <button class="auth-btn signout" onclick="handleSignOut()">Déconnexion</button>
+    `;
+  } else {
+    bar.className = 'auth-bar signed-out';
+    bar.innerHTML = `
+      <span style="color:var(--gold);font-size:11px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
+      <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
+    `;
+  }
+}
+
+async function handleSignIn(){
+  try {
+    if(window._fbSignIn) await window._fbSignIn();
+  } catch(e) {
+    if(e.code !== 'auth/popup-closed-by-user') console.warn('Erreur connexion:', e);
+  }
+}
+
+function handleSignOut(){
+  if(window._fbSignOut) window._fbSignOut();
+  currentUser = null;
+  renderAuthBar(null);
+}
+
+// Sauvegarde la progression dans Firestore
+async function saveToCloud(sessions){
+  if(!currentUser || !window._fbDb) return;
+  try {
+    const ref = window._fbDoc(window._fbDb, 'users', currentUser.uid);
+    await window._fbSetDoc(ref, { sessions, updatedAt: Date.now() }, { merge: true });
+    const dot = document.getElementById('sync-dot');
+    if(dot){ dot.textContent = '✓ Sauvegardé'; dot.style.color = 'var(--green)'; }
+  } catch(e) {
+    console.warn('Erreur sauvegarde cloud:', e);
+  }
+}
+
+// Charge la progression depuis Firestore
+async function loadFromCloud(){
+  if(!currentUser || !window._fbDb) return null;
+  try {
+    const ref = window._fbDoc(window._fbDb, 'users', currentUser.uid);
+    const snap = await window._fbGetDoc(ref);
+    if(snap.exists()) return snap.data().sessions || [];
+  } catch(e) {
+    console.warn('Erreur chargement cloud:', e);
+  }
+  return null;
+}
+
+// Appelé quand l'état d'authentification change
+window._onAuthReady = async (user) => {
+  currentUser = user;
+  renderAuthBar(user);
+  if(user){
+    // L'utilisateur vient de se connecter : on charge ses données cloud
+    const cloudSessions = await loadFromCloud();
+    if(cloudSessions && cloudSessions.length > 0){
+      // Fusionne avec les sessions locales (évite les doublons par date+exId)
+      const localSessions = loadSessions();
+      const merged = mergeSessions(localSessions, cloudSessions);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+    }
+    // Synchronise les données locales vers le cloud
+    await saveToCloud(loadSessions());
+    hydrateScoresFromHistory();
+    renderHome();
+    updateNavScore();
+  }
+};
+
+// Fusionne deux tableaux de sessions sans doublons
+function mergeSessions(local, cloud){
+  const keys = new Set(local.map(s => `${s.exId}-${s.date}`));
+  const extras = cloud.filter(s => !keys.has(`${s.exId}-${s.date}`));
+  return [...local, ...extras].sort((a,b) => new Date(a.date)-new Date(b.date));
+}
 let currentEx = null;
 let elapsed = 0;
 let timerInterval = null;
@@ -479,6 +632,8 @@ function saveSession(session){
   const sessions = loadSessions();
   sessions.push(session);
   try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }catch(_){}
+  // Synchronise vers le cloud si l'utilisateur est connecté
+  if(currentUser) saveToCloud(sessions);
 }
 
 function getLastSessionForExercise(exId){
