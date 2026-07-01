@@ -333,12 +333,11 @@
   .sync-indicator.visible{display:inline}
 </style>
 
-<!-- Firebase SDK via CDN -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-app.js";
-  import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc } from "https://www.gstatic.com/firebasejs/11.0.0/firebase-firestore.js";
-
+<!-- Firebase SDK compat (fonctionne de façon synchrone et globale sur Android) -->
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script>
   const firebaseConfig = {
     apiKey: "AIzaSyCN_gvo3qdUbUDUFjc__artJyTQNmhpS-w",
     authDomain: "voix-afrique.firebaseapp.com",
@@ -348,30 +347,24 @@
     appId: "1:258066291963:web:f0ea10de1c5e8fd5e3245e"
   };
 
-  const app = initializeApp(firebaseConfig);
-  const auth = getAuth(app);
-  const db = getFirestore(app);
-  const provider = new GoogleAuthProvider();
+  firebase.initializeApp(firebaseConfig);
+  const _auth = firebase.auth();
+  const _db = firebase.firestore();
+  const _provider = new firebase.auth.GoogleAuthProvider();
 
-  // Expose globally so the main script can call them
-  window._fbAuth = auth;
-  window._fbDb = db;
-  window._fbProvider = provider;
-  window._fbSignIn = () => signInWithRedirect(auth, provider);
-  window._fbSignOut = () => signOut(auth);
-  window._fbGetDoc = getDoc;
-  window._fbSetDoc = setDoc;
-  window._fbDoc = doc;
+  // Fonctions globales utilisées par l'app
+  window._fbSignIn = () => _auth.signInWithRedirect(_provider);
+  window._fbSignOut = () => _auth.signOut();
+  window._fbSaveData = (uid, data) => _db.collection('users').doc(uid).set(data, { merge: true });
+  window._fbLoadData = (uid) => _db.collection('users').doc(uid).get();
 
-  // Récupère le résultat de la redirection Google au retour sur la page
-  getRedirectResult(auth).then(result => {
-    if(result && result.user && window._onAuthReady){
-      window._onAuthReady(result.user);
-    }
-  }).catch(e => console.warn('Erreur redirect:', e));
+  // Récupère le résultat de la redirection Google
+  _auth.getRedirectResult().then(result => {
+    if(result && result.user) console.log('Connexion par redirect OK:', result.user.displayName);
+  }).catch(e => console.warn('Redirect result error:', e));
 
-  // Watch auth state
-  onAuthStateChanged(auth, user => {
+  // Observe l'état de connexion
+  _auth.onAuthStateChanged(user => {
     window._fbUser = user || null;
     if(window._onAuthReady) window._onAuthReady(user);
   });
@@ -563,10 +556,9 @@ function handleSignOut(){
 
 // Sauvegarde la progression dans Firestore
 async function saveToCloud(sessions){
-  if(!currentUser || !window._fbDb) return;
+  if(!currentUser || !window._fbSaveData) return;
   try {
-    const ref = window._fbDoc(window._fbDb, 'users', currentUser.uid);
-    await window._fbSetDoc(ref, { sessions, updatedAt: Date.now() }, { merge: true });
+    await window._fbSaveData(currentUser.uid, { sessions, updatedAt: Date.now() });
     const dot = document.getElementById('sync-dot');
     if(dot){ dot.textContent = '✓ Sauvegardé'; dot.style.color = 'var(--green)'; }
   } catch(e) {
@@ -576,11 +568,10 @@ async function saveToCloud(sessions){
 
 // Charge la progression depuis Firestore
 async function loadFromCloud(){
-  if(!currentUser || !window._fbDb) return null;
+  if(!currentUser || !window._fbLoadData) return null;
   try {
-    const ref = window._fbDoc(window._fbDb, 'users', currentUser.uid);
-    const snap = await window._fbGetDoc(ref);
-    if(snap.exists()) return snap.data().sessions || [];
+    const snap = await window._fbLoadData(currentUser.uid);
+    if(snap.exists) return snap.data().sessions || [];
   } catch(e) {
     console.warn('Erreur chargement cloud:', e);
   }
