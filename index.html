@@ -353,15 +353,10 @@
   const _provider = new firebase.auth.GoogleAuthProvider();
 
   // Fonctions globales utilisées par l'app
-  window._fbSignIn = () => _auth.signInWithRedirect(_provider);
+  window._fbSignIn = () => _auth.signInWithPopup(_provider);
   window._fbSignOut = () => _auth.signOut();
   window._fbSaveData = (uid, data) => _db.collection('users').doc(uid).set(data, { merge: true });
   window._fbLoadData = (uid) => _db.collection('users').doc(uid).get();
-
-  // Récupère le résultat de la redirection Google
-  _auth.getRedirectResult().then(result => {
-    if(result && result.user) console.log('Connexion par redirect OK:', result.user.displayName);
-  }).catch(e => console.warn('Redirect result error:', e));
 
   // Observe l'état de connexion
   _auth.onAuthStateChanged(user => {
@@ -544,7 +539,9 @@ async function handleSignIn(){
   try {
     if(window._fbSignIn) await window._fbSignIn();
   } catch(e) {
-    if(e.code !== 'auth/popup-closed-by-user') console.warn('Erreur connexion:', e);
+    if(e.code !== 'auth/popup-closed-by-user'){
+      alert('Erreur connexion : ' + e.code + ' — ' + e.message);
+    }
   }
 }
 
