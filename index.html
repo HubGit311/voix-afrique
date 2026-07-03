@@ -404,7 +404,7 @@
   <div class="level-card" id="level-card-home"></div>
 
   <div class="section-title">Choisissez votre exercice</div>
-  <div class="section-sub">Enregistrez-vous · Feedback IA réel en 30 secondes</div>
+  <div class="section-sub">Enregistrez-vous · Retour de Coach Awa en 30 secondes</div>
 
   <div class="exercises" id="exercises-list"></div>
 
@@ -1069,7 +1069,7 @@ function showAnalyzingZone(){
       <div class="analyzing-msg" id="analyzing-msg">Transcription reçue…</div>
     </div>
   `;
-  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Coach Awa pour feedback personnalisé…","Génération de votre rapport IA…"];
+  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Coach Awa pour feedback personnalisé…","Préparation de votre retour personnalisé…"];
   let i=0;
   const t=setInterval(()=>{
     i=(i+1)%msgs.length;
@@ -1251,7 +1251,7 @@ function showResult(fb, met, previous, dailyBonus){
         </div>
       </div>
       <div style="flex:1;min-width:200px">
-        <div class="result-tag">Feedback IA · ${currentEx.title}</div>
+        <div class="result-tag">Retour de Coach Awa · ${currentEx.title}</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
           <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
