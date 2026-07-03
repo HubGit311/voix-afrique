@@ -539,9 +539,7 @@ async function handleSignIn(){
   try {
     if(window._fbSignIn) await window._fbSignIn();
   } catch(e) {
-    if(e.code !== 'auth/popup-closed-by-user'){
-      alert('Erreur connexion : ' + e.code + ' — ' + e.message);
-    }
+    if(e.code !== 'auth/popup-closed-by-user') console.warn('Erreur connexion:', e);
   }
 }
 
