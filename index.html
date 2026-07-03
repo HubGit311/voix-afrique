@@ -392,7 +392,7 @@
   <div class="hero">
     <div class="pill">✦ Coach IA · Dakar, Sénégal</div>
     <h1>Parlez avec<br><span class="gradient-text">Puissance & Impact</span></h1>
-    <p class="hero-sub">Votre coach IA analyse votre voix en temps réel et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
+    <p class="hero-sub">Coach Awa analyse votre voix en temps réel et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
     <div class="stats">
       <div><div class="stat-val">247</div><div class="stat-lab">Apprenants actifs</div></div>
       <div><div class="stat-val">89%</div><div class="stat-lab">Taux de progression</div></div>
@@ -408,7 +408,7 @@
 
   <div class="exercises" id="exercises-list"></div>
 
-  <div class="footer-note">🤖 Feedback généré par Claude (Anthropic) · 🎙️ Micro requis · 🔒 Audio non stocké</div>
+  <div class="footer-note">🤖 Feedback généré par Coach Awa · 🎙️ Micro requis · 🔒 Audio non stocké</div>
 </div>
 
 <!-- ══ RECORD ═════════════════════════════════════════════════════════════════ -->
@@ -1065,11 +1065,11 @@ function showAnalyzingZone(){
   document.getElementById('rec-zone').innerHTML=`
     <div class="spinner"></div>
     <div>
-      <div class="analyzing-title">Claude analyse votre discours…</div>
+      <div class="analyzing-title">Coach Awa analyse votre discours…</div>
       <div class="analyzing-msg" id="analyzing-msg">Transcription reçue…</div>
     </div>
   `;
-  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Claude pour feedback personnalisé…","Génération de votre rapport IA…"];
+  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Coach Awa pour feedback personnalisé…","Génération de votre rapport IA…"];
   let i=0;
   const t=setInterval(()=>{
     i=(i+1)%msgs.length;
@@ -1094,7 +1094,7 @@ async function runAnalysis(){
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
     try{
-      const prompt=`Tu es un coach expert en prise de parole en public, spécialisé pour le contexte africain (Sénégal, Dakar).
+      const prompt=`Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
 
 Un apprenant vient de faire l'exercice : "${currentEx.title}"
 Contexte : ${currentEx.context}
@@ -1312,7 +1312,7 @@ function metricBar(label, value, max, color, unit){
   </div>`;
 }
 
-// ── Feedback vocal (Claude vous parle) ──────────────────────────────────────
+// ── Feedback vocal (Coach Awa vous parle) ──────────────────────────────────────
 function pickFrenchVoice(){
   const voices = window.speechSynthesis.getVoices();
   // Préférence : voix française, idéalement une voix féminine/naturelle si disponible
