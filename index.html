@@ -331,6 +331,12 @@
   .auth-btn.signout:hover{background:rgba(122,122,154,.1)}
   .sync-indicator{font-size:10px;color:var(--green);font-family:monospace;display:none}
   .sync-indicator.visible{display:inline}
+  .ios-banner{
+    display:none;align-items:center;gap:10px;padding:12px 16px;
+    background:rgba(91,79,232,.1);border-bottom:1px solid rgba(91,79,232,.3);
+    font-size:12px;font-family:monospace;color:#8B7FFF;line-height:1.5;
+  }
+  .ios-banner.visible{display:flex}
 </style>
 
 <!-- Firebase SDK compat (fonctionne de façon synchrone et globale sur Android) -->
@@ -385,6 +391,12 @@
 <div id="auth-bar" class="auth-bar signed-out">
   <span style="color:var(--gold);font-size:11px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
   <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
+</div>
+
+<!-- ══ BANNIÈRE iOS ═══════════════════════════════════════════════════════════ -->
+<div id="ios-banner" class="ios-banner">
+  <span style="font-size:18px;flex-shrink:0">📱</span>
+  <span>Voix d'Afrique fonctionne actuellement au mieux sur <strong>Chrome Android</strong>. La reconnaissance vocale n'est pas encore disponible sur iPhone — le support iOS arrive bientôt !</span>
 </div>
 
 <!-- ══ HOME ══════════════════════════════════════════════════════════════════ -->
@@ -513,6 +525,20 @@ function isDailyChallengeCompletedToday(exId){
 
 const scores = {};
 let currentUser = null;
+
+// ── Détection iOS ────────────────────────────────────────────────────────────
+// Sur iOS, tous les navigateurs (Chrome, Safari...) utilisent le moteur WebKit
+// d'Apple, qui ne supporte pas la Web Speech API. On prévient l'utilisateur
+// dès l'accueil plutôt que de le laisser découvrir ça en plein exercice.
+function isIOS(){
+  return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad récent
+}
+
+function checkIOSBanner(){
+  const banner = document.getElementById('ios-banner');
+  if(banner && isIOS()) banner.classList.add('visible');
+}
 
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
 function renderAuthBar(user){
@@ -879,6 +905,10 @@ function startExercise(id){
   if(!ex) return;
   const currentXP = computeXP(loadSessions());
   if(!getExerciseUnlockStatus(ex, currentXP)) return; // sécurité anti-triche
+  if(isIOS()){
+    alert("La reconnaissance vocale n'est pas encore disponible sur iPhone/iPad. Reviens depuis Chrome sur Android pour t'entraîner — le support iOS arrive bientôt !");
+    return;
+  }
   currentEx = ex;
   elapsed = 0; transcriptFull = ""; analyzing = false;
   renderRecordPage();
@@ -1499,6 +1529,7 @@ function buildProgressChart(sessions){
 }
 
 // Init
+checkIOSBanner();
 hydrateScoresFromHistory();
 renderHome();
 updateNavScore();
