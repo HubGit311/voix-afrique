@@ -1178,7 +1178,7 @@ function showAnalyzingZone(){
 
 async function runAnalysis(){
   const text = transcriptFull.trim();
-  const duration = elapsed || currentEx.duration;
+  const duration = elapsed > 0 ? elapsed : 1; // évite d'utiliser par erreur la durée totale prévue si l'utilisateur arrête très tôt
   const nbMots = countWords(text);
   const debit = duration>0 ? Math.round(nbMots/(duration/60)) : 0;
   const parasites = detectParasites(text);
