@@ -316,6 +316,39 @@
   .toast-icon{font-size:32px;flex-shrink:0}
   .toast-title{font-size:10px;color:var(--gold);font-family:monospace;letter-spacing:1px;text-transform:uppercase}
   .toast-name{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--text);font-weight:700}
+
+  /* FEEDBACK */
+  .feedback-fab{
+    position:fixed;bottom:22px;right:22px;z-index:150;
+    width:48px;height:48px;border-radius:50%;
+    background:var(--card);border:1px solid rgba(212,168,67,.4);
+    display:flex;align-items:center;justify-content:center;font-size:20px;
+    cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.4);
+    transition:transform .15s ease;
+  }
+  .feedback-fab:hover{transform:scale(1.08)}
+  .feedback-modal-overlay{
+    position:fixed;inset:0;background:rgba(0,0,0,.65);
+    display:none;align-items:center;justify-content:center;z-index:900;padding:20px;
+  }
+  .feedback-modal-overlay.show{display:flex}
+  .feedback-modal-box{
+    background:var(--card);border:1px solid var(--border);border-radius:16px;
+    padding:26px 24px;max-width:340px;width:100%;text-align:center;
+  }
+  .feedback-modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;color:var(--text);margin-bottom:6px}
+  .feedback-modal-sub{color:var(--muted);font-size:12px;font-family:monospace;margin-bottom:20px}
+  .feedback-modal-btn{
+    display:block;width:100%;padding:12px;border-radius:10px;
+    font-size:13px;font-weight:700;font-family:monospace;cursor:pointer;
+    margin-bottom:10px;border:1px solid;
+  }
+  .feedback-modal-btn.whatsapp{background:rgba(39,174,96,.1);border-color:rgba(39,174,96,.4);color:var(--green)}
+  .feedback-modal-btn.email{background:rgba(91,79,232,.1);border-color:rgba(91,79,232,.4);color:#8B7FFF}
+  .feedback-modal-close{
+    background:none;border:none;color:var(--muted);
+    font-size:12px;font-family:monospace;cursor:pointer;margin-top:4px;padding:6px;
+  }
   /* AUTH */
   .auth-bar{
     display:flex;align-items:center;gap:10px;padding:8px 16px;
@@ -458,6 +491,19 @@
   <div>
     <div class="toast-title">Badge débloqué !</div>
     <div class="toast-name" id="toast-name"></div>
+  </div>
+</div>
+
+<!-- ══ FEEDBACK / SIGNALEMENT ══════════════════════════════════════════════════ -->
+<div class="feedback-fab" onclick="openFeedbackModal()" title="Signaler un problème">🐛</div>
+
+<div id="feedback-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeFeedbackModal()">
+  <div class="feedback-modal-box">
+    <div class="feedback-modal-title">Signaler un problème</div>
+    <div class="feedback-modal-sub">Comment préfères-tu nous contacter ?</div>
+    <button class="feedback-modal-btn whatsapp" onclick="sendFeedback('whatsapp')">💬 WhatsApp</button>
+    <button class="feedback-modal-btn email" onclick="sendFeedback('email')">✉️ Email</button>
+    <button class="feedback-modal-close" onclick="closeFeedbackModal()">Annuler</button>
   </div>
 </div>
 
@@ -1546,6 +1592,35 @@ function buildProgressChart(sessions){
     <path d="${pathD}" fill="none" stroke="#D4A843" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
     ${dots}
   </svg>`;
+}
+
+// ── Signalement de problème ──────────────────────────────────────────────────
+const FEEDBACK_WHATSAPP = "33624483276";
+const FEEDBACK_EMAIL = "moutardiatta+va@gmail.com";
+
+function openFeedbackModal(){
+  document.getElementById('feedback-modal').classList.add('show');
+}
+
+function closeFeedbackModal(){
+  document.getElementById('feedback-modal').classList.remove('show');
+}
+
+function buildFeedbackMessage(){
+  const page = window.location.href;
+  const ua = navigator.userAgent;
+  const date = new Date().toLocaleString('fr-FR');
+  return `Bonjour, je rencontre un problème sur Voix d'Afrique.\n\nDécris ici ce qui se passe :\n\n\n--- Infos techniques (ne pas modifier) ---\nPage : ${page}\nAppareil/navigateur : ${ua}\nDate : ${date}`;
+}
+
+function sendFeedback(channel){
+  const msg = buildFeedbackMessage();
+  if(channel === 'whatsapp'){
+    window.open(`https://wa.me/${FEEDBACK_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
+  } else {
+    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent("Signalement — Voix d'Afrique")}&body=${encodeURIComponent(msg)}`;
+  }
+  closeFeedbackModal();
 }
 
 // Init
