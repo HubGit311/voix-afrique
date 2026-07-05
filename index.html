@@ -992,7 +992,7 @@ function startRecording(){
   function createAndStart(){
     recognition = new SR();
     recognition.lang = 'fr-FR';
-    recognition.continuous = false; // false est plus stable sur Android Chrome
+    recognition.continuous = true; // évite les redémarrages fréquents (bips + mots perdus lors des pauses)
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
