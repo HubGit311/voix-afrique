@@ -641,6 +641,7 @@ let transcriptFull = "";
 let analyzing = false;
 let micStream = null;
 let segmentTimestamps = []; // timestamps de chaque segment de parole validé, pour détecter les pauses
+let finalResultsProcessed = 0; // nb de résultats finaux déjà ajoutés à transcriptFull (indépendant de resultIndex, peu fiable sur Chrome Android en continu)
 let currentUtterance = null;
 let voiceText = "";
 
@@ -977,6 +978,7 @@ function startRecording(){
   elapsed = 0; transcriptFull = ""; analyzing = false;
   micStream = null;
   segmentTimestamps = []; // réinitialise le suivi des pauses pour cette session
+  finalResultsProcessed = 0; // réinitialise le compteur de résultats déjà traités
 
   // 1. Rendre le DOM EN PREMIER
   renderRecordingZone();
@@ -991,6 +993,7 @@ function startRecording(){
 
   function createAndStart(){
     recognition = new SR();
+    finalResultsProcessed = 0; // nouvelle instance = nouveaux indices de résultats à partir de 0
     recognition.lang = 'fr-FR';
     recognition.continuous = true; // évite les redémarrages fréquents (bips + mots perdus lors des pauses)
     recognition.interimResults = true;
@@ -1002,15 +1005,22 @@ function startRecording(){
     };
 
     recognition.onresult = e => {
-      let final = "", interim = "";
-      for(let i = e.resultIndex; i < e.results.length; i++){
-        const t = e.results[i][0].transcript;
-        if(e.results[i].isFinal) final += t + " ";
-        else interim += t;
-      }
-      if(final){
-        transcriptFull += final;
-        segmentTimestamps.push(Date.now()); // marque le moment de chaque segment validé
+      let interim = "";
+      // On parcourt TOUS les résultats renvoyés (pas seulement depuis e.resultIndex,
+      // peu fiable sur Chrome Android en mode continu — il peut revenir à 0 et
+      // provoquer une duplication exponentielle du texte). On garde notre propre
+      // compteur pour ne traiter qu'une seule fois chaque résultat final.
+      for(let i = 0; i < e.results.length; i++){
+        const result = e.results[i];
+        if(result.isFinal){
+          if(i >= finalResultsProcessed){
+            transcriptFull += result[0].transcript + " ";
+            segmentTimestamps.push(Date.now()); // marque le moment de chaque segment validé
+            finalResultsProcessed = i + 1;
+          }
+        } else {
+          interim += result[0].transcript;
+        }
       }
       const display = (transcriptFull + interim).trim();
       const el = document.getElementById('live-transcript');
