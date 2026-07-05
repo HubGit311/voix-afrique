@@ -946,8 +946,11 @@ function renderReadyZone(){
     </div>
     <div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left">
       <div style="color:var(--gold);font-size:12px;font-family:monospace;line-height:1.7">
-        💡 Cliquez sur Démarrer · Autorisez le micro · Parlez clairement en français
+        💡 Cliquez sur Démarrer · Autorisez le micro si demandé · Parlez clairement en français
       </div>
+    </div>
+    <div style="color:var(--muted);font-size:11px;font-family:monospace;text-align:left;width:100%">
+      🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser
     </div>
     <button class="example-toggle-btn" onclick="toggleExample()" id="example-toggle-btn">
       📖 Voir un exemple de bonne réponse
@@ -1036,7 +1039,7 @@ function startRecording(){
         return;
       }
       if(e.error === 'not-allowed'){
-        if(el) el.textContent = "⚠️ Micro refusé — autorisez dans les paramètres Chrome";
+        if(el) el.innerHTML = "⚠️ Micro bloqué. Appuyez sur l'icône 🔒 à côté de l'adresse du site en haut de Chrome → Autorisations → Microphone → Autoriser. Puis rechargez la page.";
         return;
       }
       if(el) el.textContent = `⚠️ ${e.error}`;
