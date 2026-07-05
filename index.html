@@ -995,7 +995,7 @@ function startRecording(){
     recognition = new SR();
     finalResultsProcessed = 0; // nouvelle instance = nouveaux indices de résultats à partir de 0
     recognition.lang = 'fr-FR';
-    recognition.continuous = true; // évite les redémarrages fréquents (bips + mots perdus lors des pauses)
+    recognition.continuous = false; // le mode continu cause une duplication des résultats sur Chrome Android — moins confortable (bips) mais fiable
     recognition.interimResults = true;
     recognition.maxAlternatives = 1;
 
