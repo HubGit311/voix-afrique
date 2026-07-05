@@ -1470,7 +1470,7 @@ function stopVoiceFeedback(){
 function goHome(){ showPage('home'); renderHome(); }
 function updateNavScore(){
   const n=Object.keys(scores).length;
-  document.getElementById('nav-score').textContent=n>0?`${n}/3 exercices`:'';
+  document.getElementById('nav-score').textContent=n>0?`${n}/${EXERCISES.length} exercices`:'';
 }
 
 // ── Historique ────────────────────────────────────────────────────────────────
