@@ -1225,6 +1225,7 @@ async function runAnalysis(){
       const prompt=`Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
 
 IMPORTANT : "Awa" est TON PROPRE prénom en tant que coach — ce n'est jamais le prénom de l'apprenant. Ne t'adresse jamais à l'apprenant en l'appelant "Awa".
+Tutoie systématiquement l'apprenant (utilise "tu"/"ton"/"ta"/"tes", jamais "vous"/"votre"/"vos"), du début à la fin de ton feedback, y compris dans le défi suivant.
 ${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}" — adresse-toi à lui/elle par ce prénom dans ton feedback.` : `Tu ne connais pas le prénom de l'apprenant — adresse-toi à lui/elle avec "tu" sans utiliser de prénom inventé (ex: "Tu as..." plutôt que "Awa, tu as...").`}
 
 Un apprenant vient de faire l'exercice : "${currentEx.title}"
@@ -1286,15 +1287,15 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     const transcriptionVide = nbMots === 0;
     feedback = transcriptionVide
       ? {score:50,titre_feedback:"Aucune voix détectée",
-         conseil_coach:`Nous n'avons pas pu analyser votre voix cette fois. Vérifiez que le micro est bien autorisé et réessayez en parlant clairement. [Diagnostic : ${errMsg}]`,
-         points_forts:["Vous avez tenté l'exercice","Bonne initiative de pratique","Persévérance"],
-         ameliorations:["Vérifiez l'autorisation du micro dans les paramètres du navigateur","Parlez dès l'apparition du chronomètre","Évitez les environnements bruyants"],
-         defi_suivant:"Réessayez cet exercice en vérifiant que le micro est actif."}
+         conseil_coach:`On n'a pas pu analyser ta voix cette fois. Vérifie que le micro est bien autorisé et réessaie en parlant clairement. [Diagnostic : ${errMsg}]`,
+         points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
+         ameliorations:["Vérifie l'autorisation du micro dans les paramètres du navigateur","Parle dès l'apparition du chronomètre","Évite les environnements bruyants"],
+         defi_suivant:"Réessaie cet exercice en vérifiant que le micro est actif."}
       : {score:65,titre_feedback:"Bonne session ! (analyse simplifiée)",
-         conseil_coach:`Votre voix a bien été captée. Coach Awa était temporairement indisponible, mais continuez à pratiquer. [Diagnostic : ${errMsg}]`,
-         points_forts:["Vous avez osé vous lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
-         ameliorations:["Structurez en 3 parties : intro, corps, conclusion","Travaillez les silences intentionnels","Réduisez les mots parasites si besoin"],
-         defi_suivant:"Répétez cet exercice 3 fois cette semaine."};
+         conseil_coach:`Ta voix a bien été captée. Coach Awa était temporairement indisponible, mais continue à pratiquer. [Diagnostic : ${errMsg}]`,
+         points_forts:["Tu as osé te lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
+         ameliorations:["Structure en 3 parties : intro, corps, conclusion","Travaille les silences intentionnels","Réduis les mots parasites si besoin"],
+         defi_suivant:"Répète cet exercice 3 fois cette semaine."};
   }
 
   scores[currentEx.id]=feedback.score;
@@ -1329,7 +1330,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
 // ── Result ────────────────────────────────────────────────────────────────────
 function showResult(fb, met, previous, dailyBonus){
   // Texte complet à lire à voix haute par le coach IA
-  voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Votre prochain défi : ${fb.defi_suivant}`;
+  voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Ton prochain défi : ${fb.defi_suivant}`;
 
   const scoreColor = fb.score>=80?'#27AE60':fb.score>=60?'#D4A843':'#C0392B';
   const r=44, circ=2*Math.PI*r, prog=(fb.score/100)*circ;
