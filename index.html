@@ -281,6 +281,21 @@
   }
   .daily-xp-tag.done{background:rgba(39,174,96,.15);border-color:rgba(39,174,96,.4);color:var(--green)}
 
+  .free-card{
+    background:linear-gradient(135deg,rgba(91,79,232,.1),rgba(91,79,232,.02));
+    border:1px solid rgba(91,79,232,.3);border-radius:16px;padding:20px 24px;
+    display:flex;align-items:center;gap:18px;margin-bottom:24px;flex-wrap:wrap;
+    cursor:pointer;transition:all .2s ease;
+  }
+  .free-card:hover{border-color:rgba(91,79,232,.55);transform:translateY(-2px)}
+  .free-icon{
+    width:50px;height:50px;border-radius:12px;flex-shrink:0;
+    background:rgba(91,79,232,.15);border:1px solid rgba(91,79,232,.4);
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+  }
+  .free-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:2px}
+  .free-sub{font-size:12px;color:var(--muted);font-family:monospace}
+
   .level-icon{
     width:60px;height:60px;border-radius:14px;flex-shrink:0;
     background:linear-gradient(135deg,var(--gold),var(--gold-l));
@@ -454,6 +469,14 @@
   </div>
 
   <div class="daily-card" id="daily-card-home" onclick="startDailyChallenge()"></div>
+  <div class="free-card" onclick="openFreeContextModal()">
+    <div class="free-icon">🎤</div>
+    <div style="flex:1;min-width:160px">
+      <div class="free-title">Discours Libre</div>
+      <div class="free-sub">Ta propre présentation, sur le sujet de ton choix — sans limite de durée</div>
+    </div>
+    <div style="color:var(--muted);font-size:18px">›</div>
+  </div>
   <div class="level-card" id="level-card-home"></div>
 
   <div class="section-title">Choisissez votre exercice</div>
@@ -508,6 +531,16 @@
   </div>
 </div>
 
+<div id="free-context-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeFreeContextModal()">
+  <div class="feedback-modal-box">
+    <div class="feedback-modal-title">🎤 Discours Libre</div>
+    <div class="feedback-modal-sub">Sur quoi porte ton discours ? (optionnel — aide Coach Awa à te conseiller)</div>
+    <textarea id="free-context-input" placeholder="Ex : présentation de mon projet à des investisseurs, discours pour un anniversaire, soutenance..." style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Lora',serif;font-size:13px;padding:12px;margin-bottom:14px;resize:vertical;box-sizing:border-box"></textarea>
+    <button class="feedback-modal-btn whatsapp" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="startFreeExercise()">🎙️ Commencer l'enregistrement</button>
+    <button class="feedback-modal-close" onclick="closeFreeContextModal()">Annuler</button>
+  </div>
+</div>
+
 <script>
 // ── Data ──────────────────────────────────────────────────────────────────────
 const EXERCISES = [
@@ -539,6 +572,17 @@ const EXERCISES = [
    context:"Vous portez la voix d'une cause importante (éducation, environnement, droits) devant un grand rassemblement public.",
    exemple:"Aujourd'hui, je ne parle pas seulement en mon nom. Je parle au nom de milliers d'enfants qui marchent chaque matin des kilomètres pour rejoindre une école qui manque de tout. Je parle au nom de ces enseignants qui donnent sans compter, malgré des classes de 80 élèves. Ce n'est pas une fatalité — c'est un choix que nous pouvons changer ensemble. Chaque enfant scolarisé aujourd'hui, c'est une famille qui sortira de la pauvreté demain. Je demande à chacun d'entre vous, à nos décideurs, à nos entreprises : investissons dans l'éducation comme on investirait dans notre avenir commun, parce que c'est exactement ce que c'est. L'éducation n'attend pas. Nos enfants n'attendent pas. Agissons maintenant."},
 ];
+
+// ── Discours Libre ────────────────────────────────────────────────────────
+// Mode sans exercice imposé : l'apprenant prononce son propre discours (présentation
+// professionnelle, plaidoyer, discours personnel...) sur le sujet de son choix,
+// avec un contexte optionnel qu'il peut préciser pour un feedback plus pertinent.
+const FREE_EXERCISE = {
+  id: 'libre', emoji: "🎤", title: "Discours Libre",
+  description: "Entraîne-toi sur ta propre présentation ou discours, sur le sujet de ton choix.",
+  duration: 900, niveau: "Libre", color: "#5B4FE8", xpRequis: 0,
+  context: null, exemple: null
+};
 
 function getExerciseUnlockStatus(ex, currentXP){
   return currentXP >= ex.xpRequis;
@@ -774,8 +818,8 @@ const BADGES = [
   {id:'ten_sessions',   emoji:'💪', nom:'Persévérant',         desc:'10 sessions complétées',       check: s => s.length>=10},
   {id:'perfect_score',  emoji:'💯', nom:'Score Parfait',       desc:'Un score de 95+ obtenu',       check: s => s.some(x=>x.score>=95)},
   {id:'no_parasites',   emoji:'✨', nom:'Discours Pur',        desc:'0 mot parasite en session',    check: s => s.some(x=>x.totalParasites===0)},
-  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.map(x=>x.exId)).size>=5},
-  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 9 exercices essayés',       check: s => new Set(s.map(x=>x.exId)).size>=9},
+  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>x.exId!=='libre').map(x=>x.exId)).size>=5},
+  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 9 exercices essayés',       check: s => new Set(s.filter(x=>x.exId!=='libre').map(x=>x.exId)).size>=9},
   {id:'streak_3',       emoji:'📅', nom:'Régularité',          desc:'3 jours de suite',             check: s => computeStreak(s)>=3},
   {id:'good_debit',     emoji:'⚡', nom:'Rythme Idéal',        desc:'Débit entre 120-150 mots/min', check: s => s.some(x=>x.debit>=120 && x.debit<=150)},
 ];
@@ -997,6 +1041,45 @@ function startExercise(id){
   showPage('record');
 }
 
+// ── Discours Libre : ouverture/fermeture de la modale et lancement ──────────
+function openFreeContextModal(){
+  document.getElementById('free-context-modal').classList.add('show');
+}
+
+function closeFreeContextModal(){
+  document.getElementById('free-context-modal').classList.remove('show');
+}
+
+function startFreeExercise(){
+  const input = document.getElementById('free-context-input');
+  const customContext = input ? input.value.trim() : '';
+  if(input) input.value = '';
+  closeFreeContextModal();
+  if(isIOS()){
+    alert("La reconnaissance vocale n'est pas encore disponible sur iPhone/iPad. Reviens depuis Chrome sur Android pour t'entraîner — le support iOS arrive bientôt !");
+    return;
+  }
+  currentEx = {
+    ...FREE_EXERCISE,
+    context: customContext || "Discours libre sur un sujet choisi par l'apprenant (aucune précision donnée)."
+  };
+  elapsed = 0; transcriptFull = ""; analyzing = false;
+  renderRecordPage();
+  showPage('record');
+}
+
+function retryCurrentExercise(){
+  if(!currentEx) return;
+  if(currentEx.id === 'libre'){
+    // Conserve le même contexte, relance directement sans repasser par la modale
+    elapsed = 0; transcriptFull = ""; analyzing = false;
+    renderRecordPage();
+    showPage('record');
+  } else {
+    startExercise(currentEx.id);
+  }
+}
+
 function renderRecordPage(){
   document.getElementById('rec-header').innerHTML=`
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
@@ -1012,11 +1095,15 @@ function renderRecordPage(){
 }
 
 function renderReadyZone(){
+  const isFree = currentEx.id === 'libre';
+  const dureeTxt = isFree
+    ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro s'active automatiquement`
+    : `Durée : ${fmt(currentEx.duration)} · Le micro s'active automatiquement`;
   document.getElementById('rec-zone').innerHTML=`
     <div style="width:90px;height:90px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid rgba(212,168,67,.3);display:flex;align-items:center;justify-content:center;font-size:36px">🎙️</div>
     <div>
       <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:22px;margin-bottom:8px">Prêt à vous lancer ?</div>
-      <div style="color:var(--muted);font-size:13px;font-family:monospace">Durée : ${fmt(currentEx.duration)} · Le micro s'active automatiquement</div>
+      <div style="color:var(--muted);font-size:13px;font-family:monospace">${dureeTxt}</div>
     </div>
     <div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left">
       <div style="color:var(--gold);font-size:12px;font-family:monospace;line-height:1.7">
@@ -1026,13 +1113,14 @@ function renderReadyZone(){
     <div style="color:var(--muted);font-size:11px;font-family:monospace;text-align:left;width:100%">
       🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser
     </div>
+    ${currentEx.exemple ? `
     <button class="example-toggle-btn" onclick="toggleExample()" id="example-toggle-btn">
       📖 Voir un exemple de bonne réponse
     </button>
     <div class="example-box" id="example-box" style="display:none">
       <div class="example-label">✦ Exemple de réponse réussie</div>
       <div class="example-text">${currentEx.exemple}</div>
-    </div>
+    </div>` : ''}
     <button class="mic-btn" onclick="requestMicAndStart()">🎙️ DÉMARRER L'ENREGISTREMENT</button>
   `;
 }
@@ -1411,7 +1499,7 @@ function showResult(fb, met, previous, dailyBonus){
       ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
       ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
       ${metricBar("Anglicismes", met.totalAnglicismes, 10, anglicismeColor, " détectés")}
-      ${metricBar("Volume du discours", met.nbMots, 400, "#5B4FE8", " mots")}
+      ${metricBar("Volume du discours", met.nbMots, Math.max(50, Math.round(met.duration/60*220)), "#5B4FE8", " mots")}
       ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
       ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
       ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
@@ -1439,7 +1527,7 @@ function showResult(fb, met, previous, dailyBonus){
     </div>
 
     <div class="actions">
-      <button class="btn-primary" onclick="stopVoiceFeedback();startExercise(${currentEx.id})">🔄 RÉESSAYER</button>
+      <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">🔄 RÉESSAYER</button>
       <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">← Autres exercices</button>
     </div>
   `;
