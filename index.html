@@ -160,6 +160,7 @@
   .metric-fill{height:100%;border-radius:3px;transition:width 1.4s ease}
   .parasites-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
   .parasite-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(192,57,43,.12);color:var(--red);border:1px solid rgba(192,57,43,.3);font-family:monospace}
+  .anglicisme-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(91,79,232,.12);color:#8B7FFF;border:1px solid rgba(91,79,232,.3);font-family:monospace}
   .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:20px}
   .result-card{border-radius:14px;padding:22px}
   .result-card-title{font-size:11px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
@@ -814,6 +815,33 @@ function detectParasites(t){
   return found;
 }
 
+// ── Détection des anglicismes ────────────────────────────────────────────────
+// Dictionnaire des anglicismes courants dans un contexte de discours/business,
+// chacun associé à une alternative en français à proposer à l'apprenant.
+// "pitch" et "coach" sont volontairement exclus : ce sont des termes centraux
+// de l'app elle-même (noms d'exercices, persona Coach Awa).
+const ANGLICISMES = {
+  "feedback":"retour", "process":"processus", "target":"cible",
+  "deadline":"échéance", "meeting":"réunion", "call":"appel",
+  "business":"affaires", "workshop":"atelier", "brainstorming":"remue-méninges",
+  "networking":"réseautage", "challenge":"défi", "planning":"planification",
+  "email":"courriel", "mail":"courriel", "team":"équipe", "job":"emploi",
+  "sponsor":"parrain", "startup":"jeune entreprise", "start-up":"jeune entreprise",
+  "management":"gestion", "manager":"gestionnaire", "leader":"meneur",
+  "story":"histoire", "storytelling":"art du récit", "customer":"client",
+  "marketing":"mercatique"
+};
+
+function detectAnglicismes(t){
+  const lower=t.toLowerCase(), found={};
+  Object.keys(ANGLICISMES).forEach(m=>{
+    const escaped = m.replace(/[-]/g, '\\-');
+    const matches=lower.match(new RegExp(`\\b${escaped}\\b`,'g'));
+    if(matches) found[m]=matches.length;
+  });
+  return found;
+}
+
 // ── Score de fluidité ────────────────────────────────────────────────────────
 // Analyse les intervalles entre segments de parole validés pour détecter
 // les pauses longues (hésitations) et la régularité globale du rythme.
@@ -1183,6 +1211,8 @@ async function runAnalysis(){
   const debit = duration>0 ? Math.round(nbMots/(duration/60)) : 0;
   const parasites = detectParasites(text);
   const totalParasites = Object.values(parasites).reduce((a,b)=>a+b,0);
+  const anglicismes = detectAnglicismes(text);
+  const totalAnglicismes = Object.values(anglicismes).reduce((a,b)=>a+b,0);
   const fluency = computeFluencyScore(segmentTimestamps);
   const learnerFirstName = (currentUser && currentUser.displayName) ? currentUser.displayName.trim().split(/\s+/)[0] : null;
 
@@ -1204,6 +1234,7 @@ Métriques analysées :
 - Transcription : "${text||"(aucune transcription — micro peut-être non autorisé)"}"
 - Durée : ${duration}s | Mots : ${nbMots} | Débit : ${debit} mots/min (idéal 120–150)
 - Mots parasites : ${JSON.stringify(parasites)} (total : ${totalParasites})
+- Anglicismes détectés : ${JSON.stringify(anglicismes)} (total : ${totalAnglicismes}) — si présents, mentionne-le dans les améliorations en suggérant l'alternative française (ex: "feedback" → "retour")
 
 Repère de notation (à utiliser comme base, ajuste selon la qualité réelle) :
 - 40-55 : essai incomplet ou très hésitant, mais l'apprenant a osé se lancer
@@ -1292,7 +1323,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   const sessionsAfter = loadSessions();
   checkNewBadges(sessionsBefore, sessionsAfter);
 
-  showResult(feedback,{debit,parasites,totalParasites,nbMots,duration,fluency}, previous, isDailyBonus);
+  showResult(feedback,{debit,parasites,totalParasites,anglicismes,totalAnglicismes,nbMots,duration,fluency}, previous, isDailyBonus);
 }
 
 // ── Result ────────────────────────────────────────────────────────────────────
@@ -1305,9 +1336,13 @@ function showResult(fb, met, previous, dailyBonus){
 
   const debitColor = met.debit>160?'#C0392B':met.debit>120?'#27AE60':'#E67E22';
   const parasiteColor = met.totalParasites>10?'#C0392B':met.totalParasites>5?'#E67E22':'#27AE60';
+  const anglicismeColor = met.totalAnglicismes>5?'#C0392B':met.totalAnglicismes>2?'#E67E22':'#27AE60';
 
   const parasiteTags = Object.entries(met.parasites).map(([m,c])=>
     `<span class="parasite-tag">"${m}" ×${c}</span>`).join('');
+
+  const anglicismeTags = Object.entries(met.anglicismes).map(([m,c])=>
+    `<span class="anglicisme-tag">"${m}" → "${ANGLICISMES[m]}" ${c>1?`×${c}`:''}</span>`).join('');
 
   // Bloc bonus défi du jour
   const dailyBonusHTML = dailyBonus ? `
@@ -1374,9 +1409,11 @@ function showResult(fb, met, previous, dailyBonus){
       <div class="metrics-title">📊 Analyse Vocale</div>
       ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
       ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
+      ${metricBar("Anglicismes", met.totalAnglicismes, 10, anglicismeColor, " détectés")}
       ${metricBar("Volume du discours", met.nbMots, 400, "#5B4FE8", " mots")}
       ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
       ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
+      ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
       ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:11px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
       <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:monospace">Débit idéal : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
     </div>
