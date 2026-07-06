@@ -1201,7 +1201,13 @@ Métriques analysées :
 - Durée : ${duration}s | Mots : ${nbMots} | Débit : ${debit} mots/min (idéal 120–150)
 - Mots parasites : ${JSON.stringify(parasites)} (total : ${totalParasites})
 
-Génère un feedback bienveillant et motivant. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
+Repère de notation (à utiliser comme base, ajuste selon la qualité réelle) :
+- 40-55 : essai incomplet ou très hésitant, mais l'apprenant a osé se lancer
+- 60-75 : bonne tentative avec une structure claire, quelques points à affiner (score le plus courant)
+- 76-88 : solide, message clair et convaincant, peu de défauts
+- 89-100 : exceptionnel, à réserver aux performances qui n'appellent presque aucune amélioration
+
+Génère un feedback bienveillant et motivant. Reste concis : chaque point fort ou amélioration doit tenir en une phrase courte (max ~15 mots), lisible d'un coup d'œil sur un écran de téléphone. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}`;
 
       // Appel à notre fonction Netlify sécurisée (la clé API reste côté serveur)
