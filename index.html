@@ -7,16 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:#080810;color:#EDE8F0;font-family:'Lora',serif;min-height:100vh}
+  body{background:var(--bg);color:var(--text);font-family:'Lora',serif;min-height:100vh}
   :root{
-    --bg:#080810;--surface:#0F0F1A;--card:#161624;--border:#252538;
-    --gold:#D4A843;--gold-l:#F0C76A;--green:#27AE60;--red:#C0392B;
-    --orange:#E67E22;--text:#EDE8F0;--muted:#7A7A9A;
+    --bg:#FAF8F4;--surface:#FFFFFF;--card:#F5F0E6;--border:#E6E1D6;
+    --gold:#A67C1E;--gold-l:#D4A843;--green:#1E8449;--red:#C0392B;
+    --orange:#C36F12;--text:#2A2A35;--muted:#6E6A5E;
   }
   nav{
     border-bottom:1px solid var(--border);padding:14px 24px;
     display:flex;align-items:center;justify-content:space-between;
-    position:sticky;top:0;background:rgba(8,8,16,.94);
+    position:sticky;top:0;background:rgba(250,248,244,.92);
     backdrop-filter:blur(16px);z-index:100;
   }
   .logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
@@ -94,7 +94,7 @@
   }
   .example-toggle-btn{
     background:rgba(91,79,232,.1);border:1px solid rgba(91,79,232,.35);
-    color:#8B7FFF;border-radius:10px;padding:11px 20px;
+    color:#5B4FE8;border-radius:10px;padding:11px 20px;
     font-size:12px;font-weight:700;cursor:pointer;font-family:monospace;
     width:100%;transition:all .2s ease;
   }
@@ -104,7 +104,7 @@
     border-radius:10px;padding:16px 18px;width:100%;text-align:left;
   }
   .example-label{
-    font-size:10px;color:#8B7FFF;font-family:monospace;letter-spacing:1px;
+    font-size:10px;color:#5B4FE8;font-family:monospace;letter-spacing:1px;
     text-transform:uppercase;margin-bottom:8px;font-weight:700;
   }
   .example-text{
@@ -160,7 +160,7 @@
   .metric-fill{height:100%;border-radius:3px;transition:width 1.4s ease}
   .parasites-list{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
   .parasite-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(192,57,43,.12);color:var(--red);border:1px solid rgba(192,57,43,.3);font-family:monospace}
-  .anglicisme-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(91,79,232,.12);color:#8B7FFF;border:1px solid rgba(91,79,232,.3);font-family:monospace}
+  .anglicisme-tag{padding:3px 10px;border-radius:20px;font-size:11px;background:rgba(91,79,232,.12);color:#5B4FE8;border:1px solid rgba(91,79,232,.3);font-family:monospace}
   .two-col{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-bottom:20px}
   .result-card{border-radius:14px;padding:22px}
   .result-card-title{font-size:11px;font-family:monospace;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
@@ -232,7 +232,7 @@
   .voice-btn{
     display:inline-flex;align-items:center;gap:8px;
     background:rgba(91,79,232,.1);border:1px solid rgba(91,79,232,.35);
-    color:#8B7FFF;border-radius:20px;padding:7px 16px;
+    color:#5B4FE8;border-radius:20px;padding:7px 16px;
     font-size:12px;font-family:monospace;font-weight:700;
     cursor:pointer;transition:all .2s ease;flex-shrink:0;
   }
@@ -360,7 +360,7 @@
     margin-bottom:10px;border:1px solid;
   }
   .feedback-modal-btn.whatsapp{background:rgba(39,174,96,.1);border-color:rgba(39,174,96,.4);color:var(--green)}
-  .feedback-modal-btn.email{background:rgba(91,79,232,.1);border-color:rgba(91,79,232,.4);color:#8B7FFF}
+  .feedback-modal-btn.email{background:rgba(91,79,232,.1);border-color:rgba(91,79,232,.4);color:#5B4FE8}
   .feedback-modal-close{
     background:none;border:none;color:var(--muted);
     font-size:12px;font-family:monospace;cursor:pointer;margin-top:4px;padding:6px;
@@ -388,7 +388,7 @@
   .ios-banner{
     display:none;align-items:center;gap:10px;padding:12px 16px;
     background:rgba(91,79,232,.1);border-bottom:1px solid rgba(91,79,232,.3);
-    font-size:12px;font-family:monospace;color:#8B7FFF;line-height:1.5;
+    font-size:12px;font-family:monospace;color:#5B4FE8;line-height:1.5;
   }
   .ios-banner.visible{display:flex}
 </style>
@@ -507,6 +507,12 @@
   <div class="section-title">📊 Votre progression</div>
   <div class="section-sub">Suivez votre évolution session après session</div>
   <div id="history-content"></div>
+</div>
+
+<!-- ══ HISTORY DETAIL (feedback d'une session passée) ═══════════════════════════ -->
+<div id="page-history-detail" class="page">
+  <button class="back-btn" onclick="stopVoiceFeedback();showPage('history')">← Retour à l'historique</button>
+  <div id="history-detail-content"></div>
 </div>
 
 <!-- ══ BADGE TOAST ════════════════════════════════════════════════════════════ -->
@@ -921,11 +927,26 @@ function computeFluencyScore(timestamps){
 }
 
 // ── Pages ─────────────────────────────────────────────────────────────────────
+// ── Navigation interne (empêche le bouton "retour" du téléphone de sortir de l'app) ──
+let isHandlingPopState = false;
+let lastPushedPage = null;
+
 function showPage(name){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+name).classList.add('active');
   window.scrollTo(0,0);
+  if(!isHandlingPopState && lastPushedPage !== name){
+    history.pushState({voixPage:name}, '', '#'+name);
+  }
+  lastPushedPage = name;
 }
+
+window.addEventListener('popstate', (e)=>{
+  isHandlingPopState = true;
+  const target = (e.state && e.state.voixPage) ? e.state.voixPage : 'home';
+  showPage(target);
+  isHandlingPopState = false;
+});
 
 // ── Home ──────────────────────────────────────────────────────────────────────
 function renderHome(){
@@ -1097,8 +1118,8 @@ function renderRecordPage(){
 function renderReadyZone(){
   const isFree = currentEx.id === 'libre';
   const dureeTxt = isFree
-    ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro s'active automatiquement`
-    : `Durée : ${fmt(currentEx.duration)} · Le micro s'active automatiquement`;
+    ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro démarre dès que tu appuies sur Démarrer`
+    : `Durée : ${fmt(currentEx.duration)} · Le micro démarre dès que tu appuies sur Démarrer`;
   document.getElementById('rec-zone').innerHTML=`
     <div style="width:90px;height:90px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid rgba(212,168,67,.3);display:flex;align-items:center;justify-content:center;font-size:36px">🎙️</div>
     <div>
@@ -1107,7 +1128,7 @@ function renderReadyZone(){
     </div>
     <div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left">
       <div style="color:var(--gold);font-size:12px;font-family:monospace;line-height:1.7">
-        💡 Cliquez sur Démarrer · Autorisez le micro si demandé · Parlez clairement en français
+        💡 Prépare ton discours à l'avance ou improvise directement — les deux fonctionnent ! Clique sur Démarrer · Autorise le micro si demandé · Parle clairement en français
       </div>
     </div>
     <div style="color:var(--muted);font-size:11px;font-family:monospace;text-align:left;width:100%">
@@ -1258,7 +1279,7 @@ function renderRecordingZone(){
       <div class="transcript-text" id="live-transcript">En attente de voix…</div>
     </div>
     <div id="mic-status" style="color:var(--muted);font-size:11px;font-family:monospace"></div>
-    <div style="color:var(--muted);font-size:10px;font-family:monospace;opacity:.7">💡 Les petits bips sont normaux — continuez à parler naturellement</div>
+    <div style="color:var(--muted);font-size:10px;font-family:monospace;opacity:.7">💡 Les petits bips viennent du service vocal de ton téléphone (normal) — continue à parler naturellement</div>
     <button class="stop-btn" onclick="stopAndAnalyze()">⏹ Terminer et analyser</button>
   `;
 }
@@ -1398,15 +1419,24 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   const todaysChallenge = getDailyChallenge(xpBefore);
   const isDailyBonus = todaysChallenge && todaysChallenge.id === currentEx.id && !isDailyChallengeCompletedToday(currentEx.id);
 
-  // Sauvegarde de cette session dans l'historique
+  // Sauvegarde de cette session dans l'historique (métriques + feedback complet
+  // pour pouvoir le reconsulter plus tard depuis l'Historique)
   saveSession({
     exId: currentEx.id,
     exTitle: currentEx.title,
     score: feedback.score,
-    debit, totalParasites, nbMots, duration,
+    debit, totalParasites, parasites, totalAnglicismes, anglicismes, nbMots, duration,
     fluencyScore: fluency.score,
+    fluencyLongPauses: fluency.longPauses || 0,
     date: new Date().toISOString(),
     dailyBonus: isDailyBonus,
+    feedback: {
+      titre_feedback: feedback.titre_feedback,
+      conseil_coach: feedback.conseil_coach,
+      points_forts: feedback.points_forts,
+      ameliorations: feedback.ameliorations,
+      defi_suivant: feedback.defi_suivant
+    }
   });
 
   const sessionsAfter = loadSessions();
@@ -1416,22 +1446,83 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
 }
 
 // ── Result ────────────────────────────────────────────────────────────────────
+function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
+  const scoreColor = fb.score>=80?'#1E8449':fb.score>=60?'#A67C1E':'#C0392B';
+  const r=44, circ=2*Math.PI*r, prog=(fb.score/100)*circ;
+
+  const debitColor = met.debit>160?'#C0392B':met.debit>120?'#1E8449':'#C36F12';
+  const parasiteColor = met.totalParasites>10?'#C0392B':met.totalParasites>5?'#C36F12':'#1E8449';
+  const anglicismeColor = met.totalAnglicismes>5?'#C0392B':met.totalAnglicismes>2?'#C36F12':'#1E8449';
+
+  const parasiteTags = Object.entries(met.parasites||{}).map(([m,c])=>
+    `<span class="parasite-tag">"${m}" ×${c}</span>`).join('');
+
+  const anglicismeTags = Object.entries(met.anglicismes||{}).map(([m,c])=>
+    `<span class="anglicisme-tag">"${m}" → "${ANGLICISMES[m]}" ${c>1?`×${c}`:''}</span>`).join('');
+
+  return `
+    <div class="score-header">
+      <div class="score-ring">
+        <svg width="130" height="130" viewBox="0 0 100 100">
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#E6E1D6" stroke-width="7"/>
+          <circle cx="50" cy="50" r="${r}" fill="none" stroke="${scoreColor}" stroke-width="7"
+            stroke-dasharray="${prog} ${circ}" stroke-linecap="round" transform="rotate(-90 50 50)"
+            style="transition:stroke-dasharray 1.8s ease"/>
+        </svg>
+        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <span style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:${scoreColor}">${fb.score}</span>
+          <span style="font-size:10px;color:var(--muted);font-family:monospace">/100</span>
+        </div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div class="result-tag">Retour de Coach Awa · ${exTitle}</div>
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+          <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
+          <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
+        </div>
+        <div class="result-conseil">${fb.conseil_coach}</div>
+      </div>
+    </div>
+
+    ${extraBlocksHTML || ''}
+
+    <div class="metrics-box">
+      <div class="metrics-title">📊 Analyse Vocale</div>
+      ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
+      ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
+      ${metricBar("Anglicismes", met.totalAnglicismes, 10, anglicismeColor, " détectés")}
+      ${metricBar("Volume du discours", met.nbMots, Math.max(50, Math.round(met.duration/60*220)), "#5B4FE8", " mots")}
+      ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
+      ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
+      ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
+      ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:11px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
+      <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:monospace">Repère indicatif : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
+    </div>
+
+    <div class="two-col">
+      <div class="result-card" style="background:rgba(39,174,96,.06);border:1px solid rgba(39,174,96,.18)">
+        <div class="result-card-title" style="color:#27AE60">✦ Points Forts</div>
+        ${fb.points_forts.map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
+      </div>
+      <div class="result-card" style="background:rgba(230,126,34,.06);border:1px solid rgba(230,126,34,.18)">
+        <div class="result-card-title" style="color:#E67E22">◆ À Améliorer</div>
+        ${fb.ameliorations.map(a=>`<div class="result-item"><span style="color:#E67E22;flex-shrink:0">→</span><span class="result-item-text" style="color:var(--text)">${a}</span></div>`).join('')}
+      </div>
+    </div>
+
+    <div class="defi-box">
+      <span style="font-size:24px;flex-shrink:0">🎯</span>
+      <div>
+        <div class="defi-title">Défi pour progresser</div>
+        <div class="defi-text" style="color:var(--text)">${fb.defi_suivant}</div>
+      </div>
+    </div>
+  `;
+}
+
 function showResult(fb, met, previous, dailyBonus){
   // Texte complet à lire à voix haute par le coach IA
   voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Ton prochain défi : ${fb.defi_suivant}`;
-
-  const scoreColor = fb.score>=80?'#27AE60':fb.score>=60?'#D4A843':'#C0392B';
-  const r=44, circ=2*Math.PI*r, prog=(fb.score/100)*circ;
-
-  const debitColor = met.debit>160?'#C0392B':met.debit>120?'#27AE60':'#E67E22';
-  const parasiteColor = met.totalParasites>10?'#C0392B':met.totalParasites>5?'#E67E22':'#27AE60';
-  const anglicismeColor = met.totalAnglicismes>5?'#C0392B':met.totalAnglicismes>2?'#E67E22':'#27AE60';
-
-  const parasiteTags = Object.entries(met.parasites).map(([m,c])=>
-    `<span class="parasite-tag">"${m}" ×${c}</span>`).join('');
-
-  const anglicismeTags = Object.entries(met.anglicismes).map(([m,c])=>
-    `<span class="anglicisme-tag">"${m}" → "${ANGLICISMES[m]}" ${c>1?`×${c}`:''}</span>`).join('');
 
   // Bloc bonus défi du jour
   const dailyBonusHTML = dailyBonus ? `
@@ -1441,7 +1532,7 @@ function showResult(fb, met, previous, dailyBonus){
         <div style="font-size:13px;color:var(--text);font-weight:600;margin-bottom:3px">
           Défi du jour complété !
         </div>
-        <div style="font-size:12px;color:#8B7FFF;font-family:monospace;font-weight:700">+${DAILY_BONUS_XP} XP bonus ajouté</div>
+        <div style="font-size:12px;color:#5B4FE8;font-family:monospace;font-weight:700">+${DAILY_BONUS_XP} XP bonus ajouté</div>
       </div>
     </div>` : '';
 
@@ -1467,65 +1558,9 @@ function showResult(fb, met, previous, dailyBonus){
       </div>`;
   }
 
-  document.getElementById('result-content').innerHTML=`
-    <div class="score-header">
-      <div class="score-ring">
-        <svg width="130" height="130" viewBox="0 0 100 100">
-          <circle cx="50" cy="50" r="${r}" fill="none" stroke="#252538" stroke-width="7"/>
-          <circle cx="50" cy="50" r="${r}" fill="none" stroke="${scoreColor}" stroke-width="7"
-            stroke-dasharray="${prog} ${circ}" stroke-linecap="round" transform="rotate(-90 50 50)"
-            style="transition:stroke-dasharray 1.8s ease"/>
-        </svg>
-        <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center">
-          <span style="font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:700;color:${scoreColor}">${fb.score}</span>
-          <span style="font-size:10px;color:var(--muted);font-family:monospace">/100</span>
-        </div>
-      </div>
-      <div style="flex:1;min-width:200px">
-        <div class="result-tag">Retour de Coach Awa · ${currentEx.title}</div>
-        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
-          <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
-          <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
-        </div>
-        <div class="result-conseil">${fb.conseil_coach}</div>
-      </div>
-    </div>
+  const html = buildResultHTML(fb, met, currentEx.title, dailyBonusHTML + comparisonHTML);
 
-    ${dailyBonusHTML}
-    ${comparisonHTML}
-
-    <div class="metrics-box">
-      <div class="metrics-title">📊 Analyse Vocale</div>
-      ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
-      ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
-      ${metricBar("Anglicismes", met.totalAnglicismes, 10, anglicismeColor, " détectés")}
-      ${metricBar("Volume du discours", met.nbMots, Math.max(50, Math.round(met.duration/60*220)), "#5B4FE8", " mots")}
-      ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
-      ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
-      ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
-      ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:11px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
-      <div style="margin-top:12px;font-size:11px;color:var(--muted);font-family:monospace">Débit idéal : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
-    </div>
-
-    <div class="two-col">
-      <div class="result-card" style="background:rgba(39,174,96,.06);border:1px solid rgba(39,174,96,.18)">
-        <div class="result-card-title" style="color:#27AE60">✦ Points Forts</div>
-        ${fb.points_forts.map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
-      </div>
-      <div class="result-card" style="background:rgba(230,126,34,.06);border:1px solid rgba(230,126,34,.18)">
-        <div class="result-card-title" style="color:#E67E22">◆ À Améliorer</div>
-        ${fb.ameliorations.map(a=>`<div class="result-item"><span style="color:#E67E22;flex-shrink:0">→</span><span class="result-item-text" style="color:var(--text)">${a}</span></div>`).join('')}
-      </div>
-    </div>
-
-    <div class="defi-box">
-      <span style="font-size:24px;flex-shrink:0">🎯</span>
-      <div>
-        <div class="defi-title">Défi pour progresser</div>
-        <div class="defi-text" style="color:var(--text)">${fb.defi_suivant}</div>
-      </div>
-    </div>
-
+  document.getElementById('result-content').innerHTML = html + `
     <div class="actions">
       <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">🔄 RÉESSAYER</button>
       <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">← Autres exercices</button>
@@ -1615,6 +1650,35 @@ function showHistoryPage(){
   showPage('history');
 }
 
+// Consulte le feedback complet d'une session passée depuis l'historique
+function openHistoryDetail(key){
+  const sessions = loadSessions();
+  const session = sessions.find(s => `${s.exId}-${s.date}` === key);
+  if(!session || !session.feedback) return;
+
+  const fb = session.feedback;
+  const met = {
+    debit: session.debit,
+    parasites: session.parasites || {},
+    totalParasites: session.totalParasites || 0,
+    anglicismes: session.anglicismes || {},
+    totalAnglicismes: session.totalAnglicismes || 0,
+    nbMots: session.nbMots,
+    duration: session.duration,
+    fluency: { score: session.fluencyScore!==undefined ? session.fluencyScore : null, longPauses: session.fluencyLongPauses || 0 }
+  };
+
+  voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Ton prochain défi : ${fb.defi_suivant}`;
+
+  const dateStr = new Date(session.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
+  const dateHTML = `<div style="color:var(--muted);font-size:11px;font-family:monospace;margin-bottom:16px">📅 Session du ${dateStr}</div>`;
+
+  const html = buildResultHTML(fb, met, session.exTitle, dateHTML);
+
+  document.getElementById('history-detail-content').innerHTML = html;
+  showPage('history-detail');
+}
+
 function renderHistory(){
   const sessions = loadSessions().slice().reverse(); // plus récent en premier
   const container = document.getElementById('history-content');
@@ -1651,16 +1715,19 @@ function renderHistory(){
   }).join('');
 
   const sessionRows = sessions.map(s=>{
-    const color = s.score>=80?'#27AE60':s.score>=60?'#D4A843':'#C0392B';
+    const color = s.score>=80?'#1E8449':s.score>=60?'#A67C1E':'#C0392B';
     const date = new Date(s.date);
     const dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
+    const key = `${s.exId}-${s.date}`;
+    const hasFeedback = !!s.feedback;
     return `
-      <div class="session-row">
+      <div class="session-row" ${hasFeedback ? `style="cursor:pointer" onclick="openHistoryDetail('${key}')"` : ''}>
         <div class="session-score-badge" style="border-color:${color};color:${color}">${s.score}</div>
         <div class="session-info">
           <div class="session-title">${s.exTitle}</div>
           <div class="session-date">${dateStr} · ${s.debit} mots/min · ${s.totalParasites} parasites</div>
         </div>
+        ${hasFeedback ? `<div style="color:var(--muted);font-size:16px;flex-shrink:0">›</div>` : ''}
       </div>`;
   }).join('');
 
@@ -1712,15 +1779,15 @@ function buildProgressChart(sessions){
   const areaD = pathD + ` L${points[points.length-1].x.toFixed(1)},${h-padY} L${points[0].x.toFixed(1)},${h-padY} Z`;
 
   const dots = points.map(p=>{
-    const color = p.score>=80?'#27AE60':p.score>=60?'#D4A843':'#C0392B';
-    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${color}" stroke="#080810" stroke-width="2"/>
+    const color = p.score>=80?'#1E8449':p.score>=60?'#A67C1E':'#C0392B';
+    return `<circle cx="${p.x.toFixed(1)}" cy="${p.y.toFixed(1)}" r="4" fill="${color}" stroke="#FFFFFF" stroke-width="2"/>
             <text x="${p.x.toFixed(1)}" y="${(p.y-10).toFixed(1)}" text-anchor="middle" font-size="10" font-family="monospace" fill="${color}" font-weight="700">${p.score}</text>`;
   }).join('');
 
   // Lignes de référence horizontales
   const gridLines = [0,25,50,75,100].map(v=>{
     const y = padY + (1 - v/maxScore) * (h - padY*2);
-    return `<line x1="${padX}" y1="${y}" x2="${w-padX}" y2="${y}" stroke="#252538" stroke-width="1" stroke-dasharray="3,3"/>`;
+    return `<line x1="${padX}" y1="${y}" x2="${w-padX}" y2="${y}" stroke="#E6E1D6" stroke-width="1" stroke-dasharray="3,3"/>`;
   }).join('');
 
   return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
