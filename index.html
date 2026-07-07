@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Voix d'Afrique — Coach Awa</title>
+<title>Awa — Coach de prise de parole</title>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lora:ital,wght@0,400;1,400&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
@@ -431,8 +431,8 @@
   <a class="logo" onclick="stopVoiceFeedback();showPage('home')">
     <div class="logo-icon">🎤</div>
     <div>
-      <div class="logo-name">Voix d'Afrique</div>
-      <div class="logo-sub">COACH AWA · DAKAR</div>
+      <div class="logo-name">Awa</div>
+      <div class="logo-sub">COACH DE PRISE DE PAROLE</div>
     </div>
   </a>
   <div style="display:flex;align-items:center;gap:12px">
@@ -450,20 +450,20 @@
 <!-- ══ BANNIÈRE iOS ═══════════════════════════════════════════════════════════ -->
 <div id="ios-banner" class="ios-banner">
   <span style="font-size:18px;flex-shrink:0">📱</span>
-  <span>Voix d'Afrique fonctionne actuellement au mieux sur <strong>Chrome Android</strong>. La reconnaissance vocale n'est pas encore disponible sur iPhone — le support iOS arrive bientôt !</span>
+  <span>Awa fonctionne actuellement au mieux sur <strong>Chrome Android</strong>. La reconnaissance vocale n'est pas encore disponible sur iPhone — le support iOS arrive bientôt !</span>
 </div>
 
 <!-- ══ HOME ══════════════════════════════════════════════════════════════════ -->
 <div id="page-home" class="page active">
   <div class="hero">
-    <div class="pill">✦ Coach Awa · Dakar, Sénégal</div>
+    <div class="pill">✦ Coach vocal propulsé par l'IA</div>
     <h1>Parlez avec<br><span class="gradient-text">Puissance & Impact</span></h1>
     <p class="hero-sub">Coach Awa analyse votre voix en temps réel et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
     <div class="launch-badge">
       <span style="font-size:16px">🚀</span>
       <div style="text-align:left">
         <div style="color:var(--gold);font-weight:700;font-size:13px;font-family:monospace;letter-spacing:.5px">EN PHASE DE LANCEMENT</div>
-        <div style="color:var(--muted);font-size:12px;margin-top:2px">Rejoignez les tout premiers testeurs de Voix d'Afrique</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px">Rejoignez les tout premiers testeurs d'Awa</div>
       </div>
     </div>
   </div>
@@ -778,7 +778,7 @@ const LEVELS = [
   {seuil:300, nom:"Orateur Confirmé",    emoji:"🗣️"},
   {seuil:600, nom:"Voix Influente",      emoji:"⭐"},
   {seuil:1000,nom:"Maître de la Parole", emoji:"👑"},
-  {seuil:1500,nom:"Légende de Voix d'Afrique",emoji:"🏆"},
+  {seuil:1500,nom:"Légende de la Parole",emoji:"🏆"},
 ];
 
 function computeXP(sessions){
@@ -1814,7 +1814,7 @@ function buildFeedbackMessage(){
   const page = window.location.href;
   const ua = navigator.userAgent;
   const date = new Date().toLocaleString('fr-FR');
-  return `Bonjour, je rencontre un problème sur Voix d'Afrique.\n\nDécris ici ce qui se passe :\n\n\n--- Infos techniques (ne pas modifier) ---\nPage : ${page}\nAppareil/navigateur : ${ua}\nDate : ${date}`;
+  return `Bonjour, je rencontre un problème sur Awa.\n\nDécris ici ce qui se passe :\n\n\n--- Infos techniques (ne pas modifier) ---\nPage : ${page}\nAppareil/navigateur : ${ua}\nDate : ${date}`;
 }
 
 function sendFeedback(channel){
@@ -1822,7 +1822,7 @@ function sendFeedback(channel){
   if(channel === 'whatsapp'){
     window.open(`https://wa.me/${FEEDBACK_WHATSAPP}?text=${encodeURIComponent(msg)}`, '_blank');
   } else {
-    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent("Signalement — Voix d'Afrique")}&body=${encodeURIComponent(msg)}`;
+    window.location.href = `mailto:${FEEDBACK_EMAIL}?subject=${encodeURIComponent("Signalement — Awa")}&body=${encodeURIComponent(msg)}`;
   }
   closeFeedbackModal();
 }
