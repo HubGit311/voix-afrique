@@ -1599,6 +1599,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
           <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
         </div>
+        ${isIOS() ? `<div style="color:var(--muted);font-size:10px;font-family:monospace;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
         <div class="result-conseil">${fb.conseil_coach}</div>
       </div>
     </div>
@@ -1700,6 +1701,11 @@ function metricBar(label, value, max, color, unit){
 }
 
 // ── Feedback vocal (Coach Awa vous parle) ──────────────────────────────────────
+function isKnownFemaleVoiceName(name){
+  const femaleHints = ['amelie','amélie','audrey','aurelie','aurélie','marie','celine','céline','virginie','julie','chloe','chloé','claire','female','vfe'];
+  return femaleHints.some(h => name.toLowerCase().includes(h));
+}
+
 function pickFrenchVoice(){
   const voices = window.speechSynthesis.getVoices();
   const frVoices = voices.filter(v=>v.lang==='fr-FR').length
@@ -1708,11 +1714,9 @@ function pickFrenchVoice(){
 
   if(frVoices.length === 0) return null;
 
-  // Noms de voix féminines connues sur les principales plateformes (iOS/macOS/Android/Windows)
-  const femaleHints = ['amelie','amélie','audrey','aurelie','aurélie','marie','celine','céline','virginie','julie','chloe','chloé','claire','female','vfe'];
   const maleHints = ['thomas','nicolas','pierre','male'];
 
-  const femaleMatch = frVoices.find(v => femaleHints.some(h => v.name.toLowerCase().includes(h)));
+  const femaleMatch = frVoices.find(v => isKnownFemaleVoiceName(v.name));
   if(femaleMatch) return femaleMatch;
 
   // À défaut d'une correspondance féminine connue, on écarte au moins les voix explicitement masculines
@@ -1737,10 +1741,12 @@ function toggleVoiceFeedback(){
   const utter = new SpeechSynthesisUtterance(voiceText);
   utter.lang = 'fr-FR';
   utter.rate = 1;
-  utter.pitch = 1.1;
   utter.volume = 1;
   const voice = pickFrenchVoice();
   if(voice) utter.voice = voice;
+  // Si la voix disponible n'est pas identifiée comme féminine (ex: "Thomas" sur iPhone
+  // quand aucune voix féminine française n'est installée), on compense davantage le pitch.
+  utter.pitch = (voice && isKnownFemaleVoiceName(voice.name)) ? 1.05 : 1.35;
 
   utter.onstart = () => {
     btn.textContent = '⏸ Lecture en cours…';
