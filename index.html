@@ -739,6 +739,7 @@ let analyzing = false;
 let micStream = null;
 let segmentTimestamps = []; // timestamps de chaque segment de parole validé, pour détecter les pauses
 let finalResultsProcessed = 0; // nb de résultats finaux déjà ajoutés à transcriptFull (indépendant de resultIndex, peu fiable sur Chrome Android en continu)
+let micStartAttempts = 0; // compte les échecs de démarrage du micro, pour réessayer automatiquement puis prévenir l'utilisateur
 let currentUtterance = null;
 let voiceText = "";
 
@@ -1165,6 +1166,7 @@ function startRecording(){
   micStream = null;
   segmentTimestamps = []; // réinitialise le suivi des pauses pour cette session
   finalResultsProcessed = 0; // réinitialise le compteur de résultats déjà traités
+  micStartAttempts = 0; // réinitialise le compteur de tentatives de démarrage du micro
 
   // 1. Rendre le DOM EN PREMIER
   renderRecordingZone();
@@ -1178,6 +1180,15 @@ function startRecording(){
   }
 
   function createAndStart(){
+    // Nettoie toute instance précédente qui traînerait encore — cause fréquente
+    // d'échec silencieux de .start() sur certains navigateurs Android/WebView
+    // (ex: navigateurs constructeurs comme MIUI) quand une session précédente
+    // n'a pas complètement libéré le micro.
+    if(recognition){
+      try{ recognition.onend = null; recognition.abort(); }catch(_){}
+      recognition = null;
+    }
+
     recognition = new SR();
     finalResultsProcessed = 0; // nouvelle instance = nouveaux indices de résultats à partir de 0
     recognition.lang = 'fr-FR';
@@ -1186,6 +1197,7 @@ function startRecording(){
     recognition.maxAlternatives = 1;
 
     recognition.onstart = () => {
+      micStartAttempts = 0; // succès : on remet le compteur à zéro
       const el = document.getElementById('mic-status');
       if(el) el.textContent = "🎙️ Micro actif — parlez !";
     };
@@ -1231,11 +1243,25 @@ function startRecording(){
     recognition.onend = () => {
       // Relance automatiquement tant qu'on n'analyse pas
       if(!analyzing){
-        setTimeout(()=>{ try{ createAndStart(); }catch(_){} }, 100);
+        setTimeout(createAndStart, 100);
       }
     };
 
-    try { recognition.start(); } catch(_){}
+    try {
+      recognition.start();
+    } catch(err){
+      // .start() peut échouer si le navigateur n'a pas encore libéré le micro
+      // d'une session précédente (fréquent sur certains navigateurs Android
+      // non-standards). On réessaie automatiquement quelques fois avant de
+      // prévenir l'utilisateur, plutôt que d'échouer silencieusement.
+      micStartAttempts++;
+      const el = document.getElementById('mic-status');
+      if(micStartAttempts <= 4){
+        setTimeout(createAndStart, 500);
+      } else if(el){
+        el.innerHTML = "⚠️ Le micro n'a pas pu démarrer. Rechargez la page et réessayez.";
+      }
+    }
   }
 
   // Délai 400ms pour laisser le DOM se stabiliser sur mobile
