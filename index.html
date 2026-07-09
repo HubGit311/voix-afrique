@@ -385,12 +385,6 @@
   .auth-btn.signout:hover{background:rgba(122,122,154,.1)}
   .sync-indicator{font-size:10px;color:var(--green);font-family:monospace;display:none}
   .sync-indicator.visible{display:inline}
-  .ios-banner{
-    display:none;align-items:center;gap:10px;padding:12px 16px;
-    background:rgba(91,79,232,.1);border-bottom:1px solid rgba(91,79,232,.3);
-    font-size:12px;font-family:monospace;color:#5B4FE8;line-height:1.5;
-  }
-  .ios-banner.visible{display:flex}
 </style>
 
 <!-- Firebase SDK compat (fonctionne de façon synchrone et globale sur Android) -->
@@ -447,12 +441,6 @@
   <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
 </div>
 
-<!-- ══ BANNIÈRE iOS ═══════════════════════════════════════════════════════════ -->
-<div id="ios-banner" class="ios-banner">
-  <span style="font-size:18px;flex-shrink:0">📱</span>
-  <span>Sur iPhone, ton enregistrement est envoyé de façon sécurisée pour transcription (non conservé), contrairement à Android où tout se passe directement sur ton téléphone.</span>
-</div>
-
 <!-- ══ HOME ══════════════════════════════════════════════════════════════════ -->
 <div id="page-home" class="page active">
   <div class="hero">
@@ -484,7 +472,7 @@
 
   <div class="exercises" id="exercises-list"></div>
 
-  <div class="footer-note">🤖 Feedback généré par Coach Awa · 🎙️ Micro requis · 🔒 Audio traité localement (Android) ou transcrit de façon sécurisée et non conservé (iOS)</div>
+  <div class="footer-note">🤖 Feedback généré par Coach Awa · 🎙️ Micro requis · 🔒 Audio transcrit de façon sécurisée, non conservé</div>
 </div>
 
 <!-- ══ RECORD ═════════════════════════════════════════════════════════════════ -->
@@ -631,17 +619,11 @@ const scores = {};
 let currentUser = null;
 
 // ── Détection iOS ────────────────────────────────────────────────────────────
-// Sur iOS, tous les navigateurs (Chrome, Safari...) utilisent le moteur WebKit
-// d'Apple, qui ne supporte pas la Web Speech API. On prévient l'utilisateur
-// dès l'accueil plutôt que de le laisser découvrir ça en plein exercice.
+// Utilisée pour adapter certains messages spécifiques à iOS (ex: astuce pour
+// installer une voix féminine française dans les réglages du téléphone).
 function isIOS(){
   return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad récent
-}
-
-function checkIOSBanner(){
-  const banner = document.getElementById('ios-banner');
-  if(banner && isIOS()) banner.classList.add('visible');
 }
 
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
@@ -733,15 +715,12 @@ function mergeSessions(local, cloud){
 let currentEx = null;
 let elapsed = 0;
 let timerInterval = null;
-let recognition = null;
 let transcriptFull = "";
 let analyzing = false;
 let micStream = null;
-let mediaRecorder = null; // utilisé uniquement sur iOS (MediaRecorder, pas de Web Speech API)
+let mediaRecorder = null; // enregistrement audio (Android, iOS, desktop), transcrit ensuite via Whisper
 let audioChunks = [];
-let segmentTimestamps = []; // timestamps de chaque segment de parole validé, pour détecter les pauses
-let finalResultsProcessed = 0; // nb de résultats finaux déjà ajoutés à transcriptFull (indépendant de resultIndex, peu fiable sur Chrome Android en continu)
-let micStartAttempts = 0; // compte les échecs de démarrage du micro, pour réessayer automatiquement puis prévenir l'utilisateur
+let segmentTimestamps = []; // timestamps de fin de chaque segment Whisper, pour détecter les pauses
 let currentUtterance = null;
 let voiceText = "";
 
@@ -1150,8 +1129,6 @@ function toggleExample(){
 }
 
 function requestMicAndStart(){
-  // Sur Android Chrome, la Web Speech API gère le micro seule
-  // getUserMedia crée un conflit — on le supprime complètement
   startRecording();
 }
 
@@ -1159,122 +1136,20 @@ function startRecording(){
   elapsed = 0; transcriptFull = ""; analyzing = false;
   micStream = null;
   segmentTimestamps = []; // réinitialise le suivi des pauses pour cette session
-  finalResultsProcessed = 0; // réinitialise le compteur de résultats déjà traités
-  micStartAttempts = 0; // réinitialise le compteur de tentatives de démarrage du micro
 
   // 1. Rendre le DOM EN PREMIER
   renderRecordingZone();
 
-  // 2. Sur iOS, la Web Speech API n'existe pas (limitation WebKit) : on enregistre
-  // l'audio localement puis on le transcrit via un service serveur (Whisper).
-  if(isIOS()){
-    startRecordingIOS();
-    startTimer();
-    return;
-  }
-
-  // 3. Android/Desktop : Web Speech API, comme avant
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if(!SR){
-    const el = document.getElementById('mic-status');
-    if(el) el.innerHTML = '⚠️ Reconnaissance vocale non supportée sur ce navigateur.';
-    return;
-  }
-
-  function createAndStart(){
-    // Nettoie toute instance précédente qui traînerait encore — cause fréquente
-    // d'échec silencieux de .start() sur certains navigateurs Android/WebView
-    // (ex: navigateurs constructeurs comme MIUI) quand une session précédente
-    // n'a pas complètement libéré le micro.
-    if(recognition){
-      try{ recognition.onend = null; recognition.abort(); }catch(_){}
-      recognition = null;
-    }
-
-    recognition = new SR();
-    finalResultsProcessed = 0; // nouvelle instance = nouveaux indices de résultats à partir de 0
-    recognition.lang = 'fr-FR';
-    recognition.continuous = false; // le mode continu cause une duplication des résultats sur Chrome Android — moins confortable (bips) mais fiable
-    recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
-
-    recognition.onstart = () => {
-      micStartAttempts = 0; // succès : on remet le compteur à zéro
-      const el = document.getElementById('mic-status');
-      if(el) el.textContent = "🎙️ Micro actif — parlez !";
-    };
-
-    recognition.onresult = e => {
-      let interim = "";
-      // On parcourt TOUS les résultats renvoyés (pas seulement depuis e.resultIndex,
-      // peu fiable sur Chrome Android en mode continu — il peut revenir à 0 et
-      // provoquer une duplication exponentielle du texte). On garde notre propre
-      // compteur pour ne traiter qu'une seule fois chaque résultat final.
-      for(let i = 0; i < e.results.length; i++){
-        const result = e.results[i];
-        if(result.isFinal){
-          if(i >= finalResultsProcessed){
-            transcriptFull += result[0].transcript + " ";
-            segmentTimestamps.push(Date.now()); // marque le moment de chaque segment validé
-            finalResultsProcessed = i + 1;
-          }
-        } else {
-          interim += result[0].transcript;
-        }
-      }
-      const display = (transcriptFull + interim).trim();
-      const el = document.getElementById('live-transcript');
-      if(el) el.textContent = display ? `"…${display.slice(-200)}"` : "En attente de voix…";
-    };
-
-    recognition.onerror = e => {
-      const el = document.getElementById('mic-status');
-      if(e.error === 'no-speech') return; // normal, on relance
-      if(e.error === 'aborted') return;   // arrêt volontaire
-      if(e.error === 'network'){
-        if(el) el.textContent = "⚠️ Erreur réseau Google — vérifiez votre connexion";
-        return;
-      }
-      if(e.error === 'not-allowed'){
-        if(el) el.innerHTML = "⚠️ Micro bloqué. Appuyez sur l'icône 🔒 à côté de l'adresse du site en haut de Chrome → Autorisations → Microphone → Autoriser. Puis rechargez la page.";
-        return;
-      }
-      if(el) el.textContent = `⚠️ ${e.error}`;
-    };
-
-    recognition.onend = () => {
-      // Relance automatiquement tant qu'on n'analyse pas
-      if(!analyzing){
-        setTimeout(createAndStart, 100);
-      }
-    };
-
-    try {
-      recognition.start();
-    } catch(err){
-      // .start() peut échouer si le navigateur n'a pas encore libéré le micro
-      // d'une session précédente (fréquent sur certains navigateurs Android
-      // non-standards). On réessaie automatiquement quelques fois avant de
-      // prévenir l'utilisateur, plutôt que d'échouer silencieusement.
-      micStartAttempts++;
-      const el = document.getElementById('mic-status');
-      if(micStartAttempts <= 4){
-        setTimeout(createAndStart, 500);
-      } else if(el){
-        el.innerHTML = "⚠️ Le micro n'a pas pu démarrer. Rechargez la page et réessayez.";
-      }
-    }
-  }
-
-  // Délai 400ms pour laisser le DOM se stabiliser sur mobile
-  setTimeout(createAndStart, 400);
-
+  // 2. Enregistrement audio (Android, iOS, desktop) via MediaRecorder, transcrit
+  // ensuite par un service serveur (Whisper) — un seul flux fiable pour tout le
+  // monde, plus de bips ni de bug de duplication liés à la Web Speech API.
+  startRecordingServer();
   startTimer();
 }
 
-// Enregistrement audio sur iOS via MediaRecorder (pas de Web Speech API disponible).
-// L'audio est envoyé à une fonction serveur pour transcription une fois l'enregistrement terminé.
-async function startRecordingIOS(){
+// Enregistrement audio via MediaRecorder. L'audio est envoyé à une fonction
+// serveur pour transcription une fois l'enregistrement terminé.
+async function startRecordingServer(){
   try{
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
     micStream = stream;
@@ -1299,7 +1174,9 @@ async function startRecordingIOS(){
     const el = document.getElementById('mic-status');
     if(el){
       if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
-        el.innerHTML = "⚠️ Micro bloqué. Va dans Réglages de ton iPhone → Safari (ou Chrome) → Microphone, et autorise ce site. Puis recharge la page.";
+        el.innerHTML = "⚠️ Micro bloqué. Appuie sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser. Puis recharge la page.";
+      } else if(!navigator.mediaDevices || !window.MediaRecorder){
+        el.innerHTML = "⚠️ Ce navigateur ne supporte pas l'enregistrement audio. Essaie avec Chrome ou Safari à jour.";
       } else {
         el.textContent = `⚠️ Impossible d'accéder au micro : ${err.message || err.name}`;
       }
@@ -1307,7 +1184,7 @@ async function startRecordingIOS(){
   }
 }
 
-// Timer partagé entre le flux Android (Web Speech) et le flux iOS (MediaRecorder)
+// Timer d'enregistrement, identique pour tous les appareils
 function startTimer(){
   timerInterval = setInterval(()=>{
     elapsed++;
@@ -1342,11 +1219,10 @@ function renderRecordingZone(){
       <div class="progress-bar" id="progress-fill" style="width:0%"></div>
     </div>
     <div class="transcript-box">
-      <div class="transcript-label">🎙️ Transcription en direct</div>
-      <div class="transcript-text" id="live-transcript">En attente de voix…</div>
+      <div class="transcript-label">🎙️ Enregistrement en cours</div>
+      <div class="transcript-text" id="live-transcript">Démarrage du micro…</div>
     </div>
     <div id="mic-status" style="color:var(--muted);font-size:11px;font-family:monospace"></div>
-    <div style="color:var(--muted);font-size:10px;font-family:monospace;opacity:.7">💡 Les petits bips viennent du service vocal de ton téléphone (normal) — continue à parler naturellement</div>
     <button class="stop-btn" onclick="stopAndAnalyze()">⏹ Terminer et analyser</button>
   `;
 }
@@ -1356,24 +1232,22 @@ function stopAndAnalyze(){
   analyzing = true;
 
   clearInterval(timerInterval);
+  showAnalyzingZone();
 
-  // Flux iOS : on arrête l'enregistrement audio, puis on envoie le fichier
-  // au serveur pour transcription avant de poursuivre l'analyse.
-  if(isIOS() && mediaRecorder){
-    showAnalyzingZone();
+  // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
+  // pour transcription avant de poursuivre l'analyse.
+  if(mediaRecorder){
     mediaRecorder.onstop = () => {
       if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
       const blob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-      transcribeAndAnalyzeIOS(blob);
+      transcribeAndAnalyze(blob);
     };
     try{ mediaRecorder.stop(); }
-    catch(_){ transcribeAndAnalyzeIOS(new Blob(audioChunks)); }
+    catch(_){ transcribeAndAnalyze(new Blob(audioChunks)); }
     return;
   }
 
-  if(recognition){ try{ recognition.abort(); recognition=null; }catch(_){} }
-
-  showAnalyzingZone();
+  // Filet de sécurité si l'enregistrement n'a jamais démarré correctement
   runAnalysis();
 }
 
@@ -1387,9 +1261,9 @@ function blobToBase64(blob){
   });
 }
 
-// Envoie l'audio enregistré sur iOS au serveur pour transcription (Whisper),
-// puis poursuit avec le même pipeline d'analyse que le flux Android.
-async function transcribeAndAnalyzeIOS(blob){
+// Envoie l'audio enregistré au serveur pour transcription (Whisper),
+// puis poursuit avec le pipeline d'analyse habituel (mots parasites, anglicismes, Coach Awa...).
+async function transcribeAndAnalyze(blob){
   try{
     const base64 = await blobToBase64(blob);
     const res = await fetch('/.netlify/functions/speech-to-text', {
@@ -1404,10 +1278,10 @@ async function transcribeAndAnalyzeIOS(blob){
     const data = await res.json();
     transcriptFull = (data.text || '').trim() + ' ';
     // Les segments Whisper (bornes en secondes) servent à reconstituer les pauses,
-    // comme les timestamps live sur Android — seul l'écart entre segments compte.
+    // comme les timestamps live utilisés précédemment — seul l'écart entre segments compte.
     segmentTimestamps = (data.segments || []).map(s => Math.round(s.end * 1000));
   } catch(err){
-    console.warn('Erreur transcription iOS:', err);
+    console.warn('Erreur de transcription:', err);
     transcriptFull = '';
     segmentTimestamps = [];
   }
@@ -1597,7 +1471,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
         <div class="result-tag">Retour de Coach Awa · ${exTitle}</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
-          <button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>
+          ${('speechSynthesis' in window) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>` : ''}
         </div>
         ${isIOS() ? `<div style="color:var(--muted);font-size:10px;font-family:monospace;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
         <div class="result-conseil">${fb.conseil_coach}</div>
@@ -1707,6 +1581,7 @@ function isKnownFemaleVoiceName(name){
 }
 
 function pickFrenchVoice(){
+  if(!('speechSynthesis' in window)) return null;
   const voices = window.speechSynthesis.getVoices();
   const frVoices = voices.filter(v=>v.lang==='fr-FR').length
     ? voices.filter(v=>v.lang==='fr-FR')
@@ -1725,6 +1600,7 @@ function pickFrenchVoice(){
 }
 
 function toggleVoiceFeedback(){
+  if(!('speechSynthesis' in window)) return; // API non supportée sur cet appareil
   const btn = document.getElementById('voice-btn');
   if(!btn) return;
 
@@ -1774,7 +1650,7 @@ if('speechSynthesis' in window){
 
 // Arrête la lecture vocale si on quitte la page résultat
 function stopVoiceFeedback(){
-  if(window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+  if('speechSynthesis' in window && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 }
 
 function goHome(){ showPage('home'); renderHome(); }
@@ -1967,7 +1843,6 @@ function sendFeedback(channel){
 }
 
 // Init
-checkIOSBanner();
 hydrateScoresFromHistory();
 renderHome();
 updateNavScore();
