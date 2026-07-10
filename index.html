@@ -474,6 +474,9 @@
   <div class="exercises" id="exercises-list"></div>
 
   <div class="footer-note">🤖 Feedback généré par Coach Awa · 🎙️ Micro requis · 🔒 Audio transcrit de façon sécurisée, non conservé</div>
+  <div style="text-align:center;margin-top:10px">
+    <span style="color:var(--gold);font-size:12px;font-family:monospace;cursor:pointer;text-decoration:underline" onclick="showPage('about')">ℹ️ À propos & confidentialité</span>
+  </div>
 </div>
 
 <!-- ══ RECORD ═════════════════════════════════════════════════════════════════ -->
@@ -502,6 +505,36 @@
 <div id="page-history-detail" class="page">
   <button class="back-btn" onclick="stopVoiceFeedback();showPage('history')">← Retour à l'historique</button>
   <div id="history-detail-content"></div>
+</div>
+
+<!-- ══ À PROPOS & CONFIDENTIALITÉ ═════════════════════════════════════════════ -->
+<div id="page-about" class="page">
+  <button class="back-btn" onclick="stopVoiceFeedback();showPage('home')">← Retour</button>
+
+  <div class="section-title">À propos d'Awa</div>
+  <div class="section-sub">Qui sommes-nous, et que devient ta voix ?</div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:10px">🎤 Le projet</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.8">
+      Awa est un coach IA de prise de parole en public, conçu pour aider chacun à progresser en toute autonomie — pitchs, discours, entretiens, présentations professionnelles. Le projet est développé par Moutar, sous la marque ParoleForceSenegal, actuellement en phase de bêta avec un petit groupe de testeurs.
+    </p>
+  </div>
+
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
+    <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:10px">🔒 Que devient ta voix ?</div>
+    <p style="color:var(--muted);font-size:14px;line-height:1.8;margin-bottom:12px">
+      Quand tu enregistres un exercice, voici précisément ce qui se passe :
+    </p>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ton audio est envoyé de façon sécurisée (connexion chiffrée) à un service de transcription (Whisper, d'OpenAI) pour être converti en texte.</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">L'enregistrement audio lui-même n'est jamais conservé — il est supprimé une fois la transcription effectuée.</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Seul le texte transcrit est envoyé à Claude (Anthropic) pour générer le feedback de Coach Awa.</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ce qui est sauvegardé dans ton compte : le texte de tes discours, tes scores, et les feedbacks reçus — visibles uniquement par toi, stockés sur Firebase (Google).</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Personne d'autre que toi n'a accès à tes enregistrements ou à ton historique.</span></div>
+    <p style="color:var(--muted);font-size:12px;line-height:1.7;margin-top:14px;font-style:italic">
+      Awa est un projet en phase de test — cette page décrit honnêtement notre fonctionnement actuel, mais ne constitue pas une politique de confidentialité formelle. Une question ? Utilise le bouton 🐛 pour nous contacter directement.
+    </p>
+  </div>
 </div>
 
 <!-- ══ BADGE TOAST ════════════════════════════════════════════════════════════ -->
@@ -1292,27 +1325,52 @@ function blobToBase64(blob){
 // Envoie l'audio enregistré au serveur pour transcription (Whisper),
 // puis poursuit avec le pipeline d'analyse habituel (mots parasites, anglicismes, Coach Awa...).
 async function transcribeAndAnalyze(blob){
-  try{
-    const base64 = await blobToBase64(blob);
-    const res = await fetch('/.netlify/functions/speech-to-text', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ audioBase64: base64, mimeType: blob.type })
-    });
-    if(!res.ok){
-      const errBody = await res.text().catch(()=>'(corps illisible)');
-      throw new Error(`HTTP ${res.status} — ${errBody.slice(0,200)}`);
+  let lastErr = null;
+
+  // Jusqu'à 2 tentatives : certains enregistrements échouent une première fois
+  // sans raison apparente (réseau, service de transcription) — un second essai
+  // sur le même fichier audio résout souvent le problème sans que l'utilisateur
+  // ait besoin de tout recommencer.
+  for(let attempt = 1; attempt <= 2; attempt++){
+    try{
+      const base64 = await blobToBase64(blob);
+      const res = await fetch('/.netlify/functions/speech-to-text', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ audioBase64: base64, mimeType: blob.type })
+      });
+      if(!res.ok){
+        const errBody = await res.text().catch(()=>'(corps illisible)');
+        throw new Error(`HTTP ${res.status} — ${errBody.slice(0,200)}`);
+      }
+      const data = await res.json();
+      const text = (data.text || '').trim();
+
+      if(!text && attempt < 2){
+        // Transcription vide alors qu'un enregistrement a bien eu lieu : on retente
+        lastErr = new Error('Transcription vide');
+        await new Promise(r=>setTimeout(r, 600));
+        continue;
+      }
+
+      transcriptFull = text + ' ';
+      // Les segments Whisper (bornes en secondes) servent à reconstituer les pauses,
+      // comme les timestamps live utilisés précédemment — seul l'écart entre segments compte.
+      segmentTimestamps = (data.segments || []).map(s => Math.round(s.end * 1000));
+      lastErr = null;
+      break;
+    } catch(err){
+      lastErr = err;
+      if(attempt < 2) await new Promise(r=>setTimeout(r, 600));
     }
-    const data = await res.json();
-    transcriptFull = (data.text || '').trim() + ' ';
-    // Les segments Whisper (bornes en secondes) servent à reconstituer les pauses,
-    // comme les timestamps live utilisés précédemment — seul l'écart entre segments compte.
-    segmentTimestamps = (data.segments || []).map(s => Math.round(s.end * 1000));
-  } catch(err){
-    console.warn('Erreur de transcription:', err);
+  }
+
+  if(lastErr){
+    console.warn('Erreur de transcription après 2 tentatives:', lastErr);
     transcriptFull = '';
     segmentTimestamps = [];
   }
+
   await runAnalysis();
 }
 
@@ -1417,10 +1475,10 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     const transcriptionVide = nbMots === 0;
     feedback = transcriptionVide
       ? {score:50,titre_feedback:"Aucune voix détectée",
-         conseil_coach:`On n'a pas pu analyser ta voix cette fois. Vérifie que le micro est bien autorisé et réessaie en parlant clairement. [Diagnostic : ${errMsg}]`,
+         conseil_coach:`On n'a pas réussi à capter ta voix cette fois — ça arrive occasionnellement. Le plus simple : clique sur "Réessayer" et relance l'enregistrement tout de suite, ça fonctionne presque toujours au second essai. [Diagnostic : ${errMsg}]`,
          points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
-         ameliorations:["Vérifie l'autorisation du micro dans les paramètres du navigateur","Parle dès l'apparition du chronomètre","Évite les environnements bruyants"],
-         defi_suivant:"Réessaie cet exercice en vérifiant que le micro est actif."}
+         ameliorations:["Réessaie l'enregistrement immédiatement, sans attendre","Vérifie que le micro est bien autorisé dans les paramètres du navigateur","Parle dès le début de l'enregistrement"],
+         defi_suivant:"Clique sur Réessayer et relance l'enregistrement tout de suite."}
       : {score:65,titre_feedback:"Bonne session ! (analyse simplifiée)",
          conseil_coach:`Ta voix a bien été captée. Coach Awa était temporairement indisponible, mais continue à pratiquer. [Diagnostic : ${errMsg}]`,
          points_forts:["Tu as osé te lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
