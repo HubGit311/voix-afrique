@@ -781,6 +781,15 @@ function getLastSessionForExercise(exId){
   return sessions.length ? sessions[sessions.length-1] : null;
 }
 
+// Récupère les tentatives récentes (avec texte transcrit disponible) pour un
+// exercice donné, du plus ancien au plus récent — utilisé pour proposer un
+// discours structuré après plusieurs essais.
+function getRecentTranscriptsForExercise(exId, max=3){
+  return loadSessions()
+    .filter(s => s.exId === exId && s.transcript && s.transcript.trim().length > 0)
+    .slice(-max);
+}
+
 // Initialise les scores affichés sur la home depuis l'historique sauvegardé
 function hydrateScoresFromHistory(){
   const sessions = loadSessions();
@@ -1499,7 +1508,8 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   const isDailyBonus = todaysChallenge && todaysChallenge.id === currentEx.id && !isDailyChallengeCompletedToday(currentEx.id);
 
   // Sauvegarde de cette session dans l'historique (métriques + feedback complet
-  // pour pouvoir le reconsulter plus tard depuis l'Historique)
+  // + texte transcrit, pour pouvoir reconsulter le feedback plus tard et générer
+  // un discours structuré après plusieurs tentatives sur le même exercice)
   saveSession({
     exId: currentEx.id,
     exTitle: currentEx.title,
@@ -1509,6 +1519,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     fluencyLongPauses: fluency.longPauses || 0,
     date: new Date().toISOString(),
     dailyBonus: isDailyBonus,
+    transcript: text,
     feedback: {
       titre_feedback: feedback.titre_feedback,
       conseil_coach: feedback.conseil_coach,
@@ -1640,13 +1651,84 @@ function showResult(fb, met, previous, dailyBonus){
 
   const html = buildResultHTML(fb, met, currentEx.title, dailyBonusHTML + comparisonHTML);
 
-  document.getElementById('result-content').innerHTML = html + `
+  // Après 3 tentatives (ou plus) sur le même exercice avec texte transcrit
+  // disponible, on propose un discours structuré inspiré de ces essais.
+  const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3);
+  const structuredOfferHTML = (currentEx.id !== 'libre' && recentTranscripts.length >= 3) ? `
+    <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
+      <div style="display:flex;gap:16px;align-items:flex-start">
+        <span style="font-size:24px;flex-shrink:0">✨</span>
+        <div>
+          <div class="defi-title" style="color:#5B4FE8">Tu as fait cet exercice ${recentTranscripts.length} fois !</div>
+          <div class="defi-text" style="color:var(--text)">Envie d'un discours structuré, inspiré du meilleur de tes ${recentTranscripts.length} dernières tentatives ?</div>
+        </div>
+      </div>
+      <button class="btn-primary" style="background:linear-gradient(135deg,#5B4FE8,#8B7FFF);width:100%" onclick="generateStructuredSpeech()" id="structured-speech-btn">✨ Générer mon discours structuré</button>
+      <div id="structured-speech-result" style="width:100%"></div>
+    </div>` : '';
+
+  document.getElementById('result-content').innerHTML = html + structuredOfferHTML + `
     <div class="actions">
       <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">🔄 RÉESSAYER</button>
       <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">← Autres exercices</button>
     </div>
   `;
   showPage('result');
+}
+
+// Génère un discours structuré inspiré des dernières tentatives de l'apprenant
+// sur l'exercice en cours, en s'appuyant sur Coach Awa.
+async function generateStructuredSpeech(){
+  const btn = document.getElementById('structured-speech-btn');
+  const resultEl = document.getElementById('structured-speech-result');
+  if(!resultEl) return;
+
+  if(btn){ btn.disabled = true; btn.textContent = '✨ Génération en cours…'; }
+  resultEl.innerHTML = `<div style="color:var(--muted);font-size:13px;font-family:monospace;margin-top:10px">Coach Awa relit tes tentatives et prépare ton discours…</div>`;
+
+  const transcripts = getRecentTranscriptsForExercise(currentEx.id, 3);
+  const learnerFirstName = (currentUser && currentUser.displayName) ? currentUser.displayName.trim().split(/\s+/)[0] : null;
+
+  const essaisTexte = transcripts.map((s,i)=> `Tentative ${i+1} :\n"${s.transcript.trim()}"`).join('\n\n');
+
+  const prompt = `Tu es Coach Awa, une coach experte en prise de parole en public. "Awa" est TON PROPRE prénom, jamais celui de l'apprenant.
+${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}".` : `Tu ne connais pas le prénom de l'apprenant.`}
+Tutoie systématiquement l'apprenant (jamais "vous").
+
+Un apprenant a répété l'exercice "${currentEx.title}" plusieurs fois. Voici ses ${transcripts.length} dernières tentatives, dans l'ordre chronologique :
+
+${essaisTexte}
+
+Contexte de l'exercice : ${currentEx.context}
+
+En t'inspirant du meilleur de ces tentatives (les idées fortes, les formulations réussies), rédige une version finale : un discours fluide, bien structuré (introduction, développement, conclusion), débarrassé des hésitations et répétitions, prêt à être mémorisé et prononcé. Reste fidèle au fond et au style de l'apprenant plutôt que d'inventer un discours totalement différent.
+
+Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte avant ou après :
+{"intro":"<1-2 phrases chaleureuses de Coach Awa présentant ce discours>","texte_discours":"<le discours structuré final, prêt à être lu ou mémorisé>"}`;
+
+  try{
+    const res = await fetch("/.netlify/functions/claude-feedback", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ prompt })
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const raw = (data.content || []).map(b=>b.text || "").join("");
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
+
+    resultEl.innerHTML = `
+      <div style="background:var(--card);border:1px solid rgba(91,79,232,.3);border-radius:12px;padding:18px;margin-top:14px">
+        <div style="color:#5B4FE8;font-size:13px;font-family:monospace;margin-bottom:10px">${parsed.intro || ''}</div>
+        <div style="color:var(--text);font-size:14px;line-height:1.8;font-family:'Lora',serif;white-space:pre-wrap">${parsed.texte_discours || ''}</div>
+      </div>`;
+    if(btn) btn.style.display = 'none';
+  } catch(err){
+    console.warn('Erreur génération discours structuré:', err);
+    resultEl.innerHTML = `<div style="color:var(--red);font-size:12px;font-family:monospace;margin-top:10px">⚠️ Impossible de générer le discours pour le moment. Réessaie dans un instant.</div>`;
+    if(btn){ btn.disabled = false; btn.textContent = '✨ Générer mon discours structuré'; }
+  }
 }
 
 function metricBar(label, value, max, color, unit){
