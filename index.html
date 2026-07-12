@@ -1168,6 +1168,17 @@ function retryCurrentExercise(){
   }
 }
 
+// Relance un exercice depuis l'historique (page de détail d'une session passée)
+function retryExerciseById(exId){
+  stopVoiceFeedback();
+  if(exId === 'libre'){
+    goHome();
+    openFreeContextModal();
+  } else {
+    startExercise(Number(exId));
+  }
+}
+
 function renderRecordPage(){
   document.getElementById('rec-header').innerHTML=`
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
@@ -1923,7 +1934,12 @@ function openHistoryDetail(key){
 
   const html = buildResultHTML(fb, met, session.exTitle, dateHTML);
 
-  document.getElementById('history-detail-content').innerHTML = html;
+  const retryHTML = `
+    <div class="actions">
+      <button class="btn-primary" onclick="retryExerciseById('${session.exId}')">🔄 Réessayer cet exercice</button>
+    </div>`;
+
+  document.getElementById('history-detail-content').innerHTML = html + retryHTML;
   showPage('history-detail');
 }
 
