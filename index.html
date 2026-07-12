@@ -423,7 +423,7 @@
 <body>
 
 <nav>
-  <a class="logo" onclick="stopVoiceFeedback();showPage('home')">
+  <a class="logo" onclick="stopVoiceFeedback();goHome()">
     <div class="logo-icon">🎤</div>
     <div>
       <div class="logo-name">Awa</div>
@@ -482,7 +482,7 @@
 
 <!-- ══ RECORD ═════════════════════════════════════════════════════════════════ -->
 <div id="page-record" class="page">
-  <button class="back-btn" onclick="showPage('home')">← Retour</button>
+  <button class="back-btn" onclick="goHome()">← Retour</button>
 
   <div class="ex-header" id="rec-header"></div>
 
@@ -496,7 +496,7 @@
 
 <!-- ══ HISTORY ════════════════════════════════════════════════════════════════ -->
 <div id="page-history" class="page">
-  <button class="back-btn" onclick="showPage('home')">← Retour</button>
+  <button class="back-btn" onclick="goHome()">← Retour</button>
   <div class="section-title">📊 Votre progression</div>
   <div class="section-sub">Suivez votre évolution session après session</div>
   <div id="history-content"></div>
@@ -510,7 +510,7 @@
 
 <!-- ══ À PROPOS & CONFIDENTIALITÉ ═════════════════════════════════════════════ -->
 <div id="page-about" class="page">
-  <button class="back-btn" onclick="stopVoiceFeedback();showPage('home')">← Retour</button>
+  <button class="back-btn" onclick="stopVoiceFeedback();goHome()">← Retour</button>
 
   <div class="section-title">À propos d'Awa</div>
   <div class="section-sub">Qui sommes-nous, et que devient ta voix ?</div>
