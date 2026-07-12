@@ -766,6 +766,7 @@ let transcriptFull = "";
 let analyzing = false;
 let micStream = null;
 let mediaRecorder = null; // enregistrement audio (Android, iOS, desktop), transcrit ensuite via Whisper
+let recordingWasBackgrounded = false; // vrai si l'appli est passée en arrière-plan pendant l'enregistrement (cause fréquente d'échec)
 let audioChunks = [];
 let segmentTimestamps = []; // timestamps de fin de chaque segment Whisper, pour détecter les pauses
 let currentUtterance = null;
@@ -1197,6 +1198,9 @@ function renderReadyZone(){
         💡 Prépare ton discours à l'avance ou improvise directement — les deux fonctionnent ! Clique sur Démarrer · Autorise le micro si demandé · Parle clairement en français
       </div>
     </div>
+    <div style="color:var(--red);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
+      ⚠️ Reste sur cette page pendant tout l'enregistrement — changer d'application ou verrouiller l'écran peut interrompre la capture de ta voix
+    </div>
     <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
       🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser
     </div>
@@ -1241,6 +1245,25 @@ function startRecording(){
 
 // Enregistrement audio via MediaRecorder. L'audio est envoyé à une fonction
 // serveur pour transcription une fois l'enregistrement terminé.
+// Détecte si l'utilisateur quitte l'app (change d'appli, verrouille l'écran...)
+// pendant l'enregistrement — la capture audio est souvent suspendue en arrière-plan
+// par le navigateur, ce qui vide l'enregistrement sans que rien ne le signale.
+function handleVisibilityDuringRecording(){
+  if(document.hidden){
+    if(mediaRecorder && mediaRecorder.state === 'recording'){
+      recordingWasBackgrounded = true;
+    }
+    return;
+  }
+  // Retour au premier plan : si l'enregistrement est toujours en cours et qu'on
+  // a détecté un passage en arrière-plan, on prévient tout de suite plutôt que
+  // d'attendre la fin de l'exercice pour découvrir l'échec.
+  if(recordingWasBackgrounded && mediaRecorder && mediaRecorder.state === 'recording'){
+    const el = document.getElementById('mic-status');
+    if(el) el.innerHTML = "⚠️ Tu as quitté l'application — l'enregistrement a pu être interrompu pendant ce temps. Termine et vérifie, ou recommence pour être sûr.";
+  }
+}
+
 async function startRecordingServer(){
   try{
     const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -1260,6 +1283,9 @@ async function startRecordingServer(){
       const liveEl = document.getElementById('live-transcript');
       if(liveEl) liveEl.textContent = "L'enregistrement est en cours — la transcription apparaîtra après \"Terminer\".";
     };
+
+    recordingWasBackgrounded = false;
+    document.addEventListener('visibilitychange', handleVisibilityDuringRecording);
 
     mediaRecorder.start();
   } catch(err){
@@ -1325,6 +1351,7 @@ function stopAndAnalyze(){
 
   clearInterval(timerInterval);
   showAnalyzingZone();
+  document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
 
   // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
   // pour transcription avant de poursuivre l'analyse.
@@ -1515,11 +1542,17 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     console.error('Échec définitif de l\'analyse IA après 2 tentatives. Dernière erreur :', lastError);
     const transcriptionVide = nbMots === 0;
     feedback = transcriptionVide
-      ? {score:50,titre_feedback:"Aucune voix détectée",
-         conseil_coach:`On n'a pas réussi à capter ta voix cette fois — ça arrive occasionnellement. Le plus simple : clique sur "Réessayer" et relance l'enregistrement tout de suite, ça fonctionne presque toujours au second essai. [Diagnostic : ${errMsg}]`,
-         points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
-         ameliorations:["Réessaie l'enregistrement immédiatement, sans attendre","Vérifie que le micro est bien autorisé dans les paramètres du navigateur","Parle dès le début de l'enregistrement"],
-         defi_suivant:"Clique sur Réessayer et relance l'enregistrement tout de suite."}
+      ? (recordingWasBackgrounded
+        ? {score:50,titre_feedback:"L'enregistrement a été interrompu",
+           conseil_coach:`Tu as quitté l'application pendant l'enregistrement — c'est probablement pour ça que ta voix n'a pas été captée. Le navigateur suspend souvent le micro dès qu'on change d'appli. [Diagnostic : ${errMsg}]`,
+           points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
+           ameliorations:["Reste sur cette page pendant tout l'enregistrement, sans changer d'appli ni verrouiller l'écran","Si tu dois lire des notes, garde-les affichées à côté sur papier ou un autre appareil","Réessaie l'enregistrement sans quitter l'application cette fois"],
+           defi_suivant:"Recommence sans changer d'application pendant l'enregistrement."}
+        : {score:50,titre_feedback:"Aucune voix détectée",
+           conseil_coach:`On n'a pas réussi à capter ta voix cette fois — ça arrive occasionnellement. Le plus simple : clique sur "Réessayer" et relance l'enregistrement tout de suite, ça fonctionne presque toujours au second essai. [Diagnostic : ${errMsg}]`,
+           points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
+           ameliorations:["Réessaie l'enregistrement immédiatement, sans attendre","Vérifie que le micro est bien autorisé dans les paramètres du navigateur","Parle dès le début de l'enregistrement"],
+           defi_suivant:"Clique sur Réessayer et relance l'enregistrement tout de suite."})
       : {score:65,titre_feedback:"Bonne session ! (analyse simplifiée)",
          conseil_coach:`Ta voix a bien été captée. Coach Awa était temporairement indisponible, mais continue à pratiquer. [Diagnostic : ${errMsg}]`,
          points_forts:["Tu as osé te lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
