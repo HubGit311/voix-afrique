@@ -1,11 +1,9 @@
 // netlify/functions/speech-to-text.js
 //
-// Transcrit un enregistrement audio via l'API Whisper d'OpenAI. La clé API
-// reste côté serveur, jamais exposée au navigateur.
-//
-// Format simplifié (response_format=json, sans segmentation par pauses) :
-// plus rapide que verbose_json + timestamp_granularities, au prix de la
-// mesure fine des pauses/hésitations dans l'analyse de fluidité.
+// Transcrit un enregistrement audio via l'API Groq (Whisper hébergé sur une
+// infrastructure d'inférence rapide). La clé API reste côté serveur, jamais
+// exposée au navigateur. Groq est compatible avec le format de l'API OpenAI,
+// seuls la clé, l'adresse et le nom du modèle changent.
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -19,9 +17,9 @@ exports.handler = async (event) => {
       return { statusCode: 400, body: JSON.stringify({ error: "audioBase64 manquant" }) };
     }
 
-    const apiKey = process.env.OPENAI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      return { statusCode: 500, body: JSON.stringify({ error: "OPENAI_API_KEY non configurée côté serveur" }) };
+      return { statusCode: 500, body: JSON.stringify({ error: "GROQ_API_KEY non configurée côté serveur" }) };
     }
 
     // Reconstruction du fichier audio binaire à partir du base64
@@ -33,7 +31,7 @@ exports.handler = async (event) => {
 
     const parts = [];
     parts.push(Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-1\r\n`
+      `--${boundary}\r\nContent-Disposition: form-data; name="model"\r\n\r\nwhisper-large-v3-turbo\r\n`
     ));
     parts.push(Buffer.from(
       `--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nfr\r\n`
@@ -49,7 +47,7 @@ exports.handler = async (event) => {
 
     const body = Buffer.concat(parts);
 
-    const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+    const response = await fetch("https://api.groq.com/openai/v1/audio/transcriptions", {
       method: "POST",
       headers: {
         "Authorization": `Bearer ${apiKey}`,
@@ -60,7 +58,7 @@ exports.handler = async (event) => {
 
     if (!response.ok) {
       const errText = await response.text().catch(() => "(corps illisible)");
-      return { statusCode: response.status, body: JSON.stringify({ error: `Erreur OpenAI: ${errText.slice(0, 300)}` }) };
+      return { statusCode: response.status, body: JSON.stringify({ error: `Erreur Groq: ${errText.slice(0, 300)}` }) };
     }
 
     const data = await response.json();
