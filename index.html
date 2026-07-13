@@ -892,6 +892,23 @@ function checkNewBadges(sessionsBefore, sessionsAfter){
 // ── Utils ─────────────────────────────────────────────────────────────────────
 const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 
+// Fetch avec délai maximum : évite qu'un appel réseau bloqué (Whisper, Claude)
+// laisse l'utilisateur attendre indéfiniment sans jamais voir de résultat.
+async function fetchWithTimeout(url, options, timeoutMs=25000){
+  const controller = new AbortController();
+  const timer = setTimeout(()=>controller.abort(), timeoutMs);
+  try{
+    return await fetch(url, { ...options, signal: controller.signal });
+  } catch(err){
+    if(err.name === 'AbortError'){
+      throw new Error(`Le service n'a pas répondu dans les ${Math.round(timeoutMs/1000)}s — réessaie dans un instant.`);
+    }
+    throw err;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 function countWords(t){ return t.trim().split(/\s+/).filter(Boolean).length; }
 
 function detectParasites(t){
@@ -1403,7 +1420,7 @@ async function transcribeAndAnalyze(blob){
   for(let attempt = 1; attempt <= 2; attempt++){
     try{
       const base64 = await blobToBase64(blob);
-      const res = await fetch('/.netlify/functions/speech-to-text', {
+      const res = await fetchWithTimeout('/.netlify/functions/speech-to-text', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ audioBase64: base64, mimeType: blob.type })
@@ -1515,7 +1532,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}`;
 
       // Appel à notre fonction Netlify sécurisée (la clé API reste côté serveur)
-      const res = await fetch("/.netlify/functions/claude-feedback",{
+      const res = await fetchWithTimeout("/.netlify/functions/claude-feedback",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({prompt})
@@ -1794,7 +1811,7 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte avant ou après :
 {"intro":"<1-2 phrases chaleureuses de Coach Awa présentant ce discours>","texte_discours":"<le discours structuré final, prêt à être lu ou mémorisé>"}`;
 
   try{
-    const res = await fetch("/.netlify/functions/claude-feedback", {
+    const res = await fetchWithTimeout("/.netlify/functions/claude-feedback", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
       body: JSON.stringify({ prompt })
