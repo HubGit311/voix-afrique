@@ -1571,6 +1571,16 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
          defi_suivant:"Répète cet exercice 3 fois cette semaine."};
   }
 
+  // En cas d'échec technique (aucune voix captée), on ne sauvegarde PAS de
+  // session : ça ne doit pas compter comme un exercice complété (XP, badges,
+  // défi du jour, historique). L'utilisateur voit quand même un écran clair
+  // l'invitant à réessayer, mais rien n'est comptabilisé tant qu'il n'a pas
+  // un vrai essai réussi.
+  if(transcriptionVide){
+    showResult(feedback, {debit:0,parasites:{},totalParasites:0,anglicismes:{},totalAnglicismes:0,nbMots:0,duration,fluency}, null, false);
+    return;
+  }
+
   scores[currentEx.id]=feedback.score;
   updateNavScore();
 
