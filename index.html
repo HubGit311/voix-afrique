@@ -1458,7 +1458,23 @@ async function transcribeAndAnalyze(blob){
     segmentTimestamps = [];
   }
 
-  await runAnalysis();
+  try{
+    await runAnalysis();
+  } catch(err){
+    // Filet de sécurité : si runAnalysis plante pour une raison imprévue,
+    // on ne laisse jamais l'utilisateur bloqué sur l'écran de chargement.
+    console.error('Erreur inattendue dans runAnalysis:', err);
+    const zone = document.getElementById('rec-zone');
+    if(zone){
+      zone.innerHTML = `
+        <div style="text-align:center;padding:20px">
+          <div style="font-size:32px;margin-bottom:12px">⚠️</div>
+          <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:18px;margin-bottom:10px">Une erreur inattendue s'est produite</div>
+          <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;margin-bottom:16px">${(err && err.message) || 'Erreur inconnue'}</div>
+          <button class="btn-primary" onclick="retryCurrentExercise()">🔄 Réessayer</button>
+        </div>`;
+    }
+  }
 }
 
 function showAnalyzingZone(){
@@ -1493,6 +1509,7 @@ async function runAnalysis(){
 
   let feedback;
   let lastError = null;
+  const transcriptionVide = nbMots === 0;
 
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
@@ -1569,7 +1586,6 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   if(!feedback){
     const errMsg = (lastError && (lastError.message || String(lastError))) || 'inconnue';
     console.error('Échec définitif de l\'analyse IA après 2 tentatives. Dernière erreur :', lastError);
-    const transcriptionVide = nbMots === 0;
     feedback = transcriptionVide
       ? (recordingWasBackgrounded
         ? {score:50,titre_feedback:"L'enregistrement a été interrompu",
