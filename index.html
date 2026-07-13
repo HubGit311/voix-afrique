@@ -1423,9 +1423,10 @@ async function transcribeAndAnalyze(blob){
       }
 
       transcriptFull = text + ' ';
-      // Les segments Whisper (bornes en secondes) servent à reconstituer les pauses,
-      // comme les timestamps live utilisés précédemment — seul l'écart entre segments compte.
-      segmentTimestamps = (data.segments || []).map(s => Math.round(s.end * 1000));
+      // La segmentation Whisper a été retirée pour accélérer la transcription —
+      // la mesure de fluidité/pauses n'est donc plus disponible (dégradation
+      // gérée nativement : la barre correspondante ne s'affiche simplement pas).
+      segmentTimestamps = [];
       lastErr = null;
       break;
     } catch(err){

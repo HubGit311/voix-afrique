@@ -1,8 +1,11 @@
 // netlify/functions/speech-to-text.js
 //
-// Transcrit un enregistrement audio (utilisé sur iOS, où la Web Speech API
-// n'est pas disponible) via l'API Whisper d'OpenAI. La clé API reste
-// côté serveur, jamais exposée au navigateur.
+// Transcrit un enregistrement audio via l'API Whisper d'OpenAI. La clé API
+// reste côté serveur, jamais exposée au navigateur.
+//
+// Format simplifié (response_format=json, sans segmentation par pauses) :
+// plus rapide que verbose_json + timestamp_granularities, au prix de la
+// mesure fine des pauses/hésitations dans l'analyse de fluidité.
 
 exports.handler = async (event) => {
   if (event.httpMethod !== "POST") {
@@ -36,10 +39,7 @@ exports.handler = async (event) => {
       `--${boundary}\r\nContent-Disposition: form-data; name="language"\r\n\r\nfr\r\n`
     ));
     parts.push(Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\nverbose_json\r\n`
-    ));
-    parts.push(Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="timestamp_granularities[]"\r\n\r\nsegment\r\n`
+      `--${boundary}\r\nContent-Disposition: form-data; name="response_format"\r\n\r\njson\r\n`
     ));
     parts.push(Buffer.from(
       `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="audio.${extension}"\r\nContent-Type: ${mimeType || "audio/webm"}\r\n\r\n`
@@ -65,15 +65,9 @@ exports.handler = async (event) => {
 
     const data = await response.json();
 
-    // data.text = transcription complète
-    // data.segments = liste de segments avec {start, end, text} en secondes,
-    // utilisés côté client pour reconstituer une approximation du rythme/pauses.
     return {
       statusCode: 200,
-      body: JSON.stringify({
-        text: data.text || "",
-        segments: (data.segments || []).map(s => ({ start: s.start, end: s.end, text: s.text }))
-      })
+      body: JSON.stringify({ text: data.text || "" })
     };
 
   } catch (err) {
