@@ -542,7 +542,7 @@
 <div id="badge-toast" class="toast-badge">
   <span class="toast-icon" id="toast-icon">🏆</span>
   <div>
-    <div class="toast-title">Badge débloqué !</div>
+    <div class="toast-title" id="toast-title">Badge débloqué !</div>
     <div class="toast-name" id="toast-name"></div>
   </div>
 </div>
@@ -578,6 +578,7 @@
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">+15 XP bonus si tu n'as utilisé aucun mot parasite</span></div>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">+25 XP bonus si tu complètes le "Défi du jour" (un exercice différent proposé chaque jour)</span></div>
     <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-top:12px">En accumulant des XP, tu débloques de nouveaux exercices et grimpes les niveaux, de "Débutant Curieux" à "Légende de la Parole" 🏆</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-top:12px">🧊 <strong style="color:var(--text)">Gel de streak</strong> : tous les 7 jours de suite, tu gagnes un gel (jusqu'à 2 en réserve) qui protège automatiquement ton streak si tu manques un jour.</p>
     <button class="feedback-modal-close" onclick="closeXPInfoModal()" style="margin-top:10px">Fermer</button>
   </div>
 </div>
@@ -870,6 +871,69 @@ function getLastSessionForExercise(exId){
   return sessions.length ? sessions[sessions.length-1] : null;
 }
 
+// ── Streak Freeze (gel de streak) ────────────────────────────────────────────
+// Protège le streak d'un jour manqué occasionnel, à la façon de Duolingo.
+// Stocké localement sur l'appareil pour l'instant (pas encore synchronisé au cloud).
+const STREAK_FREEZE_KEY = 'voixdafrique_streak_freeze';
+const MAX_STREAK_FREEZES = 2;
+
+function loadStreakFreeze(){
+  try{
+    const raw = localStorage.getItem(STREAK_FREEZE_KEY);
+    return raw ? JSON.parse(raw) : { available: 0, usedDates: [], lastAwardedAtStreak: 0 };
+  }catch(_){ return { available: 0, usedDates: [], lastAwardedAtStreak: 0 }; }
+}
+
+function saveStreakFreeze(data){
+  try{ localStorage.setItem(STREAK_FREEZE_KEY, JSON.stringify(data)); }catch(_){}
+}
+
+function todayDateKey(){
+  const d = new Date();
+  return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+}
+
+// Si l'utilisateur revient après avoir manqué exactement un jour, et qu'un
+// gel est disponible, on l'utilise automatiquement pour préserver le streak.
+function checkAndApplyStreakFreeze(){
+  const sessions = loadSessions();
+  if(sessions.length === 0) return;
+
+  const sessionDays = [...new Set(sessions.map(s=>new Date(s.date).toDateString()))]
+    .map(d=>new Date(d)).sort((a,b)=>b-a);
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const mostRecent = new Date(sessionDays[0]); mostRecent.setHours(0,0,0,0);
+  const gap = Math.round((today - mostRecent) / 86400000);
+
+  if(gap === 2){
+    const freezeData = loadStreakFreeze();
+    const yesterday = new Date(today); yesterday.setDate(yesterday.getDate()-1);
+    const yesterdayKey = `${yesterday.getFullYear()}-${yesterday.getMonth()+1}-${yesterday.getDate()}`;
+
+    if(freezeData.available > 0 && !freezeData.usedDates.includes(yesterdayKey)){
+      freezeData.available -= 1;
+      freezeData.usedDates.push(yesterdayKey);
+      saveStreakFreeze(freezeData);
+      const streakAfter = computeStreak(sessions);
+      setTimeout(()=> showBadgeToast({emoji:'🧊', title:'Gel de streak utilisé !', nom:`Ton streak de ${streakAfter} jours a été protégé`}), 800);
+    }
+  }
+}
+
+// Attribue un nouveau gel tous les 7 jours de streak, jusqu'à un maximum de 2.
+function checkAndAwardStreakFreeze(currentStreak){
+  if(currentStreak <= 0 || currentStreak % 7 !== 0) return;
+  const freezeData = loadStreakFreeze();
+  if(freezeData.lastAwardedAtStreak === currentStreak) return; // déjà attribué pour ce palier
+  if(freezeData.available >= MAX_STREAK_FREEZES) return;
+
+  freezeData.available = Math.min(MAX_STREAK_FREEZES, freezeData.available + 1);
+  freezeData.lastAwardedAtStreak = currentStreak;
+  saveStreakFreeze(freezeData);
+  setTimeout(()=> showBadgeToast({emoji:'🧊', title:'Nouveau gel de streak !', nom:`${currentStreak} jours de suite — un gel en réserve (${freezeData.available}/${MAX_STREAK_FREEZES})`}), 800);
+}
+
 // Récupère les tentatives récentes (avec texte transcrit disponible) pour un
 // exercice donné, du plus ancien au plus récent — utilisé pour proposer un
 // discours structuré après plusieurs essais.
@@ -911,15 +975,24 @@ function getLevelInfo(xp){
 
 // ── Gamification : Streak (jours consécutifs) ───────────────────────────────
 function computeStreak(sessions){
-  if(sessions.length===0) return 0;
-  const days = [...new Set(sessions.map(s=>new Date(s.date).toDateString()))]
-    .map(d=>new Date(d)).sort((a,b)=>b-a);
+  const freezeData = loadStreakFreeze();
+  const sessionDayStrings = sessions.map(s=>new Date(s.date).toDateString());
+  // Les jours "gelés" comptent comme s'ils avaient été pratiqués, pour ne pas
+  // casser le streak en cas d'oubli ponctuel (mécanique "streak freeze").
+  const freezeDayStrings = (freezeData.usedDates||[]).map(dk=>{
+    const [y,m,d] = dk.split('-').map(Number);
+    return new Date(y, m-1, d).toDateString();
+  });
+  const allDayStrings = [...new Set([...sessionDayStrings, ...freezeDayStrings])];
+  if(allDayStrings.length===0) return 0;
+
+  const days = allDayStrings.map(d=>new Date(d)).sort((a,b)=>b-a);
 
   let streak = 1;
   const today = new Date(); today.setHours(0,0,0,0);
   const mostRecent = new Date(days[0]); mostRecent.setHours(0,0,0,0);
   const diffFromToday = Math.round((today-mostRecent)/86400000);
-  if(diffFromToday > 1) return 0; // streak cassé si pas de session hier ou aujourd'hui
+  if(diffFromToday > 1) return 0; // streak cassé si pas de session (ni gel) hier ou aujourd'hui
 
   for(let i=0;i<days.length-1;i++){
     const d1 = new Date(days[i]); d1.setHours(0,0,0,0);
@@ -951,6 +1024,7 @@ function getUnlockedBadges(sessions){
 function showBadgeToast(badge){
   const toast = document.getElementById('badge-toast');
   document.getElementById('toast-icon').textContent = badge.emoji;
+  document.getElementById('toast-title').textContent = badge.title || 'Badge débloqué !';
   document.getElementById('toast-name').textContent = badge.nom;
   toast.classList.add('show');
   setTimeout(()=> toast.classList.remove('show'), 3500);
@@ -1154,6 +1228,9 @@ function renderLevelCard(targetId){
   const xp = computeXP(sessions);
   const {current, next, progress} = getLevelInfo(xp);
   const streak = computeStreak(sessions);
+  const freezeData = loadStreakFreeze();
+
+  if(targetId === 'level-card-home') checkAndAwardStreakFreeze(streak);
 
   el.innerHTML = `
     <div class="level-icon">${current.emoji}</div>
@@ -1163,7 +1240,7 @@ function renderLevelCard(targetId){
       <div class="xp-bar-bg"><div class="xp-bar-fill" style="width:${progress}%"></div></div>
       ${(!next && targetId==='level-card-home') ? `<div style="margin-top:10px;font-size:12px;color:#5B4FE8;font-weight:600;cursor:pointer" onclick="stopVoiceFeedback();openFreeContextModal()">✨ Continue à progresser avec le Discours Libre, sans limite →</div>` : ''}
     </div>
-    ${streak>0 ? `<div class="streak-pill">🔥 ${streak} jour${streak>1?'s':''} de suite</div>` : ''}
+    ${streak>0 ? `<div class="streak-pill">🔥 ${streak} jour${streak>1?'s':''} de suite${freezeData.available>0?` · 🧊×${freezeData.available}`:''}</div>` : ''}
   `;
 }
 
@@ -2223,6 +2300,7 @@ function sendFeedback(channel){
 }
 
 // Init
+checkAndApplyStreakFreeze();
 hydrateScoresFromHistory();
 renderHome();
 updateNavScore();
