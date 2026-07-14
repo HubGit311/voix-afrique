@@ -637,16 +637,79 @@ function getDailyDateKey(){
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 
-// Choisit un exercice de façon déterministe selon la date, parmi ceux déjà débloqués.
-// Le même exercice est donc proposé à tout le monde le même jour (pour cette progression XP).
-function getDailyChallenge(currentXP){
-  const unlocked = EXERCISES.filter(ex => getExerciseUnlockStatus(ex, currentXP));
-  if(unlocked.length === 0) return null;
+// Sujets d'improvisation positifs et intemporels, inspirés de grandes
+// catégories d'actualité qui donnent un ton joyeux à la journée — innovation,
+// exploits, découvertes, initiatives inspirantes. Volontairement pas liés à
+// une actualité datée du jour même (aucun accès à un flux d'actualités en
+// direct), pour rester toujours pertinents et jamais déprimants.
+const IMPROV_TOPICS = [
+  "Une innovation technologique qui pourrait améliorer la vie de millions de personnes",
+  "Un exploit sportif récent qui a inspiré toute une génération",
+  "Une découverte scientifique qui repousse les limites de ce qu'on croyait possible",
+  "Une initiative locale qui transforme positivement un quartier ou une ville",
+  "Un jeune entrepreneur africain dont le projet change des vies",
+  "Une avancée médicale qui redonne espoir à des familles entières",
+  "Un geste de solidarité qui a marqué les esprits récemment",
+  "Une innovation dans les énergies renouvelables qui change la donne",
+  "Un artiste ou créateur qui rayonne à l'international",
+  "Une ville qui devient un modèle d'urbanisme durable",
+  "Une équipe qui a surmonté l'impossible pour atteindre son objectif",
+  "Une avancée qui rapproche l'humanité de l'exploration spatiale",
+  "Un projet éducatif qui ouvre des portes à des enfants défavorisés",
+  "Une entreprise qui prouve qu'on peut réussir tout en respectant la planète",
+  "Une tradition culturelle qui se réinvente pour toucher une nouvelle génération",
+  "Un exploit humain extraordinaire accompli récemment",
+  "Une communauté qui s'unit pour résoudre un problème du quotidien",
+  "Une invention simple qui change concrètement le quotidien de beaucoup de gens",
+  "Un pays qui devient un exemple mondial sur une grande cause",
+  "Une avancée qui rend la technologie plus accessible à tous",
+  "Un mouvement citoyen positif qui prend de l'ampleur",
+  "Une percée dans la protection de la biodiversité",
+  "Un athlète qui bat un record qu'on pensait infranchissable",
+  "Une initiative qui rend l'agriculture plus durable et plus productive",
+  "Une success story entrepreneuriale partie de presque rien",
+  "Un pont culturel qui rapproche deux communautés très différentes",
+  "Une avancée qui améliore l'accès à l'eau potable ou à l'énergie",
+  "Un projet qui redonne vie à un patrimoine oublié",
+  "Une découverte qui change notre regard sur le monde animal",
+  "Une génération de jeunes qui invente des solutions à des problèmes anciens"
+];
 
+function getDailyImprovTopic(hash){
+  return IMPROV_TOPICS[hash % IMPROV_TOPICS.length];
+}
+
+function buildImprovChallenge(hash){
+  const topic = getDailyImprovTopic(hash);
+  return {
+    id: 'improv',
+    emoji: '💡',
+    title: 'Improvisation du jour',
+    description: topic,
+    niveau: 'Improvisation',
+    color: '#5B4FE8',
+    duration: 60,
+    xpRequis: 0,
+    context: `Improvise pendant 60 secondes sur ce sujet, sans préparation : ${topic}. Reste positif et enthousiaste dans ton ton.`,
+    exemple: null
+  };
+}
+
+// Choisit le défi du jour de façon déterministe selon la date — le même défi
+// est donc proposé à tout le monde le même jour. Environ un jour sur trois,
+// c'est un sujet d'improvisation positif plutôt qu'un exercice structuré.
+function getDailyChallenge(currentXP){
   const dateKey = getDailyDateKey();
   // Hash simple et stable à partir de la date, pour choisir un index
   let hash = 0;
   for(let i=0;i<dateKey.length;i++){ hash = (hash*31 + dateKey.charCodeAt(i)) >>> 0; }
+
+  if(hash % 3 === 0){
+    return buildImprovChallenge(hash);
+  }
+
+  const unlocked = EXERCISES.filter(ex => getExerciseUnlockStatus(ex, currentXP));
+  if(unlocked.length === 0) return null;
   const index = hash % unlocked.length;
   return unlocked[index];
 }
@@ -863,8 +926,8 @@ const BADGES = [
   {id:'ten_sessions',   emoji:'💪', nom:'Persévérant',         desc:'10 sessions complétées',       check: s => s.length>=10},
   {id:'perfect_score',  emoji:'💯', nom:'Score Parfait',       desc:'Un score de 95+ obtenu',       check: s => s.some(x=>x.score>=95)},
   {id:'no_parasites',   emoji:'✨', nom:'Discours Pur',        desc:'0 mot parasite en session',    check: s => s.some(x=>x.totalParasites===0)},
-  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>x.exId!=='libre').map(x=>x.exId)).size>=5},
-  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 9 exercices essayés',       check: s => new Set(s.filter(x=>x.exId!=='libre').map(x=>x.exId)).size>=9},
+  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>x.exId!=='libre'&&x.exId!=='improv').map(x=>x.exId)).size>=5},
+  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 9 exercices essayés',       check: s => new Set(s.filter(x=>x.exId!=='libre'&&x.exId!=='improv').map(x=>x.exId)).size>=9},
   {id:'streak_3',       emoji:'📅', nom:'Régularité',          desc:'3 jours de suite',             check: s => computeStreak(s)>=3},
   {id:'good_debit',     emoji:'⚡', nom:'Rythme Idéal',        desc:'Débit entre 120-150 mots/min', check: s => s.some(x=>x.debit>=120 && x.debit<=150)},
 ];
@@ -1127,6 +1190,14 @@ function startDailyChallenge(){
   const challenge = getDailyChallenge(currentXP);
   if(!challenge) return;
   if(isDailyChallengeCompletedToday(challenge.id)) return; // déjà fait, rien à faire
+  if(challenge.id === 'improv'){
+    // Défi d'improvisation : pas dans EXERCISES, on démarre directement
+    currentEx = challenge;
+    elapsed = 0; transcriptFull = ""; analyzing = false;
+    renderRecordPage();
+    showPage('record');
+    return;
+  }
   startExercise(challenge.id);
 }
 
@@ -1175,7 +1246,7 @@ function startFreeExercise(){
 
 function retryCurrentExercise(){
   if(!currentEx) return;
-  if(currentEx.id === 'libre'){
+  if(currentEx.id === 'libre' || currentEx.id === 'improv'){
     // Conserve le même contexte, relance directement sans repasser par la modale
     elapsed = 0; transcriptFull = ""; analyzing = false;
     renderRecordPage();
@@ -1191,6 +1262,10 @@ function retryExerciseById(exId){
   if(exId === 'libre'){
     goHome();
     openFreeContextModal();
+  } else if(exId === 'improv'){
+    // Le sujet d'improvisation change chaque jour — on renvoie vers l'accueil
+    // plutôt que de tenter de reconstituer un sujet passé.
+    goHome();
   } else {
     startExercise(Number(exId));
   }
@@ -1774,7 +1849,7 @@ function showResult(fb, met, previous, dailyBonus){
   // Après 3 tentatives (ou plus) sur le même exercice avec texte transcrit
   // disponible, on propose un discours structuré inspiré de ces essais.
   const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3);
-  const structuredOfferHTML = (currentEx.id !== 'libre' && recentTranscripts.length >= 3) ? `
+  const structuredOfferHTML = (currentEx.id !== 'libre' && currentEx.id !== 'improv' && recentTranscripts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
         <span style="font-size:24px;flex-shrink:0">✨</span>
