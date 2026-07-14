@@ -2018,7 +2018,7 @@ function stopVoiceFeedback(){
 
 function goHome(){ showPage('home'); renderHome(); }
 function updateNavScore(){
-  const n=Object.keys(scores).length;
+  const n=Object.keys(scores).filter(id=>id!=='libre'&&id!=='improv').length;
   document.getElementById('nav-score').textContent=n>0?`${n}/${EXERCISES.length} exercices`:'';
 }
 
