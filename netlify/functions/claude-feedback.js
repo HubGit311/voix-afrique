@@ -4,6 +4,9 @@
 // Elle reçoit le prompt depuis l'app, appelle l'API Anthropic avec la clé secrète
 // (stockée en variable d'environnement, jamais visible publiquement),
 // puis renvoie la réponse à l'app.
+//
+// Modèle Haiku (rapide) plutôt que Sonnet : pour ce feedback structuré et bien
+// cadré, la vitesse compte plus que le raisonnement le plus poussé possible.
 
 exports.handler = async function (event) {
   // On n'accepte que les requêtes POST
@@ -50,7 +53,7 @@ exports.handler = async function (event) {
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
-        model: "claude-sonnet-4-6",
+        model: "claude-haiku-4-5-20251001",
         max_tokens: 1000,
         messages: [{ role: "user", content: prompt }],
       }),
