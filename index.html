@@ -583,6 +583,16 @@
   </div>
 </div>
 
+<div id="debit-info-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeDebitInfoModal()">
+  <div class="feedback-modal-box" style="text-align:left">
+    <div class="feedback-modal-title" style="text-align:center">🎯 D'où vient le repère 120-150 mots/min ?</div>
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">C'est un <strong style="color:var(--text)">repère courant en coaching de prise de parole</strong> pour un débit clair et confortable à suivre à l'oral — pas une règle scientifique stricte ni une norme universelle.</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">Le bon rythme varie selon le contexte : une improvisation, un discours émouvant ou une présentation technique n'appellent pas forcément le même débit. Considère ce repère comme un point de départ, pas un objectif à atteindre à tout prix.</p>
+    <p style="color:var(--muted);font-size:12px;line-height:1.6;font-style:italic">Coach Awa en tient compte dans ses conseils, mais ajuste toujours son analyse au contexte réel de ton discours.</p>
+    <button class="feedback-modal-close" onclick="closeDebitInfoModal()" style="margin-top:10px">Fermer</button>
+  </div>
+</div>
+
 <script>
 // ── Data ──────────────────────────────────────────────────────────────────────
 const EXERCISES = [
@@ -650,12 +660,33 @@ function getDailyDateKey(){
   return `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
 }
 
-// Sujets d'improvisation positifs et intemporels, inspirés de grandes
-// catégories d'actualité qui donnent un ton joyeux à la journée — innovation,
-// exploits, découvertes, initiatives inspirantes. Volontairement pas liés à
-// une actualité datée du jour même (aucun accès à un flux d'actualités en
-// direct), pour rester toujours pertinents et jamais déprimants.
-const IMPROV_TOPICS = [
+// Sujets d'improvisation positifs et intemporels, répartis en deux familles :
+// - "faciles" : personnels, accessibles immédiatement, sans besoin de structurer
+//   longuement (durée courte adaptée)
+// - "construits" : plus abstraits, demandent de vraies idées à organiser
+//   (durée plus longue, façon Toastmasters Table Topics, jusqu'à 2m30)
+// Volontairement pas liés à une actualité datée du jour même (aucun accès à
+// un flux d'actualités en direct), pour rester toujours pertinents et jamais
+// déprimants.
+const IMPROV_TOPICS_FACILES = [
+  "Tes dernières vacances, ou celles dont tu rêves",
+  "Un plat que tu adores et l'histoire qui va avec",
+  "Un souvenir d'enfance qui te fait toujours sourire",
+  "Ton passe-temps préféré et pourquoi il te fait du bien",
+  "La meilleure surprise qu'on t'ait faite",
+  "Un endroit où tu te sens toujours bien",
+  "Ta chanson ou ton film préféré, et pourquoi",
+  "Une amitié qui compte beaucoup pour toi",
+  "Un petit plaisir simple de ton quotidien",
+  "Le dernier fou rire que tu as eu",
+  "Une tradition familiale que tu adores",
+  "Ce que tu ferais si tu avais une journée entièrement libre",
+  "Un cadeau que tu as adoré offrir à quelqu'un",
+  "Ta saison préférée et ce que tu aimes y faire",
+  "Une rencontre qui a marqué ta vie positivement"
+];
+
+const IMPROV_TOPICS_CONSTRUITS = [
   "Une innovation technologique qui pourrait améliorer la vie de millions de personnes",
   "Un exploit sportif récent qui a inspiré toute une génération",
   "Une découverte scientifique qui repousse les limites de ce qu'on croyait possible",
@@ -688,12 +719,18 @@ const IMPROV_TOPICS = [
   "Une génération de jeunes qui invente des solutions à des problèmes anciens"
 ];
 
-function getDailyImprovTopic(hash){
-  return IMPROV_TOPICS[hash % IMPROV_TOPICS.length];
-}
-
 function buildImprovChallenge(hash){
-  const topic = getDailyImprovTopic(hash);
+  // Un jour sur deux environ : sujet facile (court) vs sujet construit (plus long)
+  const isFacile = Math.floor(hash / 3) % 2 === 0;
+  const pool = isFacile ? IMPROV_TOPICS_FACILES : IMPROV_TOPICS_CONSTRUITS;
+  const topic = pool[hash % pool.length];
+  // Durée variable façon Toastmasters Table Topics : 60 à 150s pour les sujets
+  // construits (le temps de structurer de vraies idées), 60-75s pour les
+  // sujets faciles (pas besoin de préparation, on peut parler tout de suite).
+  const duration = isFacile
+    ? (hash % 2 === 0 ? 60 : 75)
+    : [90, 120, 150][hash % 3];
+
   return {
     id: 'improv',
     emoji: '💡',
@@ -701,9 +738,9 @@ function buildImprovChallenge(hash){
     description: topic,
     niveau: 'Improvisation',
     color: '#5B4FE8',
-    duration: 60,
+    duration: duration,
     xpRequis: 0,
-    context: `Improvise pendant 60 secondes sur ce sujet, sans préparation : ${topic}. Reste positif et enthousiaste dans ton ton.`,
+    context: `Improvise pendant ${duration} secondes sur ce sujet, sans préparation : ${topic}. Reste positif et enthousiaste dans ton ton.`,
     exemple: null
   };
 }
@@ -1319,6 +1356,14 @@ function closeXPInfoModal(){
   document.getElementById('xp-info-modal').classList.remove('show');
 }
 
+function openDebitInfoModal(){
+  document.getElementById('debit-info-modal').classList.add('show');
+}
+
+function closeDebitInfoModal(){
+  document.getElementById('debit-info-modal').classList.remove('show');
+}
+
 function startFreeExercise(){
   const input = document.getElementById('free-context-input');
   const customContext = input ? input.value.trim() : '';
@@ -1692,7 +1737,7 @@ Contexte : ${currentEx.context}
 
 Métriques analysées :
 - Transcription : "${text||"(aucune transcription — micro peut-être non autorisé)"}"
-- Durée : ${duration}s | Mots : ${nbMots} | Débit : ${debit} mots/min (idéal 120–150)
+- Durée : ${duration}s | Mots : ${nbMots} | Débit : ${debit} mots/min (repère indicatif 120–150, à moduler selon le contexte)
 - Mots parasites : ${JSON.stringify(parasites)} (total : ${totalParasites})
 - Anglicismes détectés : ${JSON.stringify(anglicismes)} (total : ${totalAnglicismes}) — si présents, mentionne-le dans les améliorations en suggérant l'alternative française (ex: "feedback" → "retour")
 
@@ -1874,7 +1919,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
       ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
       ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
       ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:12px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
-      <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:monospace">Repère indicatif : 120–150 mots/min · Durée : ${fmt(met.duration)}</div>
+      <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:monospace">Repère indicatif : 120–150 mots/min <span onclick="openDebitInfoModal()" style="cursor:pointer;color:var(--gold)">ⓘ</span> · Durée : ${fmt(met.duration)}</div>
     </div>
 
     <div class="two-col">
