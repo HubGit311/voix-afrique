@@ -1673,7 +1673,10 @@ async function runAnalysis(){
 
   let feedback;
   let lastError = null;
-  const transcriptionVide = nbMots === 0;
+  // Échec technique : transcription totalement vide, OU débit implausiblement
+  // bas pour un enregistrement de plus de 15s (ex: 9 mots en 80s) — signe
+  // quasi certain d'une capture audio défaillante plutôt qu'un vrai discours.
+  const transcriptionVide = nbMots === 0 || (duration >= 15 && debit < 20);
 
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
