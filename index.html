@@ -466,6 +466,14 @@
     </div>
     <div style="color:var(--muted);font-size:18px">›</div>
   </div>
+  <div class="free-card" onclick="stopVoiceFeedback();showDictionPage()">
+    <div class="free-icon">🗣️</div>
+    <div style="flex:1;min-width:160px">
+      <div class="free-title">Exercices de diction</div>
+      <div class="free-sub">Virelangues pour travailler ton articulation</div>
+    </div>
+    <div style="color:var(--muted);font-size:18px">›</div>
+  </div>
   <div class="level-card" id="level-card-home"></div>
 
   <div class="section-title">Choisissez votre exercice</div>
@@ -536,6 +544,15 @@
       Awa est un projet en phase de test — cette page décrit honnêtement notre fonctionnement actuel, mais ne constitue pas une politique de confidentialité formelle. Une question ? Utilise le bouton 🐛 pour nous contacter directement.
     </p>
   </div>
+</div>
+
+<!-- ══ DICTION ═══════════════════════════════════════════════════════════════ -->
+<div id="page-diction" class="page">
+  <button class="back-btn" onclick="stopVoiceFeedback();goHome()">← Retour</button>
+  <div class="section-title">🗣️ Exercices de diction</div>
+  <div class="section-sub">Lis le virelangue à voix haute — Coach Awa compare ce qui a été dit au texte exact</div>
+  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">La précision affichée compare ta transcription au texte attendu — un bon indice d'articulation claire, même si ce n'est pas une analyse directe du son.</p>
+  <div class="exercises" id="diction-list"></div>
 </div>
 
 <!-- ══ BADGE TOAST ════════════════════════════════════════════════════════════ -->
@@ -648,8 +665,70 @@ const FREE_EXERCISE = {
   context: null, exemple: null
 };
 
+// ── Exercices de diction ──────────────────────────────────────────────────
+// Virelangues classiques, de difficulté croissante. Contrairement aux autres
+// exercices, l'évaluation ne repose pas sur un jugement de Coach Awa mais sur
+// une comparaison objective entre le texte attendu et ce qui a été transcrit —
+// une articulation peu claire donne généralement une transcription qui dévie
+// du texte exact. Coach Awa commente ensuite ce résultat, sans jamais
+// prétendre "entendre" directement la prononciation elle-même.
+const DICTION_EXERCISES = [
+  {id:'diction-1', texte:"Un chasseur sachant chasser sait chasser sans son chien.", niveau:"Débutant"},
+  {id:'diction-2', texte:"Les chaussettes de l'archiduchesse sont-elles sèches, archi-sèches ?", niveau:"Débutant"},
+  {id:'diction-3', texte:"Ces cyprès sont si loin qu'on ne sait si c'en sont.", niveau:"Intermédiaire"},
+  {id:'diction-4', texte:"Si six scies scient six cyprès, six cent six scies scient six cent six cyprès.", niveau:"Intermédiaire"},
+  {id:'diction-5', texte:"Trois tortues trottaient sur un trottoir très étroit.", niveau:"Débutant"},
+  {id:'diction-6', texte:"Un dragon gradé dégrade un gradé dragon.", niveau:"Intermédiaire"},
+  {id:'diction-7', texte:"Je veux et j'exige d'exquises excuses exemptes d'exagération.", niveau:"Avancé"},
+  {id:'diction-8', texte:"Didon dîna, dit-on, du dos d'un dodu dindon.", niveau:"Avancé"}
+];
+
+function buildDictionExercise(item){
+  return {
+    id: item.id, emoji: "🗣️", title: "Exercice de diction",
+    description: item.texte,
+    niveau: item.niveau, color: "#5B4FE8", duration: 30, xpRequis: 0,
+    context: null, exemple: null,
+    texteAttendu: item.texte
+  };
+}
+
+// Compare le texte attendu et la transcription réelle (mots normalisés,
+// alignement par plus longue sous-séquence commune), pour estimer la
+// précision de l'articulation. Renvoie un pourcentage de 0 à 100.
+function computeDictionAccuracy(texteAttendu, transcript){
+  const normalize = t => t.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // retire les accents
+    .replace(/[^a-z0-9\s]/g,' ')
+    .split(/\s+/).filter(Boolean);
+
+  const expected = normalize(texteAttendu);
+  const actual = normalize(transcript);
+  if(expected.length === 0) return null;
+  if(actual.length === 0) return 0;
+
+  // Plus longue sous-séquence commune (mots dans le bon ordre)
+  const dp = Array(expected.length+1).fill(null).map(()=>Array(actual.length+1).fill(0));
+  for(let i=1;i<=expected.length;i++){
+    for(let j=1;j<=actual.length;j++){
+      if(expected[i-1] === actual[j-1]) dp[i][j] = dp[i-1][j-1] + 1;
+      else dp[i][j] = Math.max(dp[i-1][j], dp[i][j-1]);
+    }
+  }
+  const lcs = dp[expected.length][actual.length];
+  return Math.round((lcs / expected.length) * 100);
+}
+
 function getExerciseUnlockStatus(ex, currentXP){
   return currentXP >= ex.xpRequis;
+}
+
+// Exercices "spéciaux" (Discours Libre, Improvisation, Diction) : traités à
+// part des 13 exercices structurés pour les badges, compteurs et le discours
+// structuré après plusieurs tentatives (sujets/textes trop variables pour être
+// agrégés de façon cohérente).
+function isSpecialExercise(id){
+  return id === 'libre' || id === 'improv' || (typeof id === 'string' && id.indexOf('diction-') === 0);
 }
 
 // ── Défi du jour ──────────────────────────────────────────────────────────
@@ -1048,8 +1127,8 @@ const BADGES = [
   {id:'ten_sessions',   emoji:'💪', nom:'Persévérant',         desc:'10 sessions complétées',       check: s => s.length>=10},
   {id:'perfect_score',  emoji:'💯', nom:'Score Parfait',       desc:'Un score de 95+ obtenu',       check: s => s.some(x=>x.score>=95)},
   {id:'no_parasites',   emoji:'✨', nom:'Discours Pur',        desc:'0 mot parasite en session',    check: s => s.some(x=>x.totalParasites===0)},
-  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>x.exId!=='libre'&&x.exId!=='improv').map(x=>x.exId)).size>=5},
-  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 13 exercices essayés',       check: s => new Set(s.filter(x=>x.exId!=='libre'&&x.exId!=='improv').map(x=>x.exId)).size>=13},
+  {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>!isSpecialExercise(x.exId)).map(x=>x.exId)).size>=5},
+  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 13 exercices essayés',       check: s => new Set(s.filter(x=>!isSpecialExercise(x.exId)).map(x=>x.exId)).size>=13},
   {id:'streak_3',       emoji:'📅', nom:'Régularité',          desc:'3 jours de suite',             check: s => computeStreak(s)>=3},
   {id:'good_debit',     emoji:'⚡', nom:'Rythme Idéal',        desc:'Débit entre 120-150 mots/min', check: s => s.some(x=>x.debit>=120 && x.debit<=150)},
 ];
@@ -1380,7 +1459,7 @@ function startFreeExercise(){
 
 function retryCurrentExercise(){
   if(!currentEx) return;
-  if(currentEx.id === 'libre' || currentEx.id === 'improv'){
+  if(isSpecialExercise(currentEx.id)){
     // Conserve le même contexte, relance directement sans repasser par la modale
     elapsed = 0; transcriptFull = ""; analyzing = false;
     renderRecordPage();
@@ -1400,6 +1479,9 @@ function retryExerciseById(exId){
     // Le sujet d'improvisation change chaque jour — on renvoie vers l'accueil
     // plutôt que de tenter de reconstituer un sujet passé.
     goHome();
+  } else if(typeof exId === 'string' && exId.indexOf('diction-') === 0){
+    // Liste fixe : on peut relancer exactement le même virelangue
+    startDictionExercise(exId);
   } else {
     startExercise(Number(exId));
   }
@@ -1414,7 +1496,11 @@ function renderRecordPage(){
         <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:20px;margin-top:4px">${currentEx.title}</div>
       </div>
     </div>
-    <p style="color:var(--muted);font-size:15px;font-style:italic;line-height:1.6">${currentEx.context}</p>
+    ${currentEx.texteAttendu ? `
+    <div style="background:rgba(91,79,232,.08);border:1px solid rgba(91,79,232,.3);border-radius:10px;padding:16px 18px">
+      <div style="color:#5B4FE8;font-size:11px;font-family:'Quicksand',sans-serif;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">À lire à voix haute</div>
+      <p style="color:var(--text);font-size:18px;font-style:italic;line-height:1.6;font-family:'Cormorant Garamond',serif">"${currentEx.texteAttendu}"</p>
+    </div>` : (currentEx.context ? `<p style="color:var(--muted);font-size:15px;font-style:italic;line-height:1.6">${currentEx.context}</p>` : '')}
   `;
   renderReadyZone();
 }
@@ -1724,9 +1810,28 @@ async function runAnalysis(){
   const transcriptionVide = nbMots === 0 || (duration >= 15 && debit < 20);
 
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
+  const dictionAccuracy = currentEx.texteAttendu ? computeDictionAccuracy(currentEx.texteAttendu, text) : null;
+
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
     try{
-      const prompt=`Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
+      const prompt = currentEx.texteAttendu ? `Tu es Coach Awa, une coach experte en prise de parole en public. Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
+
+IMPORTANT : "Awa" est TON PROPRE prénom en tant que coach — ce n'est jamais le prénom de l'apprenant. Ne t'adresse jamais à l'apprenant en l'appelant "Awa".
+Tutoie systématiquement l'apprenant, du début à la fin de ton feedback.
+${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}" — adresse-toi à lui/elle par ce prénom.` : `Tu ne connais pas le prénom de l'apprenant — utilise "tu" sans prénom inventé.`}
+
+Un apprenant vient de lire à voix haute ce virelangue, pour travailler son articulation :
+Texte attendu : "${currentEx.texteAttendu}"
+Ce qui a été transcrit : "${text||"(rien n'a été transcrit)"}"
+Précision estimée (comparaison texte attendu / transcription) : ${dictionAccuracy}%
+Débit : ${debit} mots/min
+
+IMPORTANT sur la méthode : cette précision est calculée en comparant le texte transcrit au texte exact attendu (pas une analyse directe du son). Une transcription qui dévie suggère une articulation qui a pu accrocher le service de transcription — mais reste honnête sur cette limite, ne prétends jamais "entendre" la prononciation toi-même.
+
+Repère de notation : utilise directement la précision (${dictionAccuracy}%) comme base du score, ajustée légèrement selon le débit (une lecture beaucoup trop rapide ou hachée peut justifier un score un peu inférieur à la précision brute).
+
+Génère un feedback bienveillant sur cet exercice d'articulation. Si des mots semblent avoir posé difficulté (déduits de la comparaison), mentionne-les précisément. Reste concis : chaque point tient en une phrase courte. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
+{"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}` : `Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
 
 IMPORTANT : "Awa" est TON PROPRE prénom en tant que coach — ce n'est jamais le prénom de l'apprenant. Ne t'adresse jamais à l'apprenant en l'appelant "Awa".
 Tutoie systématiquement l'apprenant (utilise "tu"/"ton"/"ta"/"tes", jamais "vous"/"votre"/"vos"), du début à la fin de ton feedback, y compris dans le défi suivant.
@@ -1986,7 +2091,7 @@ function showResult(fb, met, previous, dailyBonus){
   // Après 3 tentatives (ou plus) sur le même exercice avec texte transcrit
   // disponible, on propose un discours structuré inspiré de ces essais.
   const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3);
-  const structuredOfferHTML = (currentEx.id !== 'libre' && currentEx.id !== 'improv' && recentTranscripts.length >= 3) ? `
+  const structuredOfferHTML = (!isSpecialExercise(currentEx.id) && recentTranscripts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
         <span style="font-size:24px;flex-shrink:0">✨</span>
@@ -2155,7 +2260,7 @@ function stopVoiceFeedback(){
 
 function goHome(){ showPage('home'); renderHome(); }
 function updateNavScore(){
-  const n=Object.keys(scores).filter(id=>id!=='libre'&&id!=='improv').length;
+  const n=Object.keys(scores).filter(id=>!isSpecialExercise(id)).length;
   document.getElementById('nav-score').textContent=n>0?`${n}/${EXERCISES.length} exercices`:'';
 }
 
@@ -2163,6 +2268,37 @@ function updateNavScore(){
 function showHistoryPage(){
   renderHistory();
   showPage('history');
+}
+
+function showDictionPage(){
+  renderDictionList();
+  showPage('diction');
+}
+
+function renderDictionList(){
+  const list = document.getElementById('diction-list');
+  if(!list) return;
+  list.innerHTML = DICTION_EXERCISES.map(item => `
+    <div class="ex-card" onclick="startDictionExercise('${item.id}')">
+      <div class="ex-icon">🗣️</div>
+      <div style="flex:1">
+        <div class="ex-title">
+          Virelangue
+          <span class="badge" style="background:#5B4FE818;color:#5B4FE8;border:1px solid #5B4FE844">${item.niveau}</span>
+        </div>
+        <div class="ex-desc" style="font-style:italic">"${item.texte}"</div>
+      </div>
+      <div style="color:var(--muted);font-size:18px">›</div>
+    </div>`).join('');
+}
+
+function startDictionExercise(id){
+  const item = DICTION_EXERCISES.find(d => d.id === id);
+  if(!item) return;
+  currentEx = buildDictionExercise(item);
+  elapsed = 0; transcriptFull = ""; analyzing = false;
+  renderRecordPage();
+  showPage('record');
 }
 
 // Consulte le feedback complet d'une session passée depuis l'historique
