@@ -2221,13 +2221,13 @@ function toggleVoiceFeedback(){
 
   const utter = new SpeechSynthesisUtterance(voiceText);
   utter.lang = 'fr-FR';
-  utter.rate = 1;
+  utter.rate = 1.05; // légèrement plus rapide, pour un débit plus naturel/fluide
   utter.volume = 1;
   const voice = pickFrenchVoice();
   if(voice) utter.voice = voice;
-  // Si la voix disponible n'est pas identifiée comme féminine (ex: "Thomas" sur iPhone
-  // quand aucune voix féminine française n'est installée), on compense davantage le pitch.
-  utter.pitch = (voice && isKnownFemaleVoiceName(voice.name)) ? 1.05 : 1.35;
+  // Pitch remonté pour une voix moins grave. Si la voix disponible n'est pas
+  // identifiée comme féminine (ex: "Thomas" sur iPhone), on compense davantage.
+  utter.pitch = (voice && isKnownFemaleVoiceName(voice.name)) ? 1.18 : 1.42;
 
   utter.onstart = () => {
     btn.textContent = '⏸ Lecture en cours…';
