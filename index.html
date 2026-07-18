@@ -2215,6 +2215,8 @@ function pickFrenchVoice(){
   return nonMale[0] || frVoices[0];
 }
 
+let ttsShouldBePlaying = false; // indique si la lecture devrait être en cours (pour la reprendre après verrouillage)
+
 function toggleVoiceFeedback(){
   if(!('speechSynthesis' in window)) return; // API non supportée sur cet appareil
   const btn = document.getElementById('voice-btn');
@@ -2223,12 +2225,18 @@ function toggleVoiceFeedback(){
   // Si une lecture est en cours, on l'arrête (toggle off)
   if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
     window.speechSynthesis.cancel();
+    ttsShouldBePlaying = false;
     btn.textContent = '🔊 Écouter';
     btn.classList.remove('playing');
     return;
   }
 
-  if(!voiceText){ return; }
+  speakVoiceFeedback();
+}
+
+function speakVoiceFeedback(){
+  if(!voiceText || !('speechSynthesis' in window)) return;
+  const btn = document.getElementById('voice-btn');
 
   const utter = new SpeechSynthesisUtterance(voiceText);
   utter.lang = 'fr-FR';
@@ -2241,22 +2249,35 @@ function toggleVoiceFeedback(){
   utter.pitch = (voice && isKnownFemaleVoiceName(voice.name)) ? 1.18 : 1.42;
 
   utter.onstart = () => {
-    btn.textContent = '⏸ Lecture en cours…';
-    btn.classList.add('playing');
+    if(btn){ btn.textContent = '⏸ Lecture en cours…'; btn.classList.add('playing'); }
   };
   utter.onend = () => {
-    btn.textContent = '🔊 Écouter';
-    btn.classList.remove('playing');
+    ttsShouldBePlaying = false;
+    if(btn){ btn.textContent = '🔊 Écouter'; btn.classList.remove('playing'); }
   };
   utter.onerror = (e) => {
-    btn.textContent = '🔊 Écouter';
-    btn.classList.remove('playing');
+    // Certains navigateurs interrompent la lecture (sans vraie erreur) quand
+    // l'écran se verrouille — dans ce cas on ne réinitialise pas le bouton,
+    // le gestionnaire de visibilité reprendra la lecture au déverrouillage.
+    if(e.error !== 'interrupted' && e.error !== 'canceled'){
+      ttsShouldBePlaying = false;
+      if(btn){ btn.textContent = '🔊 Écouter'; btn.classList.remove('playing'); }
+    }
     console.warn('Erreur synthèse vocale :', e.error);
   };
 
   currentUtterance = utter;
+  ttsShouldBePlaying = true;
   window.speechSynthesis.speak(utter);
 }
+
+// Reprend automatiquement la lecture si l'écran vient de se déverrouiller
+// pendant qu'elle était censée être en cours (elle a été coupée par le système).
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && ttsShouldBePlaying && 'speechSynthesis' in window && !window.speechSynthesis.speaking){
+    speakVoiceFeedback();
+  }
+});
 
 // Certains navigateurs chargent les voix de façon asynchrone — on les précharge
 if('speechSynthesis' in window){
@@ -2266,6 +2287,7 @@ if('speechSynthesis' in window){
 
 // Arrête la lecture vocale si on quitte la page résultat
 function stopVoiceFeedback(){
+  ttsShouldBePlaying = false;
   if('speechSynthesis' in window && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 }
 
