@@ -1476,9 +1476,20 @@ function retryExerciseById(exId){
     goHome();
     openFreeContextModal();
   } else if(exId === 'improv'){
-    // Le sujet d'improvisation change chaque jour — on renvoie vers l'accueil
-    // plutôt que de tenter de reconstituer un sujet passé.
-    goHome();
+    // Le sujet d'improvisation est calculé de façon déterministe selon la date :
+    // si on est encore le même jour, c'est exactement le même sujet — on peut
+    // le relancer directement. Sinon (jour différent), impossible à reconstituer.
+    const currentXP = computeXP(loadSessions());
+    const todaysChallenge = getDailyChallenge(currentXP);
+    if(todaysChallenge && todaysChallenge.id === 'improv'){
+      currentEx = todaysChallenge;
+      elapsed = 0; transcriptFull = ""; analyzing = false;
+      renderRecordPage();
+      showPage('record');
+    } else {
+      alert("Le sujet d'improvisation change chaque jour — celui-ci n'est plus disponible aujourd'hui. Le défi du jour actuel t'attend sur l'accueil !");
+      goHome();
+    }
   } else if(typeof exId === 'string' && exId.indexOf('diction-') === 0){
     // Liste fixe : on peut relancer exactement le même virelangue
     startDictionExercise(exId);
