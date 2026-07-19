@@ -7,11 +7,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@600;700&family=Lora:ital,wght@0,400;1,400&family=Quicksand:wght@500;600;700&display=swap" rel="stylesheet"/>
 <style>
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:'Lora',serif;min-height:100vh}
+  body{background:var(--bg);color:var(--text);font-family:'Lora',serif;min-height:100vh;transition:background .3s ease,color .3s ease}
   :root{
     --bg:#FAF8F4;--surface:#FFFFFF;--card:#F5F0E6;--border:#E6E1D6;
     --gold:#A67C1E;--gold-l:#D4A843;--green:#1E8449;--red:#C0392B;
     --orange:#C36F12;--text:#2A2A35;--muted:#6E6A5E;
+  }
+  html[data-theme="dark"]{
+    --bg:#0B1220;--surface:#131B2E;--card:#1B2540;--border:#2A3555;
+    --gold:#E0B84D;--gold-l:#F0C76A;--green:#34C77B;--red:#E0554A;
+    --orange:#F0924B;--text:#EDEFF5;--muted:#9098B5;
   }
   nav{
     border-bottom:1px solid var(--border);padding:14px 24px;
@@ -296,6 +301,19 @@
   .free-title{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:700;color:var(--text);margin-bottom:2px}
   .free-sub{font-size:13px;color:var(--muted);font-family:'Quicksand',sans-serif}
 
+  .section-label{
+    font-size:11px;font-family:'Quicksand',sans-serif;letter-spacing:1.5px;
+    text-transform:uppercase;color:var(--muted);margin:4px 0 10px;font-weight:600;
+  }
+  .free-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px}
+  .free-card-compact{
+    background:linear-gradient(135deg,rgba(91,79,232,.1),rgba(91,79,232,.02));
+    border:1px solid rgba(91,79,232,.3);border-radius:16px;padding:18px 14px;
+    display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;
+    cursor:pointer;transition:all .2s ease;
+  }
+  .free-card-compact:hover{border-color:rgba(91,79,232,.55);transform:translateY(-2px)}
+
   .level-icon{
     width:60px;height:60px;border-radius:14px;flex-shrink:0;
     background:linear-gradient(135deg,var(--gold),var(--gold-l));
@@ -431,7 +449,10 @@
     </div>
   </a>
   <div style="display:flex;align-items:center;gap:12px">
-    <div class="history-link" onclick="stopVoiceFeedback();showHistoryPage()">📊 Historique</div>
+    <button id="theme-toggle-btn" onclick="toggleTheme()" title="Changer de thème" style="background:none;border:1px solid var(--border);border-radius:50%;width:32px;height:32px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text)">
+      <span id="theme-toggle-icon"></span>
+    </button>
+    <div class="history-link" onclick="stopVoiceFeedback();showHistoryPage()">Historique</div>
     <div id="nav-score" style="font-family:'Quicksand',sans-serif;font-size:12px;color:var(--muted)"></div>
   </div>
 </nav>
@@ -457,23 +478,21 @@
     </div>
   </div>
 
+  <div class="section-label">Aujourd'hui</div>
   <div class="daily-card" id="daily-card-home" onclick="startDailyChallenge()"></div>
-  <div class="free-card" onclick="openFreeContextModal()">
-    <div class="free-icon">🎤</div>
-    <div style="flex:1;min-width:160px">
-      <div class="free-title">Discours Libre</div>
-      <div class="free-sub">Ta propre présentation, sur le sujet de ton choix — sans limite de durée</div>
+
+  <div class="section-label">Modes libres</div>
+  <div class="free-row">
+    <div class="free-card-compact" onclick="openFreeContextModal()">
+      <div class="free-icon">🎤</div>
+      <div class="free-title" style="font-size:14px;margin-bottom:0">Discours Libre</div>
     </div>
-    <div style="color:var(--muted);font-size:18px">›</div>
-  </div>
-  <div class="free-card" onclick="stopVoiceFeedback();showDictionPage()">
-    <div class="free-icon">🗣️</div>
-    <div style="flex:1;min-width:160px">
-      <div class="free-title">Exercices de diction</div>
-      <div class="free-sub">Virelangues pour travailler ton articulation</div>
+    <div class="free-card-compact" onclick="stopVoiceFeedback();showDictionPage()">
+      <div class="free-icon">🗣️</div>
+      <div class="free-title" style="font-size:14px;margin-bottom:0">Diction</div>
     </div>
-    <div style="color:var(--muted);font-size:18px">›</div>
   </div>
+
   <div class="level-card" id="level-card-home"></div>
 
   <div class="section-title">Choisissez votre exercice</div>
@@ -2016,7 +2035,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
         <div class="result-tag">Retour de Coach Awa · ${exTitle}</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
-          ${('speechSynthesis' in window) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">🔊 Écouter</button>` : ''}
+          ${('speechSynthesis' in window) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
         </div>
         ${isIOS() ? `<div style="color:var(--muted);font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
         <div class="result-conseil">${fb.conseil_coach}</div>
@@ -2117,8 +2136,8 @@ function showResult(fb, met, previous, dailyBonus){
 
   document.getElementById('result-content').innerHTML = html + structuredOfferHTML + `
     <div class="actions">
-      <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">🔄 RÉESSAYER</button>
-      <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">← Autres exercices</button>
+      <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">RÉESSAYER</button>
+      <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">Autres exercices</button>
     </div>
   `;
   showPage('result');
@@ -2226,7 +2245,7 @@ function toggleVoiceFeedback(){
   if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
     window.speechSynthesis.cancel();
     ttsShouldBePlaying = false;
-    btn.textContent = '🔊 Écouter';
+    btn.textContent = 'Écouter';
     btn.classList.remove('playing');
     return;
   }
@@ -2253,7 +2272,7 @@ function speakVoiceFeedback(){
   };
   utter.onend = () => {
     ttsShouldBePlaying = false;
-    if(btn){ btn.textContent = '🔊 Écouter'; btn.classList.remove('playing'); }
+    if(btn){ btn.textContent = 'Écouter'; btn.classList.remove('playing'); }
   };
   utter.onerror = (e) => {
     // Certains navigateurs interrompent la lecture (sans vraie erreur) quand
@@ -2261,7 +2280,7 @@ function speakVoiceFeedback(){
     // le gestionnaire de visibilité reprendra la lecture au déverrouillage.
     if(e.error !== 'interrupted' && e.error !== 'canceled'){
       ttsShouldBePlaying = false;
-      if(btn){ btn.textContent = '🔊 Écouter'; btn.classList.remove('playing'); }
+      if(btn){ btn.textContent = 'Écouter'; btn.classList.remove('playing'); }
     }
     console.warn('Erreur synthèse vocale :', e.error);
   };
@@ -2516,7 +2535,32 @@ function sendFeedback(channel){
   closeFeedbackModal();
 }
 
+// ── Thème clair / sombre ─────────────────────────────────────────────────────
+const THEME_KEY = 'voixdafrique_theme';
+const MOON_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>`;
+const SUN_ICON = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>`;
+
+function applyTheme(theme){
+  document.documentElement.setAttribute('data-theme', theme);
+  const icon = document.getElementById('theme-toggle-icon');
+  // L'icône affichée représente le thème vers lequel on basculerait en cliquant
+  if(icon) icon.innerHTML = theme === 'dark' ? SUN_ICON : MOON_ICON;
+  try{ localStorage.setItem(THEME_KEY, theme); }catch(_){}
+}
+
+function toggleTheme(){
+  const current = document.documentElement.getAttribute('data-theme') === 'dark' ? 'dark' : 'light';
+  applyTheme(current === 'dark' ? 'light' : 'dark');
+}
+
+function loadSavedTheme(){
+  let saved = null;
+  try{ saved = localStorage.getItem(THEME_KEY); }catch(_){}
+  applyTheme(saved === 'dark' ? 'dark' : 'light');
+}
+
 // Init
+loadSavedTheme();
 checkAndApplyStreakFreeze();
 hydrateScoresFromHistory();
 renderHome();
