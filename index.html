@@ -15,13 +15,13 @@
   }
   html[data-theme="dark"]{
     --bg:#0B1220;--surface:#131B2E;--card:#1B2540;--border:#2A3555;
-    --gold:#E0B84D;--gold-l:#F0C76A;--green:#34C77B;--red:#E0554A;
-    --orange:#F0924B;--text:#EDEFF5;--muted:#9098B5;
+    --gold:#F0C34A;--gold-l:#F5D57A;--green:#34C77B;--red:#E0554A;
+    --orange:#F0924B;--text:#EDEFF5;--muted:#A8B0D0;
   }
   nav{
     border-bottom:1px solid var(--border);padding:14px 24px;
     display:flex;align-items:center;justify-content:space-between;
-    position:sticky;top:0;background:rgba(250,248,244,.92);
+    position:sticky;top:0;background:var(--surface);
     backdrop-filter:blur(16px);z-index:100;
   }
   .logo{display:flex;align-items:center;gap:10px;cursor:pointer;text-decoration:none}
@@ -31,7 +31,7 @@
     display:flex;align-items:center;justify-content:center;font-size:15px;
   }
   .logo-name{font-family:'Cormorant Garamond',serif;font-weight:700;font-size:17px;color:var(--text);line-height:1}
-  .logo-sub{font-family:'Quicksand',sans-serif;font-size:9px;color:var(--gold);letter-spacing:2px}
+  .logo-sub{font-family:'Quicksand',sans-serif;font-size:10px;color:var(--gold);letter-spacing:2px;font-weight:600}
   .page{max-width:780px;margin:0 auto;padding:48px 20px;display:none}
   .page.active{display:block}
 
@@ -671,6 +671,15 @@ const EXERCISES = [
   {id:13,emoji:"🕊️",title:"Discours d'Hommage",description:"Rendez un hommage sincère et touchant à quelqu'un de cher, en 90 secondes.",duration:90,niveau:"Expert",color:"#5B4FE8",xpRequis:1100,
    context:"Vous prenez la parole pour honorer la mémoire ou les réalisations d'une personne importante pour vous ou votre communauté. Trouvez le ton juste entre émotion et dignité.",
    exemple:"Il y a des personnes qui traversent nos vies sans vraiment les marquer, et puis il y a des personnes comme elle, qui les transforment en profondeur. Je me souviens encore de sa patience, de sa générosité, de cette capacité qu'elle avait à faire sentir à chacun qu'il comptait vraiment. Elle n'a jamais cherché la reconnaissance, et pourtant, regardez combien de vies elle a touchées, combien d'entre nous sont ici aujourd'hui grâce à elle. Son héritage ne se mesure pas en mots, mais dans chacun de nos gestes qui lui ressemblent désormais. Merci pour tout."},
+  {id:14,emoji:"☕",title:"Pause Café",description:"Parlez avec aisance à un collègue autour d'un café, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:25,
+   context:"Vous croisez un collègue à la machine à café. Faites la conversation naturellement, sans enjeu particulier — juste pour créer du lien.",
+   exemple:"Ah, ça fait du bien cette pause ! Dis-moi, ton weekend s'est bien passé ? Moi j'ai enfin fini de monter mes étagères, ça m'a pris trois fois plus de temps que prévu, comme toujours avec le bricolage ! Au fait, tu as vu le mail pour la réunion de vendredi ? J'espère qu'elle ne va pas trop s'éterniser, j'ai plein de choses à boucler avant la fin de semaine. Enfin bref, allez, courage pour cet après-midi !"},
+  {id:15,emoji:"🏖️",title:"Retrouvailles Entre Amis",description:"Racontez une anecdote de vacances avec humour, en 60 secondes.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:75,
+   context:"Vous retrouvez des amis après un moment, et l'un d'eux vous demande de raconter votre dernier voyage. Amusez-les avec une anecdote vécue.",
+   exemple:"Alors attends, il faut que je vous raconte ce qui m'est arrivé ! On arrive à l'hôtel, super content, et la dame nous dit que notre réservation... n'existe pas ! Total panique, on est là avec nos valises, à minuit passé. Finalement on a fini dans un petit hôtel improvisé tenu par un monsieur adorable qui nous a même préparé un thé à trois heures du matin. Franchement, c'est devenu le meilleur souvenir du voyage — on rigole encore rien qu'en y repensant !"},
+  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Réagissez avec calme et aisance à un changement de dernière minute, en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
+   context:"Un imprévu vient bouleverser vos plans (rendez-vous annulé, retard, changement de programme). Montrez que vous savez vous adapter sans perdre votre calme ni votre sourire.",
+   exemple:"Bon, apparemment le rendez-vous est décalé à la semaine prochaine — ce n'est pas ce qu'on avait prévu, mais ce n'est pas grave du tout. Ça nous laisse même un peu plus de temps pour peaufiner notre présentation, ce qui n'est pas plus mal. Je vais en profiter pour caler deux ou trois autres choses cette après-midi du coup. On reste flexibles, l'essentiel c'est qu'on avance dans la bonne direction, peu importe le timing exact !"},
 ];
 
 // ── Discours Libre ────────────────────────────────────────────────────────
@@ -1147,7 +1156,7 @@ const BADGES = [
   {id:'perfect_score',  emoji:'💯', nom:'Score Parfait',       desc:'Un score de 95+ obtenu',       check: s => s.some(x=>x.score>=95)},
   {id:'no_parasites',   emoji:'✨', nom:'Discours Pur',        desc:'0 mot parasite en session',    check: s => s.some(x=>x.totalParasites===0)},
   {id:'all_exercises',  emoji:'🌍', nom:'Polyvalent',          desc:'5 exercices différents essayés', check: s => new Set(s.filter(x=>!isSpecialExercise(x.exId)).map(x=>x.exId)).size>=5},
-  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 13 exercices essayés',       check: s => new Set(s.filter(x=>!isSpecialExercise(x.exId)).map(x=>x.exId)).size>=13},
+  {id:'explorer',       emoji:'🗺️', nom:'Explorateur Complet', desc:'Les 16 exercices essayés',       check: s => new Set(s.filter(x=>!isSpecialExercise(x.exId)).map(x=>x.exId)).size>=16},
   {id:'streak_3',       emoji:'📅', nom:'Régularité',          desc:'3 jours de suite',             check: s => computeStreak(s)>=3},
   {id:'good_debit',     emoji:'⚡', nom:'Rythme Idéal',        desc:'Débit entre 120-150 mots/min', check: s => s.some(x=>x.debit>=120 && x.debit<=150)},
 ];
