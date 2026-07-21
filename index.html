@@ -482,14 +482,18 @@
   <div class="daily-card" id="daily-card-home" onclick="startDailyChallenge()"></div>
 
   <div class="section-label">Modes libres</div>
-  <div class="free-row">
+  <div class="free-row" style="grid-template-columns:1fr 1fr 1fr">
     <div class="free-card-compact" onclick="openFreeContextModal()">
       <div class="free-icon">🎤</div>
-      <div class="free-title" style="font-size:14px;margin-bottom:0">Discours Libre</div>
+      <div class="free-title" style="font-size:13px;margin-bottom:0">Discours Libre</div>
     </div>
     <div class="free-card-compact" onclick="stopVoiceFeedback();showDictionPage()">
       <div class="free-icon">🗣️</div>
-      <div class="free-title" style="font-size:14px;margin-bottom:0">Diction</div>
+      <div class="free-title" style="font-size:13px;margin-bottom:0">Diction</div>
+    </div>
+    <div class="free-card-compact" onclick="window.open('https://www.toastmasters.org/find-a-club','_blank')">
+      <div class="free-icon">🤝</div>
+      <div class="free-title" style="font-size:13px;margin-bottom:0">En présentiel</div>
     </div>
   </div>
 
