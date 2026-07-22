@@ -578,6 +578,12 @@
   <div class="exercises" id="diction-list"></div>
 </div>
 
+<!-- ══ DISCOURS STRUCTURÉ (sauvegardé) ═══════════════════════════════════════ -->
+<div id="page-structured-speech" class="page">
+  <button class="back-btn" onclick="stopVoiceFeedback();showPage('history')">← Retour à l'historique</button>
+  <div id="structured-speech-page-content"></div>
+</div>
+
 <!-- ══ BADGE TOAST ════════════════════════════════════════════════════════════ -->
 <div id="badge-toast" class="toast-badge">
   <span class="toast-icon" id="toast-icon">🏆</span>
@@ -1017,6 +1023,29 @@ function saveSession(session){
 function getLastSessionForExercise(exId){
   const sessions = loadSessions().filter(s=>s.exId===exId);
   return sessions.length ? sessions[sessions.length-1] : null;
+}
+
+// ── Discours structurés (sauvegarde) ─────────────────────────────────────────
+// Une fois généré, le discours structuré reste consultable depuis l'historique,
+// pas seulement au moment où il a été créé. Stocké localement sur l'appareil,
+// par exercice (le dernier généré remplace le précédent pour cet exercice).
+const STRUCTURED_SPEECHES_KEY = 'voixdafrique_structured_speeches';
+
+function loadStructuredSpeeches(){
+  try{
+    const raw = localStorage.getItem(STRUCTURED_SPEECHES_KEY);
+    return raw ? JSON.parse(raw) : {};
+  }catch(_){ return {}; }
+}
+
+function saveStructuredSpeech(exId, data){
+  const all = loadStructuredSpeeches();
+  all[exId] = data;
+  try{ localStorage.setItem(STRUCTURED_SPEECHES_KEY, JSON.stringify(all)); }catch(_){}
+}
+
+function getStructuredSpeech(exId){
+  return loadStructuredSpeeches()[exId] || null;
 }
 
 // ── Streak Freeze (gel de streak) ────────────────────────────────────────────
@@ -1873,6 +1902,8 @@ IMPORTANT sur la méthode : cette précision est calculée en comparant le texte
 
 Repère de notation : utilise directement la précision (${dictionAccuracy}%) comme base du score, ajustée légèrement selon le débit (une lecture beaucoup trop rapide ou hachée peut justifier un score un peu inférieur à la précision brute).
 
+Le défi suivant ne doit jamais proposer une durée précise (cet exercice dure toujours ${currentEx.duration} secondes, ce n'est pas modifiable) — concentre-toi plutôt sur quels mots retravailler.
+
 Génère un feedback bienveillant sur cet exercice d'articulation. Si des mots semblent avoir posé difficulté (déduits de la comparaison), mentionne-les précisément. Reste concis : chaque point tient en une phrase courte. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}` : `Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
 
@@ -1904,6 +1935,8 @@ Priorise TOUJOURS les axes d'amélioration par ordre d'impact réel sur la perfo
 Les corrections linguistiques mineures (catégorie 5) ne doivent apparaître dans les améliorations QUE si les catégories 1 à 4 sont déjà solides — ne jamais remonter un détail linguistique secondaire au détriment d'un enjeu de fond plus important.
 
 Sois concret et transparent : quand c'est pertinent, appuie-toi sur des passages précis de la transcription (courtes citations entre guillemets) plutôt que des conseils génériques, pour que l'apprenant comprenne exactement ce qui fonctionne ou pas dans SON discours à lui.
+
+IMPORTANT sur le défi suivant : la durée de cet exercice est fixe, réglée à ${currentEx.duration} secondes — l'apprenant ne peut pas la modifier. Si ton défi_suivant évoque une durée, utilise UNIQUEMENT ${currentEx.duration} secondes (jamais un autre chiffre inventé). Le plus simple est souvent de ne pas mentionner de durée du tout et de te concentrer sur le fond du défi.
 
 Génère un feedback bienveillant et motivant. Reste concis : chaque point fort ou amélioration doit tenir en une phrase courte (max ~15 mots), lisible d'un coup d'œil sur un écran de téléphone. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}`;
@@ -2198,6 +2231,14 @@ Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte avant ou après :
     const jsonMatch = raw.match(/\{[\s\S]*\}/);
     const parsed = JSON.parse(jsonMatch ? jsonMatch[0] : raw);
 
+    saveStructuredSpeech(currentEx.id, {
+      intro: parsed.intro || '',
+      texte_discours: parsed.texte_discours || '',
+      exTitle: currentEx.title,
+      generatedAt: new Date().toISOString(),
+      basedOnSessionCount: transcripts.length
+    });
+
     resultEl.innerHTML = `
       <div style="background:var(--card);border:1px solid rgba(91,79,232,.3);border-radius:12px;padding:18px;margin-top:14px">
         <div style="color:#5B4FE8;font-size:13px;font-family:'Quicksand',sans-serif;margin-bottom:10px">${parsed.intro || ''}</div>
@@ -2391,13 +2432,36 @@ function openHistoryDetail(key){
 
   const html = buildResultHTML(fb, met, session.exTitle, dateHTML);
 
+  const savedSpeech = getStructuredSpeech(session.exId);
+  const speechLinkHTML = savedSpeech ? `
+    <div class="actions">
+      <button class="btn-primary" style="background:linear-gradient(135deg,#5B4FE8,#8B7FFF)" onclick="viewStructuredSpeechPage('${session.exId}')">✨ Voir mon discours structuré</button>
+    </div>` : '';
+
   const retryHTML = `
     <div class="actions">
-      <button class="btn-primary" onclick="retryExerciseById('${session.exId}')">🔄 Réessayer cet exercice</button>
+      <button class="btn-primary" onclick="retryExerciseById('${session.exId}')">RÉESSAYER cet exercice</button>
     </div>`;
 
-  document.getElementById('history-detail-content').innerHTML = html + retryHTML;
+  document.getElementById('history-detail-content').innerHTML = html + speechLinkHTML + retryHTML;
   showPage('history-detail');
+}
+
+// Affiche un discours structuré précédemment généré et sauvegardé
+function viewStructuredSpeechPage(exId){
+  const speech = getStructuredSpeech(exId);
+  if(!speech) return;
+  const dateStr = new Date(speech.generatedAt).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric'});
+  document.getElementById('structured-speech-page-content').innerHTML = `
+    <div class="result-tag">Discours structuré · ${speech.exTitle}</div>
+    <div class="result-title">✨ Ta version finale</div>
+    <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;margin-bottom:16px">Généré le ${dateStr}, à partir de tes ${speech.basedOnSessionCount} dernières tentatives</div>
+    <div style="background:var(--card);border:1px solid rgba(91,79,232,.3);border-radius:12px;padding:20px;margin-top:10px">
+      <div style="color:#5B4FE8;font-size:13px;font-family:'Quicksand',sans-serif;margin-bottom:12px">${speech.intro}</div>
+      <div style="color:var(--text);font-size:15px;line-height:1.8;font-family:'Lora',serif;white-space:pre-wrap">${speech.texte_discours}</div>
+    </div>
+  `;
+  showPage('structured-speech');
 }
 
 function renderHistory(){
