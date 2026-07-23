@@ -648,12 +648,21 @@ const EXERCISES = [
   {id:4,emoji:"🛍️",title:"Négociation au Marché",description:"Défendez votre prix face à un client exigeant, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:0,
    context:"Vous êtes commerçant(e) à Sandaga. Un client négocie fort. Restez ferme et convaincant(e) sans le braquer.",
    exemple:"Je comprends que vous cherchiez le meilleur prix, et je respecte ça. Mais regardez la qualité de ce tissu : c'est du bazin véritable, pas de l'imitation. Je l'ai eu directement du grossiste à Touba, pas de revendeur entre nous deux. À ce prix, vous ne trouverez pas mieux dans tout le marché. Je peux vous faire un petit geste si vous prenez deux pièces, mais en dessous de ce prix, je travaillerais à perte. Qu'en dites-vous ?"},
+  {id:14,emoji:"☕",title:"Pause Café",description:"Parlez avec aisance à un collègue autour d'un café, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:25,
+   context:"Vous croisez un collègue à la machine à café. Faites la conversation naturellement, sans enjeu particulier — juste pour créer du lien.",
+   exemple:"Ah, ça fait du bien cette pause ! Dis-moi, ton weekend s'est bien passé ? Moi j'ai enfin fini de monter mes étagères, ça m'a pris trois fois plus de temps que prévu, comme toujours avec le bricolage ! Au fait, tu as vu le mail pour la réunion de vendredi ? J'espère qu'elle ne va pas trop s'éterniser, j'ai plein de choses à boucler avant la fin de semaine. Enfin bref, allez, courage pour cet après-midi !"},
   {id:5,emoji:"👨‍👩‍👧",title:"Discours de Cérémonie",description:"Prenez la parole à un mariage ou baptême, en 75 secondes.",duration:75,niveau:"Débutant",color:"#27AE60",xpRequis:50,
    context:"C'est le mariage d'un proche. La famille vous a demandé de dire quelques mots devant tous les invités.",
    exemple:"Chers parents, chers amis, c'est avec une immense joie que je prends la parole aujourd'hui. J'ai connu Fatou depuis l'école primaire, et je peux vous dire qu'elle a toujours eu un cœur immense pour les siens. Aujourd'hui, en la voyant unie à Moussa, je vois deux familles qui s'agrandissent, deux histoires qui n'en font plus qu'une. Que Dieu vous accorde longue vie ensemble, beaucoup d'enfants, et que votre foyer soit toujours rempli de paix. Je vous souhaite tout le bonheur du monde."},
+  {id:15,emoji:"🏖️",title:"Retrouvailles Entre Amis",description:"Racontez une anecdote de vacances avec humour, en 60 secondes.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:75,
+   context:"Vous retrouvez des amis après un moment, et l'un d'eux vous demande de raconter votre dernier voyage. Amusez-les avec une anecdote vécue.",
+   exemple:"Alors attends, il faut que je vous raconte ce qui m'est arrivé ! On arrive à l'hôtel, super content, et la dame nous dit que notre réservation... n'existe pas ! Total panique, on est là avec nos valises, à minuit passé. Finalement on a fini dans un petit hôtel improvisé tenu par un monsieur adorable qui nous a même préparé un thé à trois heures du matin. Franchement, c'est devenu le meilleur souvenir du voyage — on rigole encore rien qu'en y repensant !"},
   {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motivez votre équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
    context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer.",
    exemple:"Je sais que les deux dernières semaines ont été dures. Les chiffres n'étaient pas là, et certains d'entre vous doutent. C'est normal. Mais regardez le chemin parcouru : il y a six mois, on partait de zéro. Aujourd'hui, on a une équipe soudée et un produit que nos clients adorent. Ce qui nous manque, ce n'est pas le talent — c'est la confiance. Alors aujourd'hui, je vous demande une chose : donnons tout, ensemble, pendant les 30 prochains jours. Pas pour moi, pas pour l'entreprise — pour ce qu'on construit tous ensemble. On y va ?"},
+  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Réagissez avec calme et aisance à un changement de dernière minute, en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
+   context:"Un imprévu vient bouleverser vos plans (rendez-vous annulé, retard, changement de programme). Montrez que vous savez vous adapter sans perdre votre calme ni votre sourire.",
+   exemple:"Bon, apparemment le rendez-vous est décalé à la semaine prochaine — ce n'est pas ce qu'on avait prévu, mais ce n'est pas grave du tout. Ça nous laisse même un peu plus de temps pour peaufiner notre présentation, ce qui n'est pas plus mal. Je vais en profiter pour caler deux ou trois autres choses cette après-midi du coup. On reste flexibles, l'essentiel c'est qu'on avance dans la bonne direction, peu importe le timing exact !"},
   {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défendez un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
    context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible.",
    exemple:"Monsieur le Maire, mesdames et messieurs les conseillers, je viens vous présenter un projet porté par 30 familles de notre quartier : la réhabilitation du terrain vague de la rue 14 en jardin communautaire. Aujourd'hui, cet espace attire les déchets et l'insécurité. Demain, il pourrait nourrir nos familles et rassembler nos enfants. Nous avons déjà mobilisé des bénévoles et obtenu un partenariat avec une ONG locale pour les semences. Nous demandons simplement l'autorisation municipale et un accès à l'eau. Ce projet ne coûtera rien à la mairie, mais changera la vie de tout un quartier."},
@@ -681,15 +690,6 @@ const EXERCISES = [
   {id:13,emoji:"🕊️",title:"Discours d'Hommage",description:"Rendez un hommage sincère et touchant à quelqu'un de cher, en 90 secondes.",duration:90,niveau:"Expert",color:"#5B4FE8",xpRequis:1100,
    context:"Vous prenez la parole pour honorer la mémoire ou les réalisations d'une personne importante pour vous ou votre communauté. Trouvez le ton juste entre émotion et dignité.",
    exemple:"Il y a des personnes qui traversent nos vies sans vraiment les marquer, et puis il y a des personnes comme elle, qui les transforment en profondeur. Je me souviens encore de sa patience, de sa générosité, de cette capacité qu'elle avait à faire sentir à chacun qu'il comptait vraiment. Elle n'a jamais cherché la reconnaissance, et pourtant, regardez combien de vies elle a touchées, combien d'entre nous sont ici aujourd'hui grâce à elle. Son héritage ne se mesure pas en mots, mais dans chacun de nos gestes qui lui ressemblent désormais. Merci pour tout."},
-  {id:14,emoji:"☕",title:"Pause Café",description:"Parlez avec aisance à un collègue autour d'un café, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:25,
-   context:"Vous croisez un collègue à la machine à café. Faites la conversation naturellement, sans enjeu particulier — juste pour créer du lien.",
-   exemple:"Ah, ça fait du bien cette pause ! Dis-moi, ton weekend s'est bien passé ? Moi j'ai enfin fini de monter mes étagères, ça m'a pris trois fois plus de temps que prévu, comme toujours avec le bricolage ! Au fait, tu as vu le mail pour la réunion de vendredi ? J'espère qu'elle ne va pas trop s'éterniser, j'ai plein de choses à boucler avant la fin de semaine. Enfin bref, allez, courage pour cet après-midi !"},
-  {id:15,emoji:"🏖️",title:"Retrouvailles Entre Amis",description:"Racontez une anecdote de vacances avec humour, en 60 secondes.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:75,
-   context:"Vous retrouvez des amis après un moment, et l'un d'eux vous demande de raconter votre dernier voyage. Amusez-les avec une anecdote vécue.",
-   exemple:"Alors attends, il faut que je vous raconte ce qui m'est arrivé ! On arrive à l'hôtel, super content, et la dame nous dit que notre réservation... n'existe pas ! Total panique, on est là avec nos valises, à minuit passé. Finalement on a fini dans un petit hôtel improvisé tenu par un monsieur adorable qui nous a même préparé un thé à trois heures du matin. Franchement, c'est devenu le meilleur souvenir du voyage — on rigole encore rien qu'en y repensant !"},
-  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Réagissez avec calme et aisance à un changement de dernière minute, en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
-   context:"Un imprévu vient bouleverser vos plans (rendez-vous annulé, retard, changement de programme). Montrez que vous savez vous adapter sans perdre votre calme ni votre sourire.",
-   exemple:"Bon, apparemment le rendez-vous est décalé à la semaine prochaine — ce n'est pas ce qu'on avait prévu, mais ce n'est pas grave du tout. Ça nous laisse même un peu plus de temps pour peaufiner notre présentation, ce qui n'est pas plus mal. Je vais en profiter pour caler deux ou trois autres choses cette après-midi du coup. On reste flexibles, l'essentiel c'est qu'on avance dans la bonne direction, peu importe le timing exact !"},
 ];
 
 // ── Discours Libre ────────────────────────────────────────────────────────
@@ -713,9 +713,9 @@ const FREE_EXERCISE = {
 const DICTION_EXERCISES = [
   {id:'diction-1', texte:"Un chasseur sachant chasser sait chasser sans son chien.", niveau:"Débutant"},
   {id:'diction-2', texte:"Les chaussettes de l'archiduchesse sont-elles sèches, archi-sèches ?", niveau:"Débutant"},
+  {id:'diction-5', texte:"Trois tortues trottaient sur un trottoir très étroit.", niveau:"Débutant"},
   {id:'diction-3', texte:"Ces cyprès sont si loin qu'on ne sait si c'en sont.", niveau:"Intermédiaire"},
   {id:'diction-4', texte:"Si six scies scient six cyprès, six cent six scies scient six cent six cyprès.", niveau:"Intermédiaire"},
-  {id:'diction-5', texte:"Trois tortues trottaient sur un trottoir très étroit.", niveau:"Débutant"},
   {id:'diction-6', texte:"Un dragon gradé dégrade un gradé dragon.", niveau:"Intermédiaire"},
   {id:'diction-7', texte:"Je veux et j'exige d'exquises excuses exemptes d'exagération.", niveau:"Avancé"},
   {id:'diction-8', texte:"Didon dîna, dit-on, du dos d'un dodu dindon.", niveau:"Avancé"}
@@ -1581,7 +1581,7 @@ function renderReadyZone(){
   const isFree = currentEx.id === 'libre';
   const dureeTxt = isFree
     ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro démarre dès que tu appuies sur Démarrer`
-    : `Durée : ${fmt(currentEx.duration)} · Le micro démarre dès que tu appuies sur Démarrer`;
+    : `Durée max : ${fmt(currentEx.duration)} · Tu peux terminer avant si tu as fini · Le micro démarre dès que tu appuies sur Démarrer`;
   document.getElementById('rec-zone').innerHTML=`
     <div style="width:90px;height:90px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid rgba(212,168,67,.3);display:flex;align-items:center;justify-content:center;font-size:36px">🎙️</div>
     <div>
