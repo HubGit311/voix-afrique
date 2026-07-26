@@ -470,7 +470,7 @@
 
 <!-- ══ AUTH BAR ════════════════════════════════════════════════════════════════ -->
 <div id="auth-bar" class="auth-bar signed-out">
-  <span style="color:var(--gold);font-size:12px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
+  <span style="color:var(--gold);font-size:13px;flex:1;font-weight:600">🔒 Connecte-toi avec Google pour sauvegarder ta progression (optionnel, mais recommandé — sans ça, tout est perdu si tu changes d'appareil ou vides ton navigateur)</span>
   <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
 </div>
 
@@ -676,8 +676,8 @@ const EXERCISES = [
   {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motivez votre équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
    context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer.",
    exemple:"Je sais que les deux dernières semaines ont été dures. Les chiffres n'étaient pas là, et certains d'entre vous doutent. C'est normal. Mais regardez le chemin parcouru : il y a six mois, on partait de zéro. Aujourd'hui, on a une équipe soudée et un produit que nos clients adorent. Ce qui nous manque, ce n'est pas le talent — c'est la confiance. Alors aujourd'hui, je vous demande une chose : donnons tout, ensemble, pendant les 30 prochains jours. Pas pour moi, pas pour l'entreprise — pour ce qu'on construit tous ensemble. On y va ?"},
-  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Réagissez avec calme et aisance à un changement de dernière minute, en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
-   context:"Un imprévu vient bouleverser vos plans (rendez-vous annulé, retard, changement de programme). Montrez que vous savez vous adapter sans perdre votre calme ni votre sourire.",
+  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Le client avec qui vous aviez rendez-vous vient d'annuler par SMS, 5 minutes avant. Réagissez en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
+   context:"Vous aviez tout préparé pour ce rendez-vous important. Le client annule à la dernière minute par SMS, sans grande explication. Vous devez maintenant en parler calmement à votre équipe, qui attendait ce moment avec vous.",
    exemple:"Bon, apparemment le rendez-vous est décalé à la semaine prochaine — ce n'est pas ce qu'on avait prévu, mais ce n'est pas grave du tout. Ça nous laisse même un peu plus de temps pour peaufiner notre présentation, ce qui n'est pas plus mal. Je vais en profiter pour caler deux ou trois autres choses cette après-midi du coup. On reste flexibles, l'essentiel c'est qu'on avance dans la bonne direction, peu importe le timing exact !"},
   {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défendez un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
    context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible.",
@@ -691,14 +691,14 @@ const EXERCISES = [
   {id:8,emoji:"📺",title:"Interview Télévisée",description:"Répondez avec assurance à des questions pièges, en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:400,
    context:"Vous êtes interviewé(e) sur une chaîne nationale sur un sujet sensible. Restez calme, clair(e) et maître de votre message.",
    exemple:"C'est une question légitime, et je vais y répondre directement. Oui, nous avons rencontré des difficultés au début du projet, je ne vais pas le nier. Mais ce qui compte, c'est ce que nous avons appris et comment nous avons ajusté notre approche. Aujourd'hui, les résultats parlent d'eux-mêmes : nos indicateurs sont en hausse de 60% par rapport à l'année dernière. Je préfère qu'on parle de transparence plutôt que de perfection — nous assumons nos erreurs et nous progressons. C'est exactement ce que les Sénégalais attendent de nous, et c'est ce que nous continuerons à faire."},
-  {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défendez une cause sociale devant une foule, en 2m30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
-   context:"Vous portez la voix d'une cause importante (éducation, environnement, droits) devant un grand rassemblement public.",
+  {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défendez l'accès à l'éducation pour tous les enfants, devant une foule, en 2m30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
+   context:"Vous prenez la parole lors d'un grand rassemblement citoyen pour défendre l'accès à l'éducation pour tous les enfants, y compris les plus éloignés des grandes villes.",
    exemple:"Aujourd'hui, je ne parle pas seulement en mon nom. Je parle au nom de milliers d'enfants qui marchent chaque matin des kilomètres pour rejoindre une école qui manque de tout. Je parle au nom de ces enseignants qui donnent sans compter, malgré des classes de 80 élèves. Ce n'est pas une fatalité — c'est un choix que nous pouvons changer ensemble. Chaque enfant scolarisé aujourd'hui, c'est une famille qui sortira de la pauvreté demain. Je demande à chacun d'entre vous, à nos décideurs, à nos entreprises : investissons dans l'éducation comme on investirait dans notre avenir commun, parce que c'est exactement ce que c'est. L'éducation n'attend pas. Nos enfants n'attendent pas. Agissons maintenant."},
   {id:10,emoji:"🥂",title:"Toast Improvisé",description:"Portez un toast surprise et mémorable en 45 secondes.",duration:45,niveau:"Expert",color:"#5B4FE8",xpRequis:600,
    context:"On vous tend le micro à l'improviste, en pleine fête, pour porter un toast. Soyez chaleureux, bref et marquant — c'est un exercice court mais qui demande beaucoup d'aisance.",
    exemple:"Je ne m'attendais pas à prendre la parole ce soir, mais je ne pouvais pas laisser passer ce moment sans dire un mot. Regardez autour de vous : que de chemin parcouru, que de sourires réunis dans cette salle ! À nos hôtes, qui nous ont ouvert leur maison et leur cœur ce soir. Que cette soirée ne soit que le début d'encore beaucoup d'autres moments comme celui-ci. Levons nos verres à l'amitié, à la famille, et à tout ce qui nous rassemble ! Santé !"},
-  {id:11,emoji:"🛡️",title:"Discours de Crise",description:"Rassurez votre audience face à une situation délicate, en 75 secondes.",duration:75,niveau:"Expert",color:"#5B4FE8",xpRequis:750,
-   context:"Votre organisation traverse une situation difficile (erreur, retard, polémique). Prenez la parole pour rassurer, sans minimiser ni paniquer.",
+  {id:11,emoji:"🛡️",title:"Discours de Crise",description:"Une erreur de votre équipe a affecté vos clients. Rassurez-les en 75 secondes.",duration:75,niveau:"Expert",color:"#5B4FE8",xpRequis:750,
+   context:"Une erreur interne (un retard de livraison, un bug, une mauvaise communication) a affecté vos clients. Prenez la parole publiquement pour rassurer, sans minimiser ni paniquer.",
    exemple:"Je sais que ce qui s'est passé a inquiété beaucoup d'entre vous, et vous avez raison de vouloir des réponses claires. Je ne vais pas chercher d'excuses : nous avons commis une erreur, et nous en assumons pleinement la responsabilité. Depuis hier, toute notre équipe travaille pour corriger la situation et s'assurer que cela ne se reproduise plus. Nous vous tiendrons informés à chaque étape, sans rien cacher. Je comprends votre frustration, et je vous demande votre confiance le temps de vous prouver, par des actes, que nous la méritons encore."},
   {id:12,emoji:"💼",title:"Négociation Salariale",description:"Demandez une augmentation avec assurance et arguments solides, en 60 secondes.",duration:60,niveau:"Expert",color:"#5B4FE8",xpRequis:900,
    context:"Vous êtes face à votre responsable pour discuter d'une augmentation. Soyez factuel, confiant, sans agressivité ni excès de modestie.",
@@ -881,11 +881,21 @@ function buildImprovChallenge(hash){
 // Choisit le défi du jour de façon déterministe selon la date — le même défi
 // est donc proposé à tout le monde le même jour. Environ un jour sur trois,
 // c'est un sujet d'improvisation positif plutôt qu'un exercice structuré.
+// Si l'utilisateur clique "Changer de sujet", un décalage local est appliqué
+// (propre à cet appareil, remis à zéro automatiquement le lendemain).
+function getDailyOverrideKey(){
+  return 'voixdafrique_daily_override_' + getDailyDateKey();
+}
+
 function getDailyChallenge(currentXP){
   const dateKey = getDailyDateKey();
   // Hash simple et stable à partir de la date, pour choisir un index
   let hash = 0;
   for(let i=0;i<dateKey.length;i++){ hash = (hash*31 + dateKey.charCodeAt(i)) >>> 0; }
+
+  let offset = 0;
+  try{ offset = parseInt(localStorage.getItem(getDailyOverrideKey())) || 0; }catch(_){}
+  hash = hash + offset;
 
   if(hash % 3 === 0){
     return buildImprovChallenge(hash);
@@ -893,8 +903,17 @@ function getDailyChallenge(currentXP){
 
   const unlocked = EXERCISES.filter(ex => getExerciseUnlockStatus(ex, currentXP));
   if(unlocked.length === 0) return null;
-  const index = hash % unlocked.length;
+  const index = ((hash % unlocked.length) + unlocked.length) % unlocked.length;
   return unlocked[index];
+}
+
+// Passe au sujet suivant pour aujourd'hui (sur cet appareil uniquement)
+function changeDailyChallenge(){
+  const key = getDailyOverrideKey();
+  let current = 0;
+  try{ current = parseInt(localStorage.getItem(key)) || 0; }catch(_){}
+  try{ localStorage.setItem(key, String(current + 1)); }catch(_){}
+  renderDailyCard();
 }
 
 function isDailyChallengeCompletedToday(exId){
@@ -1461,6 +1480,7 @@ function renderDailyCard(){
     <div style="flex:1;min-width:160px">
       <div class="daily-title">${challenge.title}</div>
       <div class="daily-sub">${done ? 'Défi du jour complété — revenez demain !' : challenge.description}</div>
+      ${!done ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();changeDailyChallenge()">🔄 Ce sujet ne te plaît pas ? En changer</div>` : ''}
     </div>
     <div class="daily-xp-tag ${done?'done':''}" onclick="event.stopPropagation();openXPInfoModal()">${done ? '✓ Bonus reçu' : `+${DAILY_BONUS_XP} XP bonus ⓘ`}</div>
   `;
@@ -1951,6 +1971,8 @@ Priorise TOUJOURS les axes d'amélioration par ordre d'impact réel sur la perfo
 Les corrections linguistiques mineures (catégorie 5) ne doivent apparaître dans les améliorations QUE si les catégories 1 à 4 sont déjà solides — ne jamais remonter un détail linguistique secondaire au détriment d'un enjeu de fond plus important.
 
 Sois concret et transparent : quand c'est pertinent, appuie-toi sur des passages précis de la transcription (courtes citations entre guillemets) plutôt que des conseils génériques, pour que l'apprenant comprenne exactement ce qui fonctionne ou pas dans SON discours à lui.
+
+IMPORTANT sur le réalisme des améliorations : cet exercice ne dure que ${currentEx.duration} secondes. Si tu suggères d'ajouter une idée, un exemple ou un argument, précise aussi ce qu'il faudrait raccourcir ou retirer ailleurs pour lui faire de la place — ne demande jamais simplement "d'ajouter" du contenu à un discours déjà à son maximum de temps, ce n'est pas réalisable. Si le discours est déjà dense, privilégie des améliorations de forme (clarté, rythme, structure) plutôt que d'ajout de contenu.
 
 IMPORTANT sur le défi suivant : la durée de cet exercice est fixe, réglée à ${currentEx.duration} secondes — l'apprenant ne peut pas la modifier. Si ton défi_suivant évoque une durée, utilise UNIQUEMENT ${currentEx.duration} secondes (jamais un autre chiffre inventé). Le plus simple est souvent de ne pas mentionner de durée du tout et de te concentrer sur le fond du défi.
 
