@@ -2223,6 +2223,9 @@ function showResult(fb, met, previous, dailyBonus){
       <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">RÉESSAYER</button>
       <button class="btn-secondary" onclick="stopVoiceFeedback();goHome()">Autres exercices</button>
     </div>
+    <div style="text-align:center;margin-top:14px">
+      <span onclick="addTomorrowReminderToCalendar()" style="font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline">📅 Me rappeler de revenir m'entraîner demain</span>
+    </div>
   `;
   showPage('result');
 }
@@ -2397,6 +2400,23 @@ if('speechSynthesis' in window){
 }
 
 // Arrête la lecture vocale si on quitte la page résultat
+// Ouvre un événement pré-rempli dans Google Calendar pour demain, à confirmer
+// par l'utilisateur lui-même — aucune permission ni accès au calendrier n'est
+// demandé à l'app, tout reste sous le contrôle explicite de l'utilisateur.
+function addTomorrowReminderToCalendar(){
+  const tomorrow = new Date(Date.now() + 24*60*60*1000);
+  tomorrow.setHours(18, 0, 0, 0); // 18h par défaut, heure locale de l'utilisateur
+  const end = new Date(tomorrow.getTime() + 15*60*1000);
+
+  const fmtUTC = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
+
+  const title = encodeURIComponent("🎤 Séance Awa — Entraîne-toi à la prise de parole");
+  const details = encodeURIComponent("Reviens t'entraîner sur Awa : https://brilliant-truffle-dae61d.netlify.app/");
+  const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtUTC(tomorrow)}/${fmtUTC(end)}&details=${details}`;
+
+  window.open(url, '_blank');
+}
+
 function stopVoiceFeedback(){
   ttsShouldBePlaying = false;
   if('speechSynthesis' in window && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
