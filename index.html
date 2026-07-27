@@ -1149,9 +1149,13 @@ function checkAndAwardStreakFreeze(currentStreak){
 // Récupère les tentatives récentes (avec texte transcrit disponible) pour un
 // exercice donné, du plus ancien au plus récent — utilisé pour proposer un
 // discours structuré après plusieurs essais.
-function getRecentTranscriptsForExercise(exId, max=3){
+function getRecentTranscriptsForExercise(exId, max=3, topicText=null){
   return loadSessions()
     .filter(s => s.exId === exId && s.transcript && s.transcript.trim().length > 0)
+    // Pour l'improvisation, le sujet change chaque jour : on ne garde que les
+    // tentatives sur EXACTEMENT le même sujet, sinon les discours mélangeraient
+    // des thèmes différents d'un jour à l'autre.
+    .filter(s => exId !== 'improv' || !topicText || s.topicText === topicText)
     .slice(-max);
 }
 
@@ -1956,6 +1960,8 @@ Métriques analysées :
 - Mots parasites : ${JSON.stringify(parasites)} (total : ${totalParasites})
 - Anglicismes détectés : ${JSON.stringify(anglicismes)} (total : ${totalAnglicismes}) — si présents, mentionne-le dans les améliorations en suggérant l'alternative française (ex: "feedback" → "retour")
 
+ATTENTION au sens du débit, une confusion fréquente à éviter absolument : si le débit (${debit} mots/min) est INFÉRIEUR à 120, c'est TROP LENT — invite à accélérer, jamais à ralentir. Si le débit est SUPÉRIEUR à 150, c'est TROP RAPIDE — invite à ralentir, jamais à accélérer. Vérifie toujours ce sens avant d'écrire ta recommandation, ne te fie pas à une impression générale.
+
 Repère de notation (à utiliser comme base, ajuste selon la qualité réelle) :
 - 40-55 : essai incomplet ou très hésitant, mais l'apprenant a osé se lancer
 - 60-75 : bonne tentative avec une structure claire, quelques points à affiner (score le plus courant)
@@ -2064,6 +2070,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   saveSession({
     exId: currentEx.id,
     exTitle: currentEx.title,
+    topicText: currentEx.description,
     score: feedback.score,
     debit, totalParasites, parasites, totalAnglicismes, anglicismes, nbMots, duration,
     fluencyScore: fluency.score,
@@ -2204,8 +2211,12 @@ function showResult(fb, met, previous, dailyBonus){
 
   // Après 3 tentatives (ou plus) sur le même exercice avec texte transcrit
   // disponible, on propose un discours structuré inspiré de ces essais.
-  const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3);
-  const structuredOfferHTML = (!isSpecialExercise(currentEx.id) && recentTranscripts.length >= 3) ? `
+  // L'improvisation est éligible (le sujet est fixe pour la journée), mais pas
+  // le Discours Libre (sujet libre à chaque fois) ni la diction (textes fixes,
+  // pas de discours à composer).
+  const isEligibleForStructuredSpeech = currentEx.id !== 'libre' && (typeof currentEx.id !== 'string' || currentEx.id.indexOf('diction-') !== 0);
+  const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description);
+  const structuredOfferHTML = (isEligibleForStructuredSpeech && recentTranscripts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
         <span style="font-size:24px;flex-shrink:0">✨</span>
@@ -2240,7 +2251,7 @@ async function generateStructuredSpeech(){
   if(btn){ btn.disabled = true; btn.textContent = '✨ Génération en cours…'; }
   resultEl.innerHTML = `<div style="color:var(--muted);font-size:13px;font-family:'Quicksand',sans-serif;margin-top:10px">Coach Awa relit tes tentatives et prépare ton discours…</div>`;
 
-  const transcripts = getRecentTranscriptsForExercise(currentEx.id, 3);
+  const transcripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description);
   const learnerFirstName = (currentUser && currentUser.displayName) ? currentUser.displayName.trim().split(/\s+/)[0] : null;
 
   const essaisTexte = transcripts.map((s,i)=> `Tentative ${i+1} :\n"${s.transcript.trim()}"`).join('\n\n');
