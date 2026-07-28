@@ -590,7 +590,7 @@
   <button class="back-btn" onclick="stopVoiceFeedback();goHome()">← Retour</button>
   <div class="section-title">🗣️ Exercices de diction</div>
   <div class="section-sub">Lis le virelangue à voix haute — Coach Awa compare ce qui a été dit au texte exact</div>
-  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">La précision affichée compare ta transcription au texte attendu — un bon indice d'articulation claire, même si ce n'est pas une analyse directe du son.</p>
+  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">La précision affichée compare ta transcription au texte attendu — un bon indice d'articulation claire, même si ce n'est pas une analyse directe du son. Un score parfois bas peut aussi venir d'une petite erreur de transcription automatique sur un virelangue difficile, pas forcément d'une mauvaise prononciation — ne te décourage pas si ça arrive.</p>
   <div class="exercises" id="diction-list"></div>
 </div>
 
@@ -731,10 +731,10 @@ const DICTION_EXERCISES = [
   {id:'diction-2', texte:"Les chaussettes de l'archiduchesse sont-elles sèches, archi-sèches ?", niveau:"Débutant"},
   {id:'diction-5', texte:"Trois tortues trottaient sur un trottoir très étroit.", niveau:"Débutant"},
   {id:'diction-3', texte:"Ces cyprès sont si loin qu'on ne sait si c'en sont.", niveau:"Intermédiaire"},
-  {id:'diction-4', texte:"Si six scies scient six cyprès, six cent six scies scient six cent six cyprès.", niveau:"Intermédiaire"},
+  {id:'diction-4', texte:"Un ver vert va vers un verre vert.", niveau:"Intermédiaire"},
   {id:'diction-6', texte:"Un dragon gradé dégrade un gradé dragon.", niveau:"Intermédiaire"},
   {id:'diction-7', texte:"Je veux et j'exige d'exquises excuses exemptes d'exagération.", niveau:"Avancé"},
-  {id:'diction-8', texte:"Didon dîna, dit-on, du dos d'un dodu dindon.", niveau:"Avancé"}
+  {id:'diction-8', texte:"Rat vit riz, rat mit patte à ras, rat mit patte à riz.", niveau:"Avancé"}
 ];
 
 function buildDictionExercise(item){
@@ -770,7 +770,11 @@ function computeDictionAccuracy(texteAttendu, transcript){
     }
   }
   const lcs = dp[expected.length][actual.length];
-  return Math.round((lcs / expected.length) * 100);
+  const rawPct = lcs / expected.length;
+  // Courbe plus indulgente : une petite erreur de transcription (fréquente sur
+  // les virelangues, même bien articulés) ne doit pas faire chuter le score de
+  // façon disproportionnée. La racine carrée valorise les résultats partiels.
+  return Math.round(Math.sqrt(rawPct) * 100);
 }
 
 function getExerciseUnlockStatus(ex, currentXP){
