@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Politique de confidentialité — Awa</title>
+<style>
+  body {
+    font-family: Georgia, 'Times New Roman', serif;
+    background: #faf6ee;
+    color: #2b2620;
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 40px 24px 80px;
+    line-height: 1.6;
+  }
+  h1 {
+    font-size: 2rem;
+    color: #1a2340;
+    margin-bottom: 4px;
+  }
+  .subtitle {
+    color: #b8860b;
+    font-style: italic;
+    margin-bottom: 32px;
+  }
+  h2 {
+    font-size: 1.3rem;
+    color: #1a2340;
+    margin-top: 40px;
+    border-bottom: 1px solid #d8cdb4;
+    padding-bottom: 6px;
+  }
+  ul {
+    padding-left: 20px;
+  }
+  li {
+    margin-bottom: 8px;
+  }
+  .updated {
+    color: #6b6350;
+    font-size: 0.9rem;
+    margin-bottom: 32px;
+  }
+  .contact-box {
+    background: #f0ead9;
+    border: 1px solid #d8cdb4;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 16px;
+  }
+  a {
+    color: #b8860b;
+  }
+  footer {
+    margin-top: 60px;
+    font-size: 0.85rem;
+    color: #8a806b;
+    text-align: center;
+  }
+</style>
+</head>
+<body>
+
+<h1>Politique de confidentialité — Awa</h1>
+<p class="subtitle">ParoleForceSenegal</p>
+<p class="updated">Dernière mise à jour : 29 juillet 2026</p>
+
+<p>Awa est une application de coaching à la prise de parole en public, développée par Moutar Diatta sous la marque ParoleForceSenegal. Cette page décrit quelles données sont collectées lorsque tu utilises Awa, pourquoi, et comment elles sont traitées.</p>
+
+<h2>1. Qui sommes-nous</h2>
+<p>Awa est développée et exploitée par Moutar Diatta (ParoleForceSenegal), à titre individuel. L'application est actuellement en phase de test avec un nombre restreint d'utilisateurs.</p>
+
+<h2>2. Données collectées</h2>
+<ul>
+<li><strong>Compte utilisateur :</strong> lors de la connexion via Google (Firebase Authentication), nous recevons ton nom et ton adresse e-mail associés à ton compte Google.</li>
+<li><strong>Enregistrements audio :</strong> lorsque tu réalises un exercice, ta voix est enregistrée temporairement afin d'être transcrite en texte.</li>
+<li><strong>Texte transcrit, scores et feedbacks :</strong> le texte de tes discours, les scores calculés (débit, mots parasites, etc.) et les retours générés par Coach Awa sont conservés dans ton historique personnel.</li>
+<li><strong>Aucune autre donnée</strong> (localisation précise, contacts, photos, etc.) n'est collectée par l'application.</li>
+</ul>
+
+<h2>3. Comment tes données sont traitées</h2>
+<ul>
+<li>Ton enregistrement audio est envoyé via une connexion chiffrée à un service de transcription automatique (Whisper, exécuté via l'infrastructure de Groq) pour être converti en texte.</li>
+<li><strong>L'audio n'est jamais conservé :</strong> il est supprimé immédiatement après la transcription.</li>
+<li>Le texte transcrit est ensuite envoyé au modèle de langage Claude (Anthropic) afin de générer le feedback personnalisé de Coach Awa.</li>
+<li>Ton historique (textes, scores, feedbacks) est stocké de façon sécurisée sur Firebase (Google), et n'est accessible qu'à toi via ton compte.</li>
+<li>Nous n'utilisons pas tes données à des fins publicitaires et ne les revendons à aucun tiers.</li>
+</ul>
+
+<h2>4. Services tiers utilisés</h2>
+<ul>
+<li><strong>Firebase (Google)</strong> — authentification et stockage de ton historique.</li>
+<li><strong>Groq / Whisper (OpenAI)</strong> — transcription vocale temporaire.</li>
+<li><strong>Anthropic (Claude)</strong> — génération du feedback textuel à partir de la transcription.</li>
+<li><strong>Netlify</strong> — hébergement de l'application.</li>
+</ul>
+<p>Chacun de ces prestataires applique ses propres règles de sécurité et de confidentialité pour les données qu'il traite en notre nom.</p>
+
+<h2>5. Durée de conservation</h2>
+<p>Ton historique (textes, scores, feedbacks) est conservé tant que ton compte existe. Tu peux demander la suppression complète de ton compte et de tes données à tout moment (voir contact ci-dessous).</p>
+
+<h2>6. Tes droits</h2>
+<p>Tu peux à tout moment :</p>
+<ul>
+<li>Demander l'accès aux données que nous détenons sur toi ;</li>
+<li>Demander la correction ou la suppression de ces données ;</li>
+<li>Retirer ton consentement et supprimer ton compte.</li>
+</ul>
+<p>Ces droits s'exercent simplement en nous contactant (voir ci-dessous).</p>
+
+<h2>7. Sécurité</h2>
+<p>Les échanges entre l'application et nos services (transcription, feedback, stockage) sont chiffrés. Aucun système n'étant infaillible, nous ne pouvons garantir une sécurité absolue, mais nous appliquons les pratiques standards de protection des données pour une application de cette taille.</p>
+
+<h2>8. Utilisateurs mineurs</h2>
+<p>Awa n'est pas destinée aux enfants de moins de 16 ans. Nous ne collectons pas sciemment de données concernant des mineurs de cet âge.</p>
+
+<h2>9. Modifications de cette politique</h2>
+<p>Cette politique peut évoluer à mesure que l'application se développe. Toute modification importante sera reflétée sur cette page avec une date de mise à jour actualisée.</p>
+
+<h2>10. Contact</h2>
+<div class="contact-box">
+<p>Pour toute question, demande d'accès ou de suppression de données :</p>
+<p>📧 <a href="mailto:moutardiatta+va@gmail.com">moutardiatta+va@gmail.com</a></p>
+<p>💬 WhatsApp : +33 6 24 48 32 76</p>
+</div>
+
+<footer>
+Awa — ParoleForceSenegal · Cette page ne constitue pas un avis juridique.
+</footer>
+
+</body>
+</html>
