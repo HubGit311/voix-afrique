@@ -1,0 +1,29 @@
+{
+  "name": "voix-afrique",
+  "version": "1.0.0",
+  "description": "Ce dossier contient tout ce qu'il faut pour déployer l'application avec un vrai appel API Claude sécurisé (sans exposer de clé API dans le navigateur).",
+  "main": "sw.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HubGit311/voix-afrique.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/HubGit311/voix-afrique/issues"
+  },
+  "homepage": "https://github.com/HubGit311/voix-afrique#readme",
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.2"
+  },
+  "dependencies": {
+    "@capacitor/android": "^8.4.2",
+    "@capacitor/core": "^8.4.2",
+    "firebase-admin": "^14.2.0"
+  }
+}

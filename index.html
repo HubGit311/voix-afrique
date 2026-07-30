@@ -421,6 +421,7 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
 <script>
   const firebaseConfig = {
     apiKey: "AIzaSyCN_gvo3qdUbUDUFjc__artJyTQNmhpS-w",
@@ -434,6 +435,7 @@
   firebase.initializeApp(firebaseConfig);
   const _auth = firebase.auth();
   const _db = firebase.firestore();
+  const _storage = firebase.storage();
   const _provider = new firebase.auth.GoogleAuthProvider();
 
   // Fonctions globales utilisées par l'app
@@ -441,6 +443,26 @@
   window._fbSignOut = () => _auth.signOut();
   window._fbSaveData = (uid, data) => _db.collection('users').doc(uid).set(data, { merge: true });
   window._fbLoadData = (uid) => _db.collection('users').doc(uid).get();
+
+  // --- Transcription longue durée (Storage + fonction background) ---
+  // Upload direct du blob audio vers Firebase Storage : contourne la limite
+  // de taille des requêtes de fonctions Netlify (~6 Mo), essentielle pour
+  // les discours longs (Toastmasters : 5 à 10+ minutes).
+  window._fbUploadAudio = (path, blob) => _storage.ref(path).put(blob).then(() => path);
+
+  // Écoute le document Firestore où la fonction background écrit le résultat
+  // de la transcription une fois prête (peut prendre plusieurs minutes pour
+  // un long discours). Retourne une fonction de désinscription.
+  window._fbListenTranscription = (jobId, cb) => {
+    return _db.collection('transcriptions').doc(jobId).onSnapshot(
+      snap => cb(snap.exists ? snap.data() : null, null),
+      err => cb(null, err)
+    );
+  };
+
+  // Nettoyage : supprime le document temporaire une fois le résultat récupéré
+  window._fbDeleteTranscriptionDoc = (jobId) =>
+    _db.collection('transcriptions').doc(jobId).delete().catch(()=>{});
 
   // Observe l'état de connexion
   _auth.onAuthStateChanged(user => {
@@ -1664,6 +1686,22 @@ function toggleExample(){
 }
 
 function requestMicAndStart(){
+  // Discours Libre peut dépasser largement les autres exercices en durée
+  // (Toastmasters : 5-10+ minutes) : la transcription passe donc par un
+  // upload vers Firebase Storage, qui nécessite une connexion pour que les
+  // règles de sécurité Storage puissent vérifier l'auteur de l'upload.
+  if(currentEx && currentEx.id === 'libre' && !currentUser){
+    const el = document.getElementById('rec-zone');
+    if(el){
+      el.insertAdjacentHTML('beforeend', `
+        <div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.35);border-radius:10px;padding:14px 16px;margin-top:12px;text-align:center">
+          <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">🔒 Connecte-toi avec Google pour utiliser le Discours Libre — c'est nécessaire pour l'enregistrement sécurisé des discours longs.</div>
+          <button class="btn-primary" onclick="window._fbSignIn && window._fbSignIn()">Se connecter avec Google</button>
+        </div>
+      `);
+    }
+    return;
+  }
   startRecording();
 }
 
@@ -1809,62 +1847,65 @@ function stopAndAnalyze(){
   runAnalysis();
 }
 
-// Convertit un Blob audio en base64 (sans le préfixe data:...;base64,)
-function blobToBase64(blob){
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => resolve((reader.result || '').split(',')[1] || '');
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+// Génère un identifiant de tâche de transcription raisonnablement unique
+function generateJobId(){
+  return 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
 }
 
-// Envoie l'audio enregistré au serveur pour transcription (Whisper),
-// puis poursuit avec le pipeline d'analyse habituel (mots parasites, anglicismes, Coach Awa...).
+// Envoie l'audio enregistré vers Firebase Storage, puis déclenche la fonction
+// serveur "background" (jusqu'à 15 min d'exécution, contre 10-26s pour une
+// fonction Netlify classique) qui se charge de la transcription (Whisper via
+// Groq) et écrit le résultat dans Firestore. Le client écoute ce document au
+// lieu d'attendre une réponse HTTP directe — ce qui fonctionne aussi bien pour
+// un exercice de 60 secondes que pour un discours Toastmasters de 10+ minutes.
 async function transcribeAndAnalyze(blob){
+  const jobId = generateJobId();
   let lastErr = null;
 
-  // Jusqu'à 2 tentatives : certains enregistrements échouent une première fois
-  // sans raison apparente (réseau, service de transcription) — un second essai
-  // sur le même fichier audio résout souvent le problème sans que l'utilisateur
-  // ait besoin de tout recommencer.
-  for(let attempt = 1; attempt <= 2; attempt++){
-    try{
-      const base64 = await blobToBase64(blob);
-      const res = await fetchWithTimeout('/.netlify/functions/speech-to-text', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ audioBase64: base64, mimeType: blob.type })
-      });
-      if(!res.ok){
-        const errBody = await res.text().catch(()=>'(corps illisible)');
-        throw new Error(`HTTP ${res.status} — ${errBody.slice(0,200)}`);
-      }
-      const data = await res.json();
-      const text = (data.text || '').trim();
+  try{
+    updateAnalyzingMsg("Envoi de l'enregistrement…");
 
-      if(!text && attempt < 2){
-        // Transcription vide alors qu'un enregistrement a bien eu lieu : on retente
-        lastErr = new Error('Transcription vide');
-        await new Promise(r=>setTimeout(r, 600));
-        continue;
-      }
+    const extension = (blob.type && blob.type.includes('mp4')) ? 'm4a'
+      : (blob.type && blob.type.includes('aac')) ? 'aac' : 'webm';
+    // Le segment uid/anon permet aux règles de sécurité Storage de savoir
+    // qui a le droit d'écrire où (voir Firebase Console → Storage → Rules).
+    const ownerSegment = currentUser ? currentUser.uid : 'anon';
+    const storagePath = `audio-uploads/${ownerSegment}/${jobId}.${extension}`;
 
-      transcriptFull = text + ' ';
-      // La segmentation Whisper a été retirée pour accélérer la transcription —
-      // la mesure de fluidité/pauses n'est donc plus disponible (dégradation
-      // gérée nativement : la barre correspondante ne s'affiche simplement pas).
-      segmentTimestamps = [];
-      lastErr = null;
-      break;
-    } catch(err){
-      lastErr = err;
-      if(attempt < 2) await new Promise(r=>setTimeout(r, 600));
+    // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
+    // contrairement au corps d'une requête de fonction Netlify)
+    await window._fbUploadAudio(storagePath, blob);
+
+    // 2. Déclenche la fonction background — celle-ci répond immédiatement
+    // (202) et continue son travail de son côté ; on ne l'attend donc pas
+    // avec le même timeout que les autres appels serveur.
+    await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({ jobId, storagePath, mimeType: blob.type })
+    }, 10000);
+
+    updateAnalyzingMsg("Transcription en cours — patience pour un discours long…");
+
+    // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
+    // Plafond généreux (20 min) pour couvrir les discours les plus longs.
+    const result = await waitForTranscription(jobId, 20 * 60 * 1000);
+
+    if(result.status === 'error'){
+      throw new Error(result.error || 'Erreur de transcription côté serveur');
     }
+
+    transcriptFull = (result.text || '').trim() + ' ';
+    segmentTimestamps = [];
+
+  } catch(err){
+    lastErr = err;
+  } finally {
+    window._fbDeleteTranscriptionDoc(jobId);
   }
 
   if(lastErr){
-    console.warn('Erreur de transcription après 2 tentatives:', lastErr);
+    console.warn('Erreur de transcription:', lastErr);
     transcriptFull = '';
     segmentTimestamps = [];
   }
@@ -1888,25 +1929,60 @@ async function transcribeAndAnalyze(blob){
   }
 }
 
+// Met à jour le message affiché pendant l'analyse, si la zone existe déjà
+function updateAnalyzingMsg(text){
+  const el = document.getElementById('analyzing-msg');
+  if(el) el.textContent = text;
+}
+
+// Attend que le document Firestore `transcriptions/{jobId}` passe au statut
+// 'done' ou 'error'. Rejette si rien ne se passe avant maxWaitMs.
+function waitForTranscription(jobId, maxWaitMs){
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const timeoutId = setTimeout(() => {
+      if(settled) return;
+      settled = true;
+      unsubscribe();
+      reject(new Error('Délai dépassé — le serveur met plus de temps que prévu à répondre.'));
+    }, maxWaitMs);
+
+    const unsubscribe = window._fbListenTranscription(jobId, (data, err) => {
+      if(settled) return;
+      if(err){
+        settled = true;
+        clearTimeout(timeoutId);
+        unsubscribe();
+        reject(err);
+        return;
+      }
+      if(data && (data.status === 'done' || data.status === 'error')){
+        settled = true;
+        clearTimeout(timeoutId);
+        unsubscribe();
+        resolve(data);
+      }
+      // status 'pending' (ou document pas encore créé) : on continue d'attendre
+    });
+  });
+}
+
 function showAnalyzingZone(){
   document.getElementById('rec-zone').innerHTML=`
     <div class="spinner"></div>
     <div>
       <div class="analyzing-title">Coach Awa analyse votre discours…</div>
-      <div class="analyzing-msg" id="analyzing-msg">Transcription reçue…</div>
+      <div class="analyzing-msg" id="analyzing-msg">Préparation de l'enregistrement…</div>
     </div>
   `;
-  const msgs=["Transcription reçue…","Analyse du débit et des mots parasites…","Envoi à Coach Awa pour feedback personnalisé…","Préparation de votre retour personnalisé…"];
-  let i=0;
-  const t=setInterval(()=>{
-    i=(i+1)%msgs.length;
-    const el=document.getElementById('analyzing-msg');
-    if(el) el.textContent=msgs[i];
-    if(i===msgs.length-1) clearInterval(t);
-  }, 900);
+  // Le message affiché est désormais mis à jour explicitement à chaque étape
+  // réelle du pipeline (voir updateAnalyzingMsg), plutôt que sur un minuteur
+  // fixe — indispensable pour les discours longs dont la transcription peut
+  // prendre plusieurs minutes.
 }
 
 async function runAnalysis(){
+  updateAnalyzingMsg("Analyse du débit et des mots parasites…");
   const text = transcriptFull.trim();
   const duration = elapsed > 0 ? elapsed : 1; // évite d'utiliser par erreur la durée totale prévue si l'utilisateur arrête très tôt
   const nbMots = countWords(text);
@@ -1928,6 +2004,7 @@ async function runAnalysis(){
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   const dictionAccuracy = currentEx.texteAttendu ? computeDictionAccuracy(currentEx.texteAttendu, text) : null;
 
+  updateAnalyzingMsg("Envoi à Coach Awa pour feedback personnalisé…");
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
     try{
       const prompt = currentEx.texteAttendu ? `Tu es Coach Awa, une coach experte en prise de parole en public. Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
