@@ -1862,6 +1862,8 @@ async function transcribeAndAnalyze(blob){
   const jobId = generateJobId();
   let lastErr = null;
 
+  console.log('[DIAG] transcribeAndAnalyze: début, jobId =', jobId, 'blob taille =', blob.size, 'blob type =', blob.type);
+
   try{
     updateAnalyzingMsg("Envoi de l'enregistrement…");
 
@@ -1871,25 +1873,36 @@ async function transcribeAndAnalyze(blob){
     // qui a le droit d'écrire où (voir Firebase Console → Storage → Rules).
     const ownerSegment = currentUser ? currentUser.uid : 'anon';
     const storagePath = `audio-uploads/${ownerSegment}/${jobId}.${extension}`;
+    console.log('[DIAG] storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
 
     // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
     // contrairement au corps d'une requête de fonction Netlify)
+    console.log('[DIAG] étape 1: upload Storage — début');
     await window._fbUploadAudio(storagePath, blob);
+    console.log('[DIAG] étape 1: upload Storage — succès');
 
     // 2. Déclenche la fonction background — celle-ci répond immédiatement
     // (202) et continue son travail de son côté ; on ne l'attend donc pas
     // avec le même timeout que les autres appels serveur.
-    await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
+    console.log('[DIAG] étape 2: déclenchement fonction background — début');
+    const triggerRes = await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ jobId, storagePath, mimeType: blob.type })
     }, 10000);
+    console.log('[DIAG] étape 2: réponse reçue, statut HTTP =', triggerRes.status, triggerRes.ok);
+    if(!triggerRes.ok){
+      const errBody = await triggerRes.text().catch(()=>'(illisible)');
+      throw new Error(`Déclenchement de la fonction background échoué: HTTP ${triggerRes.status} — ${errBody.slice(0,200)}`);
+    }
 
     updateAnalyzingMsg("Transcription en cours — patience pour un discours long…");
 
     // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
     // Plafond généreux (20 min) pour couvrir les discours les plus longs.
+    console.log('[DIAG] étape 3: écoute Firestore — début');
     const result = await waitForTranscription(jobId, 20 * 60 * 1000);
+    console.log('[DIAG] étape 3: résultat reçu de Firestore =', result);
 
     if(result.status === 'error'){
       throw new Error(result.error || 'Erreur de transcription côté serveur');
@@ -1899,6 +1912,7 @@ async function transcribeAndAnalyze(blob){
     segmentTimestamps = [];
 
   } catch(err){
+    console.error('[DIAG] ERREUR capturée à l\'étape en cours:', err);
     lastErr = err;
   } finally {
     window._fbDeleteTranscriptionDoc(jobId);
