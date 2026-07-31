@@ -26,6 +26,13 @@ function getAdminApp() {
   // Netlify — il faut les reconvertir en vrais retours à la ligne.
   const privateKey = (process.env.FIREBASE_PRIVATE_KEY || '').replace(/\\n/g, '\n');
 
+  console.log('speech-to-text-background: vérification des variables d\'environnement', {
+    hasProjectId: !!projectId,
+    hasClientEmail: !!clientEmail,
+    privateKeyLength: privateKey.length,
+    privateKeyStartsCorrectly: privateKey.startsWith('-----BEGIN PRIVATE KEY-----')
+  });
+
   return admin.initializeApp({
     credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
     storageBucket: 'voix-afrique.firebasestorage.app'
@@ -38,6 +45,8 @@ exports.handler = async (event) => {
   let storagePath = null;
 
   try {
+    console.log('speech-to-text-background: invocation reçue');
+
     if (event.httpMethod !== 'POST') {
       return { statusCode: 405, body: 'Method Not Allowed' };
     }
@@ -47,24 +56,33 @@ exports.handler = async (event) => {
     storagePath = body.storagePath;
     const mimeType = body.mimeType || 'audio/webm';
 
+    console.log('speech-to-text-background: params reçus', { jobId, storagePath, mimeType });
+
     if (!jobId || !storagePath) {
+      console.error('speech-to-text-background: jobId ou storagePath manquant');
       return { statusCode: 400, body: JSON.stringify({ error: 'jobId et storagePath requis' }) };
     }
 
+    console.log('speech-to-text-background: initialisation Firebase Admin…');
     const app = getAdminApp();
+    console.log('speech-to-text-background: Firebase Admin initialisé OK');
     db = app.firestore();
     const bucket = app.storage().bucket();
 
     // Marque la tâche comme prise en charge (permet aussi au client de savoir
     // que l'upload + le déclenchement ont bien été reçus côté serveur)
+    console.log('speech-to-text-background: écriture du statut pending dans Firestore…');
     await db.collection('transcriptions').doc(jobId).set({
       status: 'pending',
       startedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    console.log('speech-to-text-background: statut pending écrit OK');
 
     // 1. Récupère l'audio depuis Storage
+    console.log('speech-to-text-background: téléchargement de l\'audio depuis Storage…');
     const file = bucket.file(storagePath);
     const [audioBuffer] = await file.download();
+    console.log('speech-to-text-background: audio téléchargé OK, taille =', audioBuffer.length, 'octets');
 
     // 2. Construction manuelle d'un multipart/form-data pour Groq (identique
     // à l'ancienne fonction speech-to-text.js, juste la source de l'audio change)
@@ -103,12 +121,15 @@ exports.handler = async (event) => {
       body: requestBody
     });
 
+    console.log('speech-to-text-background: réponse Groq reçue, statut =', response.status);
+
     if (!response.ok) {
       const errText = await response.text().catch(() => '(corps illisible)');
       throw new Error(`Erreur Groq: ${errText.slice(0, 300)}`);
     }
 
     const data = await response.json();
+    console.log('speech-to-text-background: transcription reçue, longueur texte =', (data.text || '').length);
 
     // 3. Écrit le résultat dans Firestore — le client écoute ce document
     await db.collection('transcriptions').doc(jobId).set({
@@ -116,10 +137,12 @@ exports.handler = async (event) => {
       text: data.text || '',
       completedAt: admin.firestore.FieldValue.serverTimestamp()
     }, { merge: true });
+    console.log('speech-to-text-background: résultat écrit dans Firestore, terminé OK');
 
     return { statusCode: 200, body: 'ok' };
 
   } catch (err) {
+    console.error('speech-to-text-background: ERREUR', err && err.stack ? err.stack : err);
     // En cas d'erreur, on prévient le client via Firestore plutôt que de le
     // laisser attendre indéfiniment un résultat qui ne viendra jamais.
     if (jobId && db) {
@@ -127,7 +150,9 @@ exports.handler = async (event) => {
         status: 'error',
         error: (err && err.message) || String(err),
         completedAt: admin.firestore.FieldValue.serverTimestamp()
-      }, { merge: true }).catch(() => {});
+      }, { merge: true }).catch((writeErr) => {
+        console.error('speech-to-text-background: échec de l\'écriture du statut error dans Firestore', writeErr);
+      });
     }
     return { statusCode: 200, body: 'error handled' };
 
@@ -137,7 +162,12 @@ exports.handler = async (event) => {
     if (storagePath) {
       try {
         const app = admin.apps.length ? admin.app() : null;
-        if (app) await app.storage().bucket().file(storagePath).delete().catch(() => {});
+        if (app) {
+          await app.storage().bucket().file(storagePath).delete().catch((delErr) => {
+            console.error('speech-to-text-background: échec suppression audio Storage', delErr);
+          });
+          console.log('speech-to-text-background: audio supprimé de Storage (nettoyage)');
+        }
       } catch (_) { /* pas grave si le nettoyage échoue, sans impact utilisateur */ }
     }
   }
