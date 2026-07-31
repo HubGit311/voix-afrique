@@ -1862,7 +1862,7 @@ async function transcribeAndAnalyze(blob){
   const jobId = generateJobId();
   let lastErr = null;
 
-  console.log('[DIAG] transcribeAndAnalyze: début, jobId =', jobId, 'blob taille =', blob.size, 'blob type =', blob.type);
+  diagLog('transcribeAndAnalyze: début, jobId =', jobId, 'blob taille =', blob.size, 'blob type =', blob.type);
 
   try{
     updateAnalyzingMsg("Envoi de l'enregistrement…");
@@ -1873,24 +1873,24 @@ async function transcribeAndAnalyze(blob){
     // qui a le droit d'écrire où (voir Firebase Console → Storage → Rules).
     const ownerSegment = currentUser ? currentUser.uid : 'anon';
     const storagePath = `audio-uploads/${ownerSegment}/${jobId}.${extension}`;
-    console.log('[DIAG] storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
+    diagLog('storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
 
     // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
     // contrairement au corps d'une requête de fonction Netlify)
-    console.log('[DIAG] étape 1: upload Storage — début');
+    diagLog('étape 1: upload Storage — début');
     await window._fbUploadAudio(storagePath, blob);
-    console.log('[DIAG] étape 1: upload Storage — succès');
+    diagLog('étape 1: upload Storage — succès');
 
     // 2. Déclenche la fonction background — celle-ci répond immédiatement
     // (202) et continue son travail de son côté ; on ne l'attend donc pas
     // avec le même timeout que les autres appels serveur.
-    console.log('[DIAG] étape 2: déclenchement fonction background — début');
+    diagLog('étape 2: déclenchement fonction background — début');
     const triggerRes = await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
       body: JSON.stringify({ jobId, storagePath, mimeType: blob.type })
     }, 10000);
-    console.log('[DIAG] étape 2: réponse reçue, statut HTTP =', triggerRes.status, triggerRes.ok);
+    diagLog('étape 2: réponse reçue, statut HTTP =', triggerRes.status, triggerRes.ok);
     if(!triggerRes.ok){
       const errBody = await triggerRes.text().catch(()=>'(illisible)');
       throw new Error(`Déclenchement de la fonction background échoué: HTTP ${triggerRes.status} — ${errBody.slice(0,200)}`);
@@ -1900,9 +1900,9 @@ async function transcribeAndAnalyze(blob){
 
     // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
     // Plafond généreux (20 min) pour couvrir les discours les plus longs.
-    console.log('[DIAG] étape 3: écoute Firestore — début');
+    diagLog('étape 3: écoute Firestore — début');
     const result = await waitForTranscription(jobId, 20 * 60 * 1000);
-    console.log('[DIAG] étape 3: résultat reçu de Firestore =', result);
+    diagLog('étape 3: résultat reçu de Firestore =', result);
 
     if(result.status === 'error'){
       throw new Error(result.error || 'Erreur de transcription côté serveur');
@@ -1912,7 +1912,7 @@ async function transcribeAndAnalyze(blob){
     segmentTimestamps = [];
 
   } catch(err){
-    console.error('[DIAG] ERREUR capturée à l\'étape en cours:', err);
+    diagLogError('ERREUR capturée à l\'étape en cours:', err);
     lastErr = err;
   } finally {
     window._fbDeleteTranscriptionDoc(jobId);
@@ -1947,6 +1947,55 @@ async function transcribeAndAnalyze(blob){
 function updateAnalyzingMsg(text){
   const el = document.getElementById('analyzing-msg');
   if(el) el.textContent = text;
+}
+
+// Panneau de diagnostic visible à l'écran (utile sur mobile, où la console
+// développeur n'est pas facilement accessible). Écrit à la fois dans la
+// console (pour le débogage sur PC) et dans un petit encart texte affiché
+// directement dans l'app, que l'on peut simplement capturer en photo.
+function ensureDiagPanel(){
+  let panel = document.getElementById('diag-panel');
+  if(panel) return panel;
+  panel = document.createElement('div');
+  panel.id = 'diag-panel';
+  panel.style.cssText = `
+    position:fixed; left:8px; right:8px; bottom:8px; z-index:99999;
+    max-height:40vh; overflow-y:auto; background:rgba(20,20,30,.95);
+    color:#9be89b; font-family:monospace; font-size:11px; line-height:1.4;
+    padding:10px; border-radius:8px; border:1px solid #444;
+    white-space:pre-wrap; word-break:break-all;
+  `;
+  document.body.appendChild(panel);
+  return panel;
+}
+
+function diagLog(...args){
+  const line = args.map(a => {
+    if(typeof a === 'object'){
+      try{ return JSON.stringify(a); } catch(_){ return String(a); }
+    }
+    return String(a);
+  }).join(' ');
+  console.log('[DIAG]', ...args);
+  const panel = ensureDiagPanel();
+  const time = new Date().toLocaleTimeString('fr-FR');
+  panel.textContent += `[${time}] ${line}\n`;
+  panel.scrollTop = panel.scrollHeight;
+}
+
+function diagLogError(...args){
+  const line = args.map(a => {
+    if(a && a.stack) return a.stack;
+    if(typeof a === 'object'){
+      try{ return JSON.stringify(a); } catch(_){ return String(a); }
+    }
+    return String(a);
+  }).join(' ');
+  console.error('[DIAG]', ...args);
+  const panel = ensureDiagPanel();
+  const time = new Date().toLocaleTimeString('fr-FR');
+  panel.innerHTML += `<span style="color:#ff6b6b">[${time}] ERREUR ${line.replace(/</g,'&lt;')}</span>\n`;
+  panel.scrollTop = panel.scrollHeight;
 }
 
 // Attend que le document Firestore `transcriptions/{jobId}` passe au statut
