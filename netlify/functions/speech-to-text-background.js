@@ -14,11 +14,20 @@
 // → le transcrit via Groq (Whisper) → écrit le texte dans Firestore →
 // supprime l'audio de Storage (jamais conservé, conformément à la politique
 // de confidentialité d'Awa).
+//
+// NOTE : on utilise volontairement l'API MODULAIRE de firebase-admin
+// (require('firebase-admin/app'), etc.) plutôt que l'espace de noms global
+// (require('firebase-admin')). L'espace de noms global s'est révélé
+// incompatible avec le bundling esbuild de Netlify (admin.apps était
+// undefined à l'exécution) — l'API modulaire, recommandée depuis
+// firebase-admin v12+, n'a pas ce problème.
 
-const admin = require('firebase-admin');
+const { initializeApp, cert, getApps, getApp } = require('firebase-admin/app');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getStorage } = require('firebase-admin/storage');
 
 function getAdminApp() {
-  if (admin.apps.length) return admin.app();
+  if (getApps().length) return getApp();
 
   const projectId = process.env.FIREBASE_PROJECT_ID;
   const clientEmail = process.env.FIREBASE_CLIENT_EMAIL;
@@ -33,8 +42,8 @@ function getAdminApp() {
     privateKeyStartsCorrectly: privateKey.startsWith('-----BEGIN PRIVATE KEY-----')
   });
 
-  return admin.initializeApp({
-    credential: admin.credential.cert({ projectId, clientEmail, privateKey }),
+  return initializeApp({
+    credential: cert({ projectId, clientEmail, privateKey }),
     storageBucket: 'voix-afrique.firebasestorage.app'
   });
 }
@@ -66,15 +75,15 @@ exports.handler = async (event) => {
     console.log('speech-to-text-background: initialisation Firebase Admin…');
     const app = getAdminApp();
     console.log('speech-to-text-background: Firebase Admin initialisé OK');
-    db = app.firestore();
-    const bucket = app.storage().bucket();
+    db = getFirestore(app);
+    const bucket = getStorage(app).bucket();
 
     // Marque la tâche comme prise en charge (permet aussi au client de savoir
     // que l'upload + le déclenchement ont bien été reçus côté serveur)
     console.log('speech-to-text-background: écriture du statut pending dans Firestore…');
     await db.collection('transcriptions').doc(jobId).set({
       status: 'pending',
-      startedAt: admin.firestore.FieldValue.serverTimestamp()
+      startedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     console.log('speech-to-text-background: statut pending écrit OK');
 
@@ -135,7 +144,7 @@ exports.handler = async (event) => {
     await db.collection('transcriptions').doc(jobId).set({
       status: 'done',
       text: data.text || '',
-      completedAt: admin.firestore.FieldValue.serverTimestamp()
+      completedAt: FieldValue.serverTimestamp()
     }, { merge: true });
     console.log('speech-to-text-background: résultat écrit dans Firestore, terminé OK');
 
@@ -149,7 +158,7 @@ exports.handler = async (event) => {
       await db.collection('transcriptions').doc(jobId).set({
         status: 'error',
         error: (err && err.message) || String(err),
-        completedAt: admin.firestore.FieldValue.serverTimestamp()
+        completedAt: FieldValue.serverTimestamp()
       }, { merge: true }).catch((writeErr) => {
         console.error('speech-to-text-background: échec de l\'écriture du statut error dans Firestore', writeErr);
       });
@@ -161,9 +170,9 @@ exports.handler = async (event) => {
     // succès ou échec — conformément à la politique de confidentialité d'Awa.
     if (storagePath) {
       try {
-        const app = admin.apps.length ? admin.app() : null;
-        if (app) {
-          await app.storage().bucket().file(storagePath).delete().catch((delErr) => {
+        if (getApps().length) {
+          const app = getApp();
+          await getStorage(app).bucket().file(storagePath).delete().catch((delErr) => {
             console.error('speech-to-text-background: échec suppression audio Storage', delErr);
           });
           console.log('speech-to-text-background: audio supprimé de Storage (nettoyage)');
