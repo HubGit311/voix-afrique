@@ -1175,8 +1175,8 @@ function checkAndAwardStreakFreeze(currentStreak){
 // Récupère les tentatives récentes (avec texte transcrit disponible) pour un
 // exercice donné, du plus ancien au plus récent — utilisé pour proposer un
 // discours structuré après plusieurs essais.
-function getRecentTranscriptsForExercise(exId, max=3, topicText=null){
-  return loadSessions()
+function getRecentTranscriptsForExercise(exId, max=3, topicText=null, sessionsList=null){
+  return (sessionsList || loadSessions())
     .filter(s => s.exId === exId && s.transcript && s.transcript.trim().length > 0)
     // Pour l'improvisation, le sujet change chaque jour : on ne garde que les
     // tentatives sur EXACTEMENT le même sujet, sinon les discours mélangeraient
@@ -1718,7 +1718,41 @@ function startRecording(){
   // monde, plus de bips ni de bug de duplication liés à la Web Speech API.
   startRecordingServer();
   startTimer();
+  requestWakeLock();
 }
+
+// Empêche l'écran de se mettre en veille pendant l'enregistrement — une mise
+// en veille peut suspendre la capture audio en arrière-plan et vider
+// l'enregistrement sans que rien ne le signale (cf. handleVisibilityDuringRecording).
+// Non bloquant si l'API n'est pas supportée (ex. anciens navigateurs/iOS Safari).
+let wakeLockRef = null;
+async function requestWakeLock(){
+  try{
+    if('wakeLock' in navigator){
+      wakeLockRef = await navigator.wakeLock.request('screen');
+      wakeLockRef.addEventListener('release', () => { wakeLockRef = null; });
+    }
+  }catch(err){
+    console.warn('Wake Lock non disponible:', err);
+    wakeLockRef = null;
+  }
+}
+
+function releaseWakeLock(){
+  if(wakeLockRef){
+    try{ wakeLockRef.release(); }catch(_){}
+    wakeLockRef = null;
+  }
+}
+
+// Le navigateur relâche automatiquement le wake lock quand l'onglet passe en
+// arrière-plan (perte de visibilité) — on le redemande donc au retour au
+// premier plan, tant qu'un enregistrement est toujours en cours.
+document.addEventListener('visibilitychange', () => {
+  if(!document.hidden && wakeLockRef === null && mediaRecorder && mediaRecorder.state === 'recording'){
+    requestWakeLock();
+  }
+});
 
 // Enregistrement audio via MediaRecorder. L'audio est envoyé à une fonction
 // serveur pour transcription une fois l'enregistrement terminé.
@@ -1829,6 +1863,7 @@ function stopAndAnalyze(){
   clearInterval(timerInterval);
   showAnalyzingZone();
   document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
+  releaseWakeLock();
 
   // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
   // pour transcription avant de poursuivre l'analyse.
@@ -1953,49 +1988,15 @@ function updateAnalyzingMsg(text){
 // développeur n'est pas facilement accessible). Écrit à la fois dans la
 // console (pour le débogage sur PC) et dans un petit encart texte affiché
 // directement dans l'app, que l'on peut simplement capturer en photo.
-function ensureDiagPanel(){
-  let panel = document.getElementById('diag-panel');
-  if(panel) return panel;
-  panel = document.createElement('div');
-  panel.id = 'diag-panel';
-  panel.style.cssText = `
-    position:fixed; left:8px; right:8px; bottom:8px; z-index:99999;
-    max-height:40vh; overflow-y:auto; background:rgba(20,20,30,.95);
-    color:#9be89b; font-family:monospace; font-size:11px; line-height:1.4;
-    padding:10px; border-radius:8px; border:1px solid #444;
-    white-space:pre-wrap; word-break:break-all;
-  `;
-  document.body.appendChild(panel);
-  return panel;
-}
-
+// Fonctions de log de diagnostic (console uniquement — le panneau visuel
+// affiché temporairement le 31/07 a été retiré car il gênait l'accès à
+// certaines parties de l'app et nuisait à l'esthétique).
 function diagLog(...args){
-  const line = args.map(a => {
-    if(typeof a === 'object'){
-      try{ return JSON.stringify(a); } catch(_){ return String(a); }
-    }
-    return String(a);
-  }).join(' ');
   console.log('[DIAG]', ...args);
-  const panel = ensureDiagPanel();
-  const time = new Date().toLocaleTimeString('fr-FR');
-  panel.textContent += `[${time}] ${line}\n`;
-  panel.scrollTop = panel.scrollHeight;
 }
 
 function diagLogError(...args){
-  const line = args.map(a => {
-    if(a && a.stack) return a.stack;
-    if(typeof a === 'object'){
-      try{ return JSON.stringify(a); } catch(_){ return String(a); }
-    }
-    return String(a);
-  }).join(' ');
   console.error('[DIAG]', ...args);
-  const panel = ensureDiagPanel();
-  const time = new Date().toLocaleTimeString('fr-FR');
-  panel.innerHTML += `<span style="color:#ff6b6b">[${time}] ERREUR ${line.replace(/</g,'&lt;')}</span>\n`;
-  panel.scrollTop = panel.scrollHeight;
 }
 
 // Attend que le document Firestore `transcriptions/{jobId}` passe au statut
@@ -2192,7 +2193,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   // l'invitant à réessayer, mais rien n'est comptabilisé tant qu'il n'a pas
   // un vrai essai réussi.
   if(transcriptionVide){
-    showResult(feedback, {debit:0,parasites:{},totalParasites:0,anglicismes:{},totalAnglicismes:0,nbMots:0,duration,fluency}, null, false);
+    showResult(feedback, {debit:0,parasites:{},totalParasites:0,anglicismes:{},totalAnglicismes:0,nbMots:0,duration,fluency}, null, false, loadSessions());
     return;
   }
 
@@ -2234,7 +2235,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   const sessionsAfter = loadSessions();
   checkNewBadges(sessionsBefore, sessionsAfter);
 
-  showResult(feedback,{debit,parasites,totalParasites,anglicismes,totalAnglicismes,nbMots,duration,fluency}, previous, isDailyBonus);
+  showResult(feedback,{debit,parasites,totalParasites,anglicismes,totalAnglicismes,nbMots,duration,fluency}, previous, isDailyBonus, sessionsBefore);
 }
 
 // ── Result ────────────────────────────────────────────────────────────────────
@@ -2313,7 +2314,8 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
   `;
 }
 
-function showResult(fb, met, previous, dailyBonus){
+function showResult(fb, met, previous, dailyBonus, sessionsBefore){
+  sessionsBefore = sessionsBefore || loadSessions();
   // Texte complet à lire à voix haute par le coach IA
   voiceText = `${fb.titre_feedback}. ${fb.conseil_coach} Ton prochain défi : ${fb.defi_suivant}`;
 
@@ -2353,14 +2355,18 @@ function showResult(fb, met, previous, dailyBonus){
 
   const html = buildResultHTML(fb, met, currentEx.title, dailyBonusHTML + comparisonHTML);
 
-  // Après 3 tentatives (ou plus) sur le même exercice avec texte transcrit
-  // disponible, on propose un discours structuré inspiré de ces essais.
+  // Après 3 tentatives COMPLÈTES PRÉCÉDENTES sur le même exercice (donc à
+  // partir de la 4e tentative), on propose un discours structuré inspiré de
+  // ces essais. On se base sur l'historique AVANT cette session (sessionsBefore)
+  // pour ne pas compter la tentative en cours dans les "3 tentatives" — sinon
+  // l'offre apparaissait dès la 3e tentative au lieu d'après 3 tentatives.
   // L'improvisation est éligible (le sujet est fixe pour la journée), mais pas
   // le Discours Libre (sujet libre à chaque fois) ni la diction (textes fixes,
   // pas de discours à composer).
   const isEligibleForStructuredSpeech = currentEx.id !== 'libre' && (typeof currentEx.id !== 'string' || currentEx.id.indexOf('diction-') !== 0);
+  const priorAttempts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, sessionsBefore);
   const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description);
-  const structuredOfferHTML = (isEligibleForStructuredSpeech && recentTranscripts.length >= 3) ? `
+  const structuredOfferHTML = (isEligibleForStructuredSpeech && priorAttempts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
         <span style="font-size:24px;flex-shrink:0">✨</span>
