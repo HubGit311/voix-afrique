@@ -1,12 +1,16 @@
 // netlify/functions/claude-feedback.js
 //
 // Cette fonction s'exécute sur les serveurs de Netlify (jamais dans le navigateur).
-// Elle reçoit le prompt depuis l'app, appelle l'API Anthropic avec la clé secrète
+// Elle reçoit le prompt (et, optionnellement, des images pour l'analyse de
+// gestuelle/posture) depuis l'app, appelle l'API Anthropic avec la clé secrète
 // (stockée en variable d'environnement, jamais visible publiquement),
 // puis renvoie la réponse à l'app.
 //
 // Modèle Haiku (rapide) plutôt que Sonnet : pour ce feedback structuré et bien
 // cadré, la vitesse compte plus que le raisonnement le plus poussé possible.
+// Haiku 4.5 comprend aussi les images, donc reste utilisé même pour l'analyse
+// vidéo (frames) — à réévaluer si la qualité du retour posture/gestuelle
+// s'avère insuffisante en pratique.
 
 exports.handler = async function (event) {
   // On n'accepte que les requêtes POST
@@ -36,12 +40,33 @@ exports.handler = async function (event) {
     };
   }
 
-  const { prompt } = body;
+  const { prompt, images } = body;
   if (!prompt || typeof prompt !== "string") {
     return {
       statusCode: 400,
       body: JSON.stringify({ error: "Le champ 'prompt' est requis." }),
     };
+  }
+
+  // `images` est optionnel : tableau de data URLs base64 (ex: "data:image/jpeg;base64,...").
+  // Utilisé uniquement pour l'analyse de posture/gestuelle à partir des frames
+  // vidéo capturées côté client — jamais de vidéo complète envoyée.
+  let content = prompt;
+  if (Array.isArray(images) && images.length > 0) {
+    const MAX_IMAGES = 15; // garde-fou côté serveur, en plus du plafond déjà côté client
+    const imageBlocks = [];
+    for (const dataUrl of images.slice(0, MAX_IMAGES)) {
+      if (typeof dataUrl !== "string") continue;
+      const match = dataUrl.match(/^data:(image\/(?:jpeg|png|webp));base64,(.+)$/);
+      if (!match) continue; // on ignore silencieusement tout format inattendu/malformé
+      imageBlocks.push({
+        type: "image",
+        source: { type: "base64", media_type: match[1], data: match[2] },
+      });
+    }
+    if (imageBlocks.length > 0) {
+      content = [...imageBlocks, { type: "text", text: prompt }];
+    }
   }
 
   try {
@@ -55,7 +80,7 @@ exports.handler = async function (event) {
       body: JSON.stringify({
         model: "claude-haiku-4-5-20251001",
         max_tokens: 1000,
-        messages: [{ role: "user", content: prompt }],
+        messages: [{ role: "user", content }],
       }),
     });
 

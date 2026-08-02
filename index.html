@@ -2147,6 +2147,57 @@ function showAnalyzingZone(){
   // prendre plusieurs minutes.
 }
 
+// ── Analyse de la posture/gestuelle à partir des frames vidéo (bêta) ───────
+// Appel séparé du feedback texte principal, volontairement non bloquant :
+// si l'analyse vidéo échoue (réseau, format, etc.), le feedback audio/texte
+// continue de fonctionner exactement comme avant. On ne fait AUCUNE nouvelle
+// tentative en cas d'échec ici — contrairement au feedback texte — car c'est
+// une fonctionnalité bêta secondaire, pas la valeur principale de l'exercice.
+async function analyzeGestureFromFrames(frames, transcriptText, learnerFirstName){
+  if(!frames || frames.length === 0) return null;
+
+  const prompt = `Tu es Coach Awa, une coach experte en prise de parole en public. Tu analyses ici uniquement la POSTURE et la GESTUELLE d'un apprenant, à partir de ${frames.length} images fixes extraites de sa vidéo à intervalles réguliers pendant qu'il parlait (pas une vidéo continue — tu ne peux donc pas juger la fluidité exacte des mouvements, seulement ce qui est visible sur chaque image prise isolément).
+
+IMPORTANT : "Awa" est TON PROPRE prénom en tant que coach — ce n'est jamais le prénom de l'apprenant. Ne t'adresse jamais à l'apprenant en l'appelant "Awa".
+Tutoie systématiquement l'apprenant, du début à la fin.
+${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}" — adresse-toi à lui/elle par ce prénom.` : `Tu ne connais pas le prénom de l'apprenant — utilise "tu" sans prénom inventé.`}
+
+Voici ce qu'il a dit pendant cette vidéo, pour te donner le contexte (mais ton analyse doit porter sur les IMAGES, pas sur le texte) :
+"${transcriptText ? transcriptText.slice(0, 500) : "(non disponible)"}"
+
+Observe dans les images, quand c'est visible :
+- Ancrage : la personne semble-t-elle stable, les pieds/le buste ancrés, ou instable/penchée ?
+- Ouverture de la posture : bras croisés ou fermés vs ouverts et engagés
+- Regard : orienté vers la caméra (= l'audience) ou fuyant/ailleurs
+- Mains et gestes : visibles et utilisés pour appuyer le propos, ou immobiles/cachées/absentes du cadre
+- Variété entre les images : la posture change-t-elle (signe de dynamisme) ou reste-t-elle figée sur toutes les images ?
+
+RESTE HONNÊTE sur la méthode : tu analyses des instantanés espacés dans le temps, pas un mouvement continu. Ne prétends jamais avoir vu un geste précis "se produire" entre deux images — décris ce que tu observes sur chaque image ou en comparant les images entre elles, sans inventer de mouvement que tu n'as pas pu voir.
+Si le cadrage est mauvais (personne partiellement hors champ, trop sombre, trop loin) sur une majorité d'images, dis-le clairement plutôt que d'inventer une analyse.
+
+Reste concis : chaque point tient en une phrase courte (max ~15 mots). Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
+{"score_gestuelle":<0-100>,"resume_gestuelle":"<1 phrase d'ensemble>","points_forts_gestuelle":["<1>","<2>"],"ameliorations_gestuelle":["<1>","<2>"]}`;
+
+  try{
+    const res = await fetchWithTimeout("/.netlify/functions/claude-feedback",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ prompt, images: frames.map(f=>f.dataUrl) })
+    });
+    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    const raw = (data.content||[]).map(b=>b.text||"").join("");
+    const jsonMatch = raw.match(/\{[\s\S]*\}/);
+    const cleanJson = jsonMatch ? jsonMatch[0] : raw.replace(/```json|```/g,"").trim();
+    const parsed = JSON.parse(cleanJson);
+    if(typeof parsed.score_gestuelle !== 'number' || !parsed.resume_gestuelle) return null;
+    return parsed;
+  }catch(e){
+    console.warn('Analyse gestuelle indisponible (non bloquant) :', e.message || e);
+    return null;
+  }
+}
+
 async function runAnalysis(){
   updateAnalyzingMsg("Analyse du débit et des mots parasites…");
   const text = transcriptFull.trim();
@@ -2170,7 +2221,20 @@ async function runAnalysis(){
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   const dictionAccuracy = currentEx.texteAttendu ? computeDictionAccuracy(currentEx.texteAttendu, text) : null;
 
-  updateAnalyzingMsg("Envoi à Coach Awa pour feedback personnalisé…");
+  // Lancée en parallèle du feedback texte principal (pas de "await" ici) :
+  // les deux appels partent en même temps, ce qui évite d'ajouter le temps
+  // de l'analyse vidéo à l'attente déjà ressentie par l'utilisateur. On ne
+  // la déclenche que si la transcription semble valide — inutile d'analyser
+  // la posture d'un enregistrement dont l'audio a échoué.
+  const gesturePromise = (!transcriptionVide && capturedFrames.length > 0)
+    ? analyzeGestureFromFrames(capturedFrames, text, learnerFirstName)
+    : Promise.resolve(null);
+
+  updateAnalyzingMsg(
+    (capturedFrames.length > 0 && !transcriptionVide)
+      ? "Envoi à Coach Awa pour feedback personnalisé (voix + gestuelle)…"
+      : "Envoi à Coach Awa pour feedback personnalisé…"
+  );
   for(let attempt=1; attempt<=2 && !feedback; attempt++){
     try{
       const prompt = currentEx.texteAttendu ? `Tu es Coach Awa, une coach experte en prise de parole en public. Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
@@ -2299,6 +2363,15 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     return;
   }
 
+  // On attend ici le résultat de l'analyse gestuelle, lancée plus tôt en
+  // parallèle : à ce stade le feedback texte est déjà prêt, donc l'attente
+  // supplémentaire ne concerne que le delta entre les deux appels (souvent
+  // nul ou minime, l'appel vision étant généralement plus rapide). `null`
+  // si aucune vidéo n'a été filmée ou si l'analyse a échoué — géré
+  // silencieusement partout en aval (aucune section gestuelle affichée).
+  const gestureFeedback = await gesturePromise;
+  feedback.gesture = gestureFeedback;
+
   scores[currentEx.id]=feedback.score;
   updateNavScore();
 
@@ -2330,7 +2403,8 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
       conseil_coach: feedback.conseil_coach,
       points_forts: feedback.points_forts,
       ameliorations: feedback.ameliorations,
-      defi_suivant: feedback.defi_suivant
+      defi_suivant: feedback.defi_suivant,
+      gesture: feedback.gesture || null
     }
   });
 
@@ -2394,6 +2468,15 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
       ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:12px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
       <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:monospace">Repère indicatif : 120–150 mots/min <span onclick="openDebitInfoModal()" style="cursor:pointer;color:var(--gold)">ⓘ</span> · Durée : ${fmt(met.duration)}</div>
     </div>
+
+    ${fb.gesture ? `
+    <div class="result-card" style="background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.2)">
+      <div class="result-card-title" style="color:#5B4FE8">🎥 Posture & Gestuelle <span style="font-weight:400;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0">(bêta)</span></div>
+      <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">${fb.gesture.resume_gestuelle}</div>
+      ${(fb.gesture.points_forts_gestuelle||[]).map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
+      ${(fb.gesture.ameliorations_gestuelle||[]).map(a=>`<div class="result-item"><span style="color:#E67E22;flex-shrink:0">→</span><span class="result-item-text" style="color:var(--text)">${a}</span></div>`).join('')}
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;line-height:1.5">Analyse basée sur quelques images fixes de ta vidéo, pas un suivi continu du mouvement — à prendre comme un premier repère.</div>
+    </div>` : ''}
 
     <div class="two-col">
       <div class="result-card" style="background:rgba(39,174,96,.06);border:1px solid rgba(39,174,96,.18)">
