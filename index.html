@@ -1856,8 +1856,13 @@ async function startRecordingServer(){
 
 // Prépare un <video> caché branché sur la piste caméra, puis capture une
 // image (frame) à intervalles réguliers via un <canvas> hors écran. Le
-// rythme est calé sur la durée de l'exercice pour viser environ 10-12 images
-// au total, quelle que soit la longueur du discours.
+// rythme vise environ 10-12 images pour un exercice classique, mais on
+// plafonne la durée "supposée" utilisée dans le calcul : le Discours Libre
+// autorise jusqu'à 900s (15 min) en théorie, mais dure en pratique bien
+// moins souvent — se caler sur la durée max théorique donnerait un
+// intervalle énorme (75s) et raterait des essais courts. On plafonne aussi
+// le nombre total de frames pour ne jamais exploser le coût sur un vrai
+// discours long.
 function setupFrameCapture(track){
   capturedFrames = [];
 
@@ -1870,11 +1875,17 @@ function setupFrameCapture(track){
   hiddenVideoEl.play().catch(()=>{}); // certains navigateurs exigent un appel explicite
 
   const targetFrameCount = 12;
-  const intervalMs = Math.max(2500, Math.round((currentEx.duration * 1000) / targetFrameCount));
+  const maxFrames = 15; // garde-fou coût/tokens, même pour un discours de 15 min
+  const assumedDurationSec = Math.min(currentEx.duration, 90);
+  const intervalMs = Math.max(2500, Math.round((assumedDurationSec * 1000) / targetFrameCount));
 
   const canvas = document.createElement('canvas');
   const captureOne = () => {
-    if(!hiddenVideoEl || hiddenVideoEl.readyState < 2) return; // pas encore prêt
+    if(capturedFrames.length >= maxFrames){
+      if(frameCaptureInterval){ clearInterval(frameCaptureInterval); frameCaptureInterval = null; }
+      return;
+    }
+    if(!hiddenVideoEl || hiddenVideoEl.readyState < 2) return; // pas encore prêt, on retentera au prochain tick
     canvas.width = hiddenVideoEl.videoWidth || 480;
     canvas.height = hiddenVideoEl.videoHeight || 360;
     const ctx = canvas.getContext('2d');
@@ -1886,7 +1897,7 @@ function setupFrameCapture(track){
   };
 
   // Une première image dès que le flux est prêt, puis à intervalles réguliers.
-  setTimeout(captureOne, 500);
+  setTimeout(captureOne, 800);
   frameCaptureInterval = setInterval(captureOne, intervalMs);
 }
 
