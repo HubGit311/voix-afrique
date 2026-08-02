@@ -1962,18 +1962,11 @@ function stopAndAnalyze(){
   document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
   releaseWakeLock();
   stopFrameCapture();
-  // À ce stade, `capturedFrames` contient les images (dataURL JPEG) prêtes à
-  // être envoyées à Claude Vision.
+  // Compteur discret conservé pour le diagnostic courant (visible seulement
+  // si diagLog est actif) — l'exposition complète des frames en debug
+  // (window._lastCapturedFrames) a été retirée après validation manuelle du
+  // cadrage/de l'analyse gestuelle début août 2026.
   diagLog('Frames vidéo capturées :', capturedFrames.length);
-  // Debug temporaire (bêta) : expose le tableau complet dans la console pour
-  // pouvoir inspecter visuellement le cadrage réel envoyé à Claude — copier
-  // une valeur "dataUrl" et la coller dans la barre d'adresse d'un nouvel
-  // onglet affiche l'image correspondante. À retirer une fois la fonctionnalité
-  // stabilisée.
-  if(capturedFrames.length > 0){
-    window._lastCapturedFrames = capturedFrames;
-    diagLog('Pour inspecter une image : copie la valeur "dataUrl" de window._lastCapturedFrames[0] (ou un autre index) dans la console, colle-la dans la barre d\'adresse d\'un nouvel onglet.');
-  }
 
   // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
   // pour transcription avant de poursuivre l'analyse.
