@@ -1063,6 +1063,18 @@ let segmentTimestamps = []; // timestamps de fin de chaque segment Whisper, pour
 let currentUtterance = null;
 let voiceText = "";
 
+// ── Capture vidéo (bêta) : feedback sur la posture/gestuelle ───────────────
+// On ne stocke ni n'envoie jamais la vidéo elle-même : on capture quelques
+// images (frames) à intervalles réguliers depuis le flux caméra en direct,
+// via <canvas>, ce qui évite d'avoir à enregistrer puis décoder un fichier
+// vidéo complet — plus simple, plus léger, et plus respectueux de la vie
+// privée (seules quelques images fixes quittent l'appareil).
+let videoEnabled = false;       // état de la case à cocher "Filmer aussi"
+let videoTrack = null;          // piste vidéo issue du flux caméra
+let hiddenVideoEl = null;       // <video> caché servant de source pour le canvas
+let frameCaptureInterval = null;
+let capturedFrames = [];        // tableau de { dataUrl, atSeconds }
+
 // ── Stockage local de l'historique ──────────────────────────────────────────
 const STORAGE_KEY = 'voixdafrique_sessions';
 
@@ -1644,6 +1656,7 @@ function renderRecordPage(){
 }
 
 function renderReadyZone(){
+  videoEnabled = false; // toujours décoché par défaut sur un nouvel exercice
   const isFree = currentEx.id === 'libre';
   const dureeTxt = isFree
     ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro démarre dès que tu appuies sur Démarrer`
@@ -1665,6 +1678,11 @@ function renderReadyZone(){
     <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
       🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser
     </div>
+    ${!currentEx.texteAttendu ? `
+    <label style="display:flex;align-items:center;gap:10px;background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left;cursor:pointer">
+      <input type="checkbox" id="video-toggle" onchange="videoEnabled=this.checked" style="width:18px;height:18px;accent-color:#5B4FE8;flex-shrink:0">
+      <span style="color:var(--text);font-size:13px;font-family:'Quicksand',sans-serif;line-height:1.5">🎥 Filmer aussi (bêta) — reçois en plus un retour de Coach Awa sur ta posture et ta gestuelle. Seules quelques images fixes sont analysées, jamais la vidéo entière.</span>
+    </label>` : ''}
     ${currentEx.exemple ? `
     <button class="example-toggle-btn" onclick="toggleExample()" id="example-toggle-btn">
       📖 Voir un exemple de bonne réponse
@@ -1777,11 +1795,34 @@ function handleVisibilityDuringRecording(){
 
 async function startRecordingServer(){
   try{
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    // Si la vidéo est activée, on demande micro + caméra en une seule requête
+    // de permission (plus simple pour l'utilisateur qu'une double demande).
+    // La piste audio continue d'alimenter le pipeline de transcription existant
+    // sans aucun changement ; seule la piste vidéo est utilisée en plus, et
+    // seulement pour en extraire quelques images fixes (jamais enregistrée).
+    const constraints = videoEnabled
+      ? { audio: true, video: { facingMode: 'user', width: { ideal: 640 } } }
+      : { audio: true };
+    const stream = await navigator.mediaDevices.getUserMedia(constraints);
     micStream = stream;
 
+    if(videoEnabled){
+      const vTrack = stream.getVideoTracks()[0];
+      if(vTrack){
+        videoTrack = vTrack;
+        setupFrameCapture(vTrack);
+      } else {
+        // Caméra indisponible malgré la demande : on continue en audio seul,
+        // sans bloquer l'exercice pour autant.
+        videoEnabled = false;
+      }
+    }
+
+    // Le MediaRecorder ne capture QUE la piste audio (même quand la caméra est
+    // active) : le pipeline de transcription existant reste inchangé et léger.
+    const audioOnlyStream = new MediaStream(stream.getAudioTracks());
     const preferredType = ['audio/mp4', 'audio/webm', 'audio/aac'].find(t => window.MediaRecorder && MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported(t));
-    mediaRecorder = preferredType ? new MediaRecorder(stream, { mimeType: preferredType }) : new MediaRecorder(stream);
+    mediaRecorder = preferredType ? new MediaRecorder(audioOnlyStream, { mimeType: preferredType }) : new MediaRecorder(audioOnlyStream);
     audioChunks = [];
 
     mediaRecorder.ondataavailable = (e) => {
@@ -1810,6 +1851,51 @@ async function startRecordingServer(){
         el.textContent = `⚠️ Impossible d'accéder au micro : ${err.message || err.name}`;
       }
     }
+  }
+}
+
+// Prépare un <video> caché branché sur la piste caméra, puis capture une
+// image (frame) à intervalles réguliers via un <canvas> hors écran. Le
+// rythme est calé sur la durée de l'exercice pour viser environ 10-12 images
+// au total, quelle que soit la longueur du discours.
+function setupFrameCapture(track){
+  capturedFrames = [];
+
+  hiddenVideoEl = document.createElement('video');
+  hiddenVideoEl.srcObject = new MediaStream([track]);
+  hiddenVideoEl.muted = true;
+  hiddenVideoEl.playsInline = true;
+  hiddenVideoEl.style.display = 'none';
+  document.body.appendChild(hiddenVideoEl);
+  hiddenVideoEl.play().catch(()=>{}); // certains navigateurs exigent un appel explicite
+
+  const targetFrameCount = 12;
+  const intervalMs = Math.max(2500, Math.round((currentEx.duration * 1000) / targetFrameCount));
+
+  const canvas = document.createElement('canvas');
+  const captureOne = () => {
+    if(!hiddenVideoEl || hiddenVideoEl.readyState < 2) return; // pas encore prêt
+    canvas.width = hiddenVideoEl.videoWidth || 480;
+    canvas.height = hiddenVideoEl.videoHeight || 360;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(hiddenVideoEl, 0, 0, canvas.width, canvas.height);
+    // JPEG compressé : suffisant pour une analyse de posture/gestuelle, tout
+    // en gardant chaque image légère (coût API + bande passante mobile).
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+    capturedFrames.push({ dataUrl, atSeconds: elapsed });
+  };
+
+  // Une première image dès que le flux est prêt, puis à intervalles réguliers.
+  setTimeout(captureOne, 500);
+  frameCaptureInterval = setInterval(captureOne, intervalMs);
+}
+
+function stopFrameCapture(){
+  if(frameCaptureInterval){ clearInterval(frameCaptureInterval); frameCaptureInterval = null; }
+  if(videoTrack){ try{ videoTrack.stop(); }catch(_){} videoTrack = null; }
+  if(hiddenVideoEl){
+    try{ hiddenVideoEl.pause(); hiddenVideoEl.srcObject = null; hiddenVideoEl.remove(); }catch(_){}
+    hiddenVideoEl = null;
   }
 }
 
@@ -1864,6 +1950,11 @@ function stopAndAnalyze(){
   showAnalyzingZone();
   document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
   releaseWakeLock();
+  stopFrameCapture();
+  // À ce stade, `capturedFrames` contient les images (dataURL JPEG) prêtes à
+  // être envoyées à Claude Vision — l'envoi effectif sera branché à l'étape
+  // suivante, une fois le prompt d'analyse posture/gestuelle conçu.
+  diagLog('Frames vidéo capturées :', capturedFrames.length);
 
   // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
   // pour transcription avant de poursuivre l'analyse.
