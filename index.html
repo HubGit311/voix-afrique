@@ -1963,9 +1963,17 @@ function stopAndAnalyze(){
   releaseWakeLock();
   stopFrameCapture();
   // À ce stade, `capturedFrames` contient les images (dataURL JPEG) prêtes à
-  // être envoyées à Claude Vision — l'envoi effectif sera branché à l'étape
-  // suivante, une fois le prompt d'analyse posture/gestuelle conçu.
+  // être envoyées à Claude Vision.
   diagLog('Frames vidéo capturées :', capturedFrames.length);
+  // Debug temporaire (bêta) : expose le tableau complet dans la console pour
+  // pouvoir inspecter visuellement le cadrage réel envoyé à Claude — copier
+  // une valeur "dataUrl" et la coller dans la barre d'adresse d'un nouvel
+  // onglet affiche l'image correspondante. À retirer une fois la fonctionnalité
+  // stabilisée.
+  if(capturedFrames.length > 0){
+    window._lastCapturedFrames = capturedFrames;
+    diagLog('Pour inspecter une image : copie la valeur "dataUrl" de window._lastCapturedFrames[0] (ou un autre index) dans la console, colle-la dans la barre d\'adresse d\'un nouvel onglet.');
+  }
 
   // On arrête l'enregistrement audio, puis on envoie le fichier au serveur
   // pour transcription avant de poursuivre l'analyse.
