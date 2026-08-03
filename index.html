@@ -1866,12 +1866,27 @@ async function startRecordingServer(){
 function setupFrameCapture(track){
   capturedFrames = [];
 
+  // NB : la variable garde le nom historique `hiddenVideoEl` bien qu'elle ne
+  // soit plus cachée depuis l'ajout de l'aperçu en direct (03/08/2026) — elle
+  // sert toujours en coulisses de source pour l'extraction de frames, mais
+  // est maintenant aussi affichée à l'utilisateur pour qu'il voie son cadrage.
   hiddenVideoEl = document.createElement('video');
   hiddenVideoEl.srcObject = new MediaStream([track]);
   hiddenVideoEl.muted = true;
   hiddenVideoEl.playsInline = true;
-  hiddenVideoEl.style.display = 'none';
-  document.body.appendChild(hiddenVideoEl);
+  hiddenVideoEl.style.width = '100%';
+  hiddenVideoEl.style.height = '100%';
+  hiddenVideoEl.style.objectFit = 'cover';
+  hiddenVideoEl.style.transform = 'scaleX(-1)'; // effet miroir, plus naturel pour une caméra frontale
+  const previewWrap = document.getElementById('video-preview-wrap');
+  if(previewWrap){
+    previewWrap.insertBefore(hiddenVideoEl, previewWrap.firstChild);
+  } else {
+    // Filet de sécurité si le conteneur d'aperçu n'existe pas pour une raison
+    // quelconque : la capture continue de fonctionner en coulisses, invisible.
+    hiddenVideoEl.style.display = 'none';
+    document.body.appendChild(hiddenVideoEl);
+  }
   hiddenVideoEl.play().catch(()=>{}); // certains navigateurs exigent un appel explicite
 
   const targetFrameCount = 12;
@@ -1936,6 +1951,13 @@ function renderRecordingZone(){
   `).join('');
 
   document.getElementById('rec-zone').innerHTML=`
+    ${videoEnabled ? `
+    <div style="display:flex;justify-content:center;margin-bottom:4px">
+      <div id="video-preview-wrap" style="position:relative;width:140px;height:140px;border-radius:16px;overflow:hidden;border:2px solid rgba(91,79,232,.35);background:#111">
+        <!-- Le <video> lui-même est injecté ici par setupFrameCapture() -->
+        <div style="position:absolute;bottom:4px;left:0;right:0;text-align:center;font-size:9px;color:#fff;background:rgba(0,0,0,.45);padding:2px 0;font-family:'Quicksand',sans-serif">🎥 aperçu — vérifie ton cadrage</div>
+      </div>
+    </div>` : ''}
     <div class="waveform">${bars}</div>
     <div>
       <div class="timer-big" id="timer-display">${fmt(currentEx.duration)}</div>
