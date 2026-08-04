@@ -3070,6 +3070,18 @@ hydrateScoresFromHistory();
 renderHome();
 updateNavScore();
 
+// Ouverture directe sur une page précise via l'URL (ex: coach-awa.netlify.app/#about).
+// Indispensable notamment pour Google Play, qui vérifie l'URL de la politique
+// de confidentialité en visitant le lien directement plutôt qu'en cliquant
+// dans l'app — sans ce correctif, il ne voyait toujours que la page d'accueil.
+(function openInitialHashPage(){
+  const initialHash = (location.hash || '').replace('#','');
+  if(initialHash && document.getElementById('page-'+initialHash)){
+    lastPushedPage = initialHash; // évite un pushState redondant dans showPage()
+    showPage(initialHash);
+  }
+})();
+
 // Enregistrement du service worker (nécessaire pour l'installabilité PWA)
 if('serviceWorker' in navigator){
   window.addEventListener('load', () => {
