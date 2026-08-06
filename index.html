@@ -2482,6 +2482,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
           ${('speechSynthesis' in window) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
         </div>
         ${isIOS() ? `<div style="color:var(--muted);font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
+        ${(!isIOS() && !pickFrenchVoice()) ? `<div style="color:#E67E22;font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">⚠️ Aucune voix française trouvée sur ton téléphone — la lecture audio risque de sonner en anglais. Pour corriger : Paramètres → Langues et saisie → Synthèse vocale → installe une voix française.</div>` : ''}
         <div class="result-conseil">${fb.conseil_coach}</div>
       </div>
     </div>
