@@ -1196,13 +1196,25 @@ function checkAndAwardStreakFreeze(currentStreak){
 // Récupère les tentatives récentes (avec texte transcrit disponible) pour un
 // exercice donné, du plus ancien au plus récent — utilisé pour proposer un
 // discours structuré après plusieurs essais.
-function getRecentTranscriptsForExercise(exId, max=3, topicText=null, sessionsList=null){
+// `todayOnly` : ne compte que les tentatives du jour même. Volontaire : d'un
+// jour à l'autre on part généralement sur des idées différentes, alors que
+// dans la même journée on affine et améliore le même discours au fil des
+// tentatives — c'est donc uniquement dans ce cas qu'un discours structuré
+// "digest" de ces tentatives a du sens.
+function getRecentTranscriptsForExercise(exId, max=3, topicText=null, sessionsList=null, todayOnly=false){
+  const todayKey = todayOnly ? getDailyDateKey() : null;
   return (sessionsList || loadSessions())
     .filter(s => s.exId === exId && s.transcript && s.transcript.trim().length > 0)
     // Pour l'improvisation, le sujet change chaque jour : on ne garde que les
     // tentatives sur EXACTEMENT le même sujet, sinon les discours mélangeraient
     // des thèmes différents d'un jour à l'autre.
     .filter(s => exId !== 'improv' || !topicText || s.topicText === topicText)
+    .filter(s => {
+      if(!todayOnly) return true;
+      const d = new Date(s.date);
+      const sKey = `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+      return sKey === todayKey;
+    })
     .slice(-max);
 }
 
@@ -2573,17 +2585,21 @@ function showResult(fb, met, previous, dailyBonus, sessionsBefore){
 
   const html = buildResultHTML(fb, met, currentEx.title, dailyBonusHTML + comparisonHTML);
 
-  // Après 3 tentatives COMPLÈTES PRÉCÉDENTES sur le même exercice (donc à
-  // partir de la 4e tentative), on propose un discours structuré inspiré de
-  // ces essais. On se base sur l'historique AVANT cette session (sessionsBefore)
-  // pour ne pas compter la tentative en cours dans les "3 tentatives" — sinon
-  // l'offre apparaissait dès la 3e tentative au lieu d'après 3 tentatives.
+  // Après 3 tentatives COMPLÈTES PRÉCÉDENTES sur le même exercice, LE MÊME
+  // JOUR (donc à partir de la 4e tentative du jour), on propose un discours
+  // structuré inspiré de ces essais. Le compteur repart à 0 chaque jour :
+  // d'un jour à l'autre on part généralement sur des idées différentes,
+  // alors qu'au fil d'une même journée on affine et améliore le même
+  // discours — c'est là qu'un condensé structuré fait sens. On se base sur
+  // l'historique AVANT cette session (sessionsBefore) pour ne pas compter la
+  // tentative en cours dans les "3 tentatives" — sinon l'offre apparaissait
+  // dès la 3e tentative au lieu d'après 3 tentatives.
   // L'improvisation est éligible (le sujet est fixe pour la journée), mais pas
   // le Discours Libre (sujet libre à chaque fois) ni la diction (textes fixes,
   // pas de discours à composer).
   const isEligibleForStructuredSpeech = currentEx.id !== 'libre' && (typeof currentEx.id !== 'string' || currentEx.id.indexOf('diction-') !== 0);
-  const priorAttempts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, sessionsBefore);
-  const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description);
+  const priorAttempts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, sessionsBefore, true);
+  const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, null, true);
   const structuredOfferHTML = (isEligibleForStructuredSpeech && priorAttempts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
