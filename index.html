@@ -2583,24 +2583,28 @@ function showResult(fb, met, previous, dailyBonus, sessionsBefore){
       </div>`;
   }
 
-  const html = buildResultHTML(fb, met, currentEx.title, dailyBonusHTML + comparisonHTML);
+  // Pour l'improvisation, "Improvisation du jour" seul ne dit pas quel sujet
+  // a été traité — on précise le sujet exact à côté du titre.
+  const displayTitle = (currentEx.id === 'improv' && currentEx.description)
+    ? `${currentEx.title} — ${currentEx.description}`
+    : currentEx.title;
+  const html = buildResultHTML(fb, met, displayTitle, dailyBonusHTML + comparisonHTML);
 
-  // Après 3 tentatives COMPLÈTES PRÉCÉDENTES sur le même exercice, LE MÊME
-  // JOUR (donc à partir de la 4e tentative du jour), on propose un discours
-  // structuré inspiré de ces essais. Le compteur repart à 0 chaque jour :
-  // d'un jour à l'autre on part généralement sur des idées différentes,
-  // alors qu'au fil d'une même journée on affine et améliore le même
-  // discours — c'est là qu'un condensé structuré fait sens. On se base sur
-  // l'historique AVANT cette session (sessionsBefore) pour ne pas compter la
-  // tentative en cours dans les "3 tentatives" — sinon l'offre apparaissait
-  // dès la 3e tentative au lieu d'après 3 tentatives.
+  // Après 3 tentatives COMPLÈTES sur le même exercice (celle-ci incluse), LE
+  // MÊME JOUR, on propose un discours structuré inspiré de ces essais. Le
+  // compteur repart à 0 chaque jour : d'un jour à l'autre on part généralement
+  // sur des idées différentes, alors qu'au fil d'une même journée on affine et
+  // améliore le même discours — c'est là qu'un condensé structuré fait sens.
+  // On relit l'historique APRÈS la sauvegarde de cette session (saveSession
+  // a déjà été appelé plus haut) pour que la tentative en cours compte bien
+  // dans les "3 tentatives" — sinon l'offre n'apparaissait qu'à la 4e tentative
+  // alors que le message affiché annonçait "3 fois" (bug corrigé le 07/08).
   // L'improvisation est éligible (le sujet est fixe pour la journée), mais pas
   // le Discours Libre (sujet libre à chaque fois) ni la diction (textes fixes,
   // pas de discours à composer).
   const isEligibleForStructuredSpeech = currentEx.id !== 'libre' && (typeof currentEx.id !== 'string' || currentEx.id.indexOf('diction-') !== 0);
-  const priorAttempts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, sessionsBefore, true);
   const recentTranscripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, null, true);
-  const structuredOfferHTML = (isEligibleForStructuredSpeech && priorAttempts.length >= 3) ? `
+  const structuredOfferHTML = (isEligibleForStructuredSpeech && recentTranscripts.length >= 3) ? `
     <div class="defi-box" style="background:rgba(91,79,232,.05);border-color:rgba(91,79,232,.3);flex-direction:column;align-items:flex-start;gap:14px">
       <div style="display:flex;gap:16px;align-items:flex-start">
         <span style="font-size:24px;flex-shrink:0">✨</span>
@@ -2635,7 +2639,7 @@ async function generateStructuredSpeech(){
   if(btn){ btn.disabled = true; btn.textContent = '✨ Génération en cours…'; }
   resultEl.innerHTML = `<div style="color:var(--muted);font-size:13px;font-family:'Quicksand',sans-serif;margin-top:10px">Coach Awa relit tes tentatives et prépare ton discours…</div>`;
 
-  const transcripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description);
+  const transcripts = getRecentTranscriptsForExercise(currentEx.id, 3, currentEx.description, null, true);
   const learnerFirstName = (currentUser && currentUser.displayName) ? currentUser.displayName.trim().split(/\s+/)[0] : null;
 
   const essaisTexte = transcripts.map((s,i)=> `Tentative ${i+1} :\n"${s.transcript.trim()}"`).join('\n\n');
@@ -2883,7 +2887,13 @@ function openHistoryDetail(key){
   const dateStr = new Date(session.date).toLocaleDateString('fr-FR', {day:'2-digit',month:'long',year:'numeric',hour:'2-digit',minute:'2-digit'});
   const dateHTML = `<div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;margin-bottom:16px">📅 Session du ${dateStr}</div>`;
 
-  const html = buildResultHTML(fb, met, session.exTitle, dateHTML);
+  // Même logique que sur l'écran de résultat en direct : préciser le sujet
+  // exact pour une session d'improvisation, sinon toutes les entrées
+  // "Improvisation du jour" de l'historique sont indiscernables entre elles.
+  const displayTitle = (session.exId === 'improv' && session.topicText)
+    ? `${session.exTitle} — ${session.topicText}`
+    : session.exTitle;
+  const html = buildResultHTML(fb, met, displayTitle, dateHTML);
 
   const savedSpeech = getStructuredSpeech(session.exId);
   const speechLinkHTML = savedSpeech ? `
@@ -2958,11 +2968,18 @@ function renderHistory(){
     const dateStr = date.toLocaleDateString('fr-FR', {day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'});
     const key = `${s.exId}-${s.date}`;
     const hasFeedback = !!s.feedback;
+    // Pour l'improvisation (Défi du jour), le titre d'exercice ("Improvisation
+    // du jour") est identique tous les jours — sans le sujet précis, impossible
+    // de distinguer une session de l'autre dans l'historique. On affiche donc
+    // le sujet exact (topicText) en plus, quand disponible.
+    const titleHTML = (s.exId === 'improv' && s.topicText)
+      ? `<div class="session-title">${s.exTitle}</div><div class="session-topic" style="font-size:12px;color:var(--muted);font-style:italic;margin-top:2px">${s.topicText}</div>`
+      : `<div class="session-title">${s.exTitle}</div>`;
     return `
       <div class="session-row" ${hasFeedback ? `style="cursor:pointer" onclick="openHistoryDetail('${key}')"` : ''}>
         <div class="session-score-badge" style="border-color:${color};color:${color}">${s.score}</div>
         <div class="session-info">
-          <div class="session-title">${s.exTitle}</div>
+          ${titleHTML}
           <div class="session-date">${dateStr} · ${s.debit} mots/min · ${s.totalParasites} parasites</div>
         </div>
         ${hasFeedback ? `<div style="color:var(--muted);font-size:16px;flex-shrink:0">›</div>` : ''}
