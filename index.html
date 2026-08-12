@@ -973,6 +973,15 @@ function isIOS(){
     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPad récent
 }
 
+// Détecte le navigateur Mi Browser / MIUI Browser (Xiaomi, Redmi, Poco...).
+// Ce navigateur gère les permissions micro à deux niveaux : le site peut
+// sembler bloqué même quand l'utilisateur "autorise" dans la popup du site,
+// car MIUI garde en plus un blocage au niveau des réglages système de
+// l'application elle-même — d'où un message d'aide spécifique nécessaire.
+function isMiuiBrowser(){
+  return /MiuiBrowser/i.test(navigator.userAgent);
+}
+
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
 function renderAuthBar(user){
   const bar = document.getElementById('auth-bar');
@@ -1815,6 +1824,23 @@ function handleVisibilityDuringRecording(){
 }
 
 async function startRecordingServer(){
+  // Filet de sécurité pour les navigateurs (notamment MIUI Browser sur
+  // Xiaomi/Redmi/Poco) où un blocage micro au niveau des réglages système
+  // peut faire que getUserMedia() ne rejette jamais et ne résout jamais non
+  // plus — la promesse reste juste bloquée indéfiniment, sans erreur JS et
+  // sans popup de permission visible. Sans ce timeout, l'utilisateur reste
+  // face à un écran silencieux sans comprendre ce qui se passe.
+  let micTimedOut = false;
+  const micTimeout = setTimeout(() => {
+    micTimedOut = true;
+    const el = document.getElementById('mic-status');
+    if(el){
+      el.innerHTML = isMiuiBrowser()
+        ? "⚠️ Le micro ne répond pas. Sur MIUI (Xiaomi/Redmi/Poco), va dans Réglages du téléphone → Applications → Gérer les applications → ton navigateur → Autorisations → Microphone → Autoriser, puis reviens ici et recharge la page. Si le problème persiste, essaie d'ouvrir ce lien dans Chrome plutôt que le navigateur par défaut."
+        : "⚠️ Le micro ne répond pas après plusieurs secondes. Vérifie qu'aucune autre appli n'utilise le micro, puis recharge la page.";
+    }
+  }, 8000);
+
   try{
     // Si la vidéo est activée, on demande micro + caméra en une seule requête
     // de permission (plus simple pour l'utilisateur qu'une double demande).
@@ -1825,6 +1851,12 @@ async function startRecordingServer(){
       ? { audio: true, video: { facingMode: 'user', width: { ideal: 640 } } }
       : { audio: true };
     const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    clearTimeout(micTimeout);
+    if(micTimedOut) {
+      // La permission a fini par répondre après le timeout : on continue quand
+      // même normalement plutôt que de laisser l'utilisateur bloqué sur le
+      // message d'erreur affiché entretemps.
+    }
     micStream = stream;
 
     if(videoEnabled){
@@ -1862,10 +1894,13 @@ async function startRecordingServer(){
 
     mediaRecorder.start();
   } catch(err){
+    clearTimeout(micTimeout);
     const el = document.getElementById('mic-status');
     if(el){
       if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
-        el.innerHTML = "⚠️ Micro bloqué. Appuie sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser. Puis recharge la page.";
+        el.innerHTML = isMiuiBrowser()
+          ? "⚠️ Micro bloqué. Sur MIUI (Xiaomi/Redmi/Poco), il faut autoriser à deux endroits : 1) l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser, ET 2) Réglages du téléphone → Applications → Gérer les applications → ton navigateur → Autorisations → Microphone → Autoriser. Puis recharge la page."
+          : "⚠️ Micro bloqué. Appuie sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser. Puis recharge la page.";
       } else if(!navigator.mediaDevices || !window.MediaRecorder){
         el.innerHTML = "⚠️ Ce navigateur ne supporte pas l'enregistrement audio. Essaie avec Chrome ou Safari à jour.";
       } else {
