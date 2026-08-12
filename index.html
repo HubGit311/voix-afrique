@@ -422,7 +422,12 @@
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.14.1/firebase-storage-compat.js"></script>
+<!-- Google Identity Services (FedCM) : remplace le flux popup/redirection classique
+     qui dépend des cookies tiers (de plus en plus bloqués par défaut sur mobile).
+     Chargé en parallèle (async), n'importe pas le reste du chargement de la page. -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
+
   const firebaseConfig = {
     apiKey: "AIzaSyCN_gvo3qdUbUDUFjc__artJyTQNmhpS-w",
     authDomain: "voix-afrique.firebaseapp.com",
@@ -440,6 +445,16 @@
 
   // Fonctions globales utilisées par l'app
   window._fbSignIn = () => _auth.signInWithPopup(_provider);
+  // Connexion via Google Identity Services (FedCM) : Google renvoie un jeton
+  // d'identité (JWT) qu'on convertit en identifiant Firebase. Contrairement à
+  // signInWithPopup/Redirect, ce flux ne dépend pas des cookies tiers entre
+  // coach-awa.netlify.app et voix-afrique.firebaseapp.com — c'est justement ce
+  // qui cassait la connexion pour les utilisateurs bloquant les cookies tiers
+  // (réglage de plus en plus fréquent par défaut sur mobile).
+  window._fbSignInWithIdToken = (idToken) => {
+    const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
+    return _auth.signInWithCredential(credential);
+  };
   window._fbSignOut = () => _auth.signOut();
   window._fbSaveData = (uid, data) => _db.collection('users').doc(uid).set(data, { merge: true });
   window._fbLoadData = (uid) => _db.collection('users').doc(uid).get();
@@ -1003,11 +1018,73 @@ function renderAuthBar(user){
   }
 }
 
-async function handleSignIn(){
+// Identifiant client OAuth Google (public, pas un secret — il apparaît dans le
+// code de n'importe quel site qui l'utilise). Configuré dans Google Cloud
+// Console pour le projet voix-afrique, avec coach-awa.netlify.app comme
+// origine JavaScript autorisée.
+const GOOGLE_CLIENT_ID = "258066291963-led0t4sleoclgrbqhb79t9k8i513pfts.apps.googleusercontent.com";
+
+// Affiche un message d'erreur de connexion clair dans la barre d'auth, plutôt
+// que de laisser l'utilisateur planté sans explication (utilisé par les deux
+// méthodes de connexion, FedCM et popup classique).
+function showSignInError(){
+  const bar = document.getElementById('auth-bar');
+  if(bar){
+    bar.className = 'auth-bar signed-out';
+    bar.innerHTML = `
+      <span style="color:var(--gold);font-size:12px;flex:1">⚠️ La connexion Google a échoué (souci réseau ou navigateur). Réessaie, ou continue sans te connecter — tes exercices fonctionnent quand même.</span>
+      <button class="auth-btn signin" onclick="handleSignIn()">Réessayer</button>
+    `;
+  }
+}
+
+// Réponse de Google Identity Services : un jeton d'identité (JWT) à échanger
+// contre une connexion Firebase.
+async function handleGoogleCredentialResponse(response){
+  try{
+    await window._fbSignInWithIdToken(response.credential);
+  } catch(e){
+    console.warn('Erreur connexion Google (FedCM) :', e);
+    showSignInError();
+  }
+}
+
+// Repli sur l'ancien flux popup Firebase, utilisé seulement si Google Identity
+// Services n'est pas disponible (script bloqué par un bloqueur de pub, très
+// vieux navigateur, etc.) ou s'il ne peut pas s'afficher pour une raison
+// quelconque.
+async function attemptPopupSignIn(){
   try {
     if(window._fbSignIn) await window._fbSignIn();
   } catch(e) {
-    if(e.code !== 'auth/popup-closed-by-user') console.warn('Erreur connexion:', e);
+    if(e.code === 'auth/popup-closed-by-user') return;
+    console.warn('Erreur connexion (popup) :', e);
+    showSignInError();
+  }
+}
+
+async function handleSignIn(){
+  const gisReady = window.google && google.accounts && google.accounts.id;
+  if(!gisReady){
+    await attemptPopupSignIn();
+    return;
+  }
+  try{
+    google.accounts.id.initialize({
+      client_id: GOOGLE_CLIENT_ID,
+      callback: handleGoogleCredentialResponse,
+      use_fedcm_for_prompt: true
+    });
+    google.accounts.id.prompt((notification) => {
+      // Si Google ne peut pas afficher le sélecteur de compte (moment ignoré,
+      // ou navigateur trop ancien pour FedCM), on retombe sur l'ancienne
+      // méthode plutôt que de laisser l'utilisateur sans rien.
+      if(notification.isNotDisplayed && notification.isNotDisplayed()) attemptPopupSignIn();
+      else if(notification.isSkippedMoment && notification.isSkippedMoment()) attemptPopupSignIn();
+    });
+  } catch(e){
+    console.warn('Erreur initialisation Google Identity Services :', e);
+    await attemptPopupSignIn();
   }
 }
 
