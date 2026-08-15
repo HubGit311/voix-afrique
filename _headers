@@ -1,2 +1,13 @@
-/* 
-  Cross-Origin-Opener-Policy: same-origin-allow-popups 
+/*
+  Cross-Origin-Opener-Policy: same-origin-allow-popups
+
+# Empêche le navigateur (et tout CDN intermédiaire) de mettre en cache la
+# page HTML principale. Sans ça, un utilisateur peut continuer à exécuter une
+# ancienne version du code (ex : ancien flux de connexion Google) même après
+# un déploiement réussi, via le simple cache HTTP du navigateur — un
+# mécanisme distinct du service worker, qui lui ne met déjà rien en cache.
+/index.html
+  Cache-Control: no-cache, no-store, must-revalidate
+
+/
+  Cache-Control: no-cache, no-store, must-revalidate

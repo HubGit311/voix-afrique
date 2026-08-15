@@ -2,9 +2,9 @@
 //
 // Objectif unique : satisfaire les critères d'installabilité PWA des
 // navigateurs (qui exigent un service worker actif avec un gestionnaire
-// "fetch"). Il ne met RIEN en cache — chaque déploiement doit être visible
-// immédiatement pour les utilisateurs, sans risque de rester coincé sur une
-// ancienne version de l'app.
+// "fetch"). Il ne met RIEN en cache via le Cache API — chaque déploiement
+// doit être visible immédiatement pour les utilisateurs, sans risque de
+// rester coincé sur une ancienne version de l'app.
 
 self.addEventListener('install', (event) => {
   self.skipWaiting();
@@ -31,6 +31,21 @@ self.addEventListener('fetch', (event) => {
 
   if (isGoogleApi) {
     return; // ne pas appeler respondWith : le navigateur gère la requête normalement
+  }
+
+  // Pour une requête de navigation (chargement/rechargement de la page HTML
+  // elle-même), on force explicitement un aller au réseau en ignorant le
+  // cache HTTP natif du navigateur (distinct du Cache API, qu'on n'utilise
+  // jamais ici). Sans ce "cache: no-store", un navigateur peut réutiliser
+  // une ancienne réponse HTTP mise en cache localement pour index.html même
+  // si aucun code de ce service worker ne la stocke explicitement — ce qui
+  // ferait tourner une vieille version du code chez un utilisateur malgré un
+  // déploiement réussi côté serveur.
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request, { cache: 'no-store' }).catch(() => fetch(event.request))
+    );
+    return;
   }
 
   // Pour tout le reste, laisse passer normalement, sans mise en cache.
