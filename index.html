@@ -1847,7 +1847,7 @@ function requestMicAndStart(){
       el.insertAdjacentHTML('beforeend', `
         <div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.35);border-radius:10px;padding:14px 16px;margin-top:12px;text-align:center">
           <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">🔒 Connecte-toi avec Google pour utiliser le Discours Libre — c'est nécessaire pour l'enregistrement sécurisé des discours longs.</div>
-          <button class="btn-primary" onclick="window._fbSignIn && window._fbSignIn()">Se connecter avec Google</button>
+          <button class="btn-primary" onclick="handleSignIn()">Se connecter avec Google</button>
         </div>
       `);
     }
