@@ -443,6 +443,16 @@
   const _storage = firebase.storage();
   const _provider = new firebase.auth.GoogleAuthProvider();
 
+  // ── Diagnostic temporaire (bug connexion Google "missing initial state") ──
+  // Permet de vérifier depuis la console du navigateur d'un testeur si son
+  // appareil exécute bien cette version du code (via le Service Worker) et si
+  // Google Identity Services est disponible. À retirer une fois le bug résolu.
+  console.log("COACH AWA VERSION = 2026-08-15-FEDCM-DIAG");
+  window.addEventListener('load', () => {
+    console.log("Google GIS disponible:", !!(window.google && window.google.accounts && window.google.accounts.id));
+    console.log("Service Worker controller:", navigator.serviceWorker && navigator.serviceWorker.controller ? navigator.serviceWorker.controller.scriptURL : "aucun");
+  });
+
   // Fonctions globales utilisées par l'app
   window._fbSignIn = () => _auth.signInWithPopup(_provider);
   // Connexion via Google Identity Services (FedCM) : Google renvoie un jeton
@@ -452,6 +462,7 @@
   // qui cassait la connexion pour les utilisateurs bloquant les cookies tiers
   // (réglage de plus en plus fréquent par défaut sur mobile).
   window._fbSignInWithIdToken = (idToken) => {
+    console.log("Avant signInWithCredential (FedCM)");
     const credential = firebase.auth.GoogleAuthProvider.credential(idToken);
     return _auth.signInWithCredential(credential);
   };
@@ -1063,9 +1074,17 @@ async function attemptPopupSignIn(){
   }
 }
 
+// Mode diagnostic temporaire (bug "missing initial state") : désactive le
+// repli automatique vers l'ancien flux signInWithPopup, pour isoler si le
+// problème vient de FedCM lui-même ou du fallback qui réintroduit l'ancien
+// mécanisme Firebase. À repasser à false une fois le diagnostic terminé.
+const DIAG_MODE_NO_POPUP_FALLBACK = true;
+
 async function handleSignIn(){
   const gisReady = window.google && google.accounts && google.accounts.id;
   if(!gisReady){
+    console.log("DIAG: Google Identity Services indisponible au clic.");
+    if(DIAG_MODE_NO_POPUP_FALLBACK){ showSignInError(); return; }
     await attemptPopupSignIn();
     return;
   }
@@ -1077,13 +1096,20 @@ async function handleSignIn(){
     });
     google.accounts.id.prompt((notification) => {
       // Si Google ne peut pas afficher le sélecteur de compte (moment ignoré,
-      // ou navigateur trop ancien pour FedCM), on retombe sur l'ancienne
-      // méthode plutôt que de laisser l'utilisateur sans rien.
-      if(notification.isNotDisplayed && notification.isNotDisplayed()) attemptPopupSignIn();
-      else if(notification.isSkippedMoment && notification.isSkippedMoment()) attemptPopupSignIn();
+      // ou navigateur trop ancien pour FedCM), on retombe normalement sur
+      // l'ancienne méthode — mais en mode diagnostic, on préfère afficher une
+      // erreur explicite plutôt que de masquer le vrai comportement de FedCM.
+      const notDisplayed = notification.isNotDisplayed && notification.isNotDisplayed();
+      const skipped = notification.isSkippedMoment && notification.isSkippedMoment();
+      if(notDisplayed || skipped){
+        console.log("DIAG: FedCM n'a pas pu s'afficher.", notDisplayed ? notification.getNotDisplayedReason && notification.getNotDisplayedReason() : notification.getSkippedReason && notification.getSkippedReason());
+        if(DIAG_MODE_NO_POPUP_FALLBACK){ showSignInError(); return; }
+        attemptPopupSignIn();
+      }
     });
   } catch(e){
     console.warn('Erreur initialisation Google Identity Services :', e);
+    if(DIAG_MODE_NO_POPUP_FALLBACK){ showSignInError(); return; }
     await attemptPopupSignIn();
   }
 }
