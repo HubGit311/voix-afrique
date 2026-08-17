@@ -1008,6 +1008,16 @@ function isMiuiBrowser(){
   return /MiuiBrowser/i.test(navigator.userAgent);
 }
 
+// Détecte si le code tourne dans l'app Android installée (Capacitor), par
+// opposition au site web classique dans un navigateur. C'est important pour
+// la connexion Google : Google bloque volontairement l'authentification
+// OAuth dans les WebViews embarqués (erreur "disallowed_useragent"), que ce
+// soit via popup ou via FedCM — aucun des deux flux web ne peut fonctionner
+// dans l'app installée. On utilise donc un plugin natif dédié dans ce cas.
+function isNativeApp(){
+  return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+}
+
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
 function renderAuthBar(user){
   const bar = document.getElementById('auth-bar');
@@ -1074,6 +1084,38 @@ async function attemptPopupSignIn(){
   }
 }
 
+// Connexion Google dans l'app Android installée, via le plugin natif
+// @capacitor-firebase/authentication. Ce plugin utilise l'API Google Sign-In
+// native d'Android (Google Play Services), en dehors de tout WebView — c'est
+// la seule méthode qui fonctionne dans ce contexte, ni FedCM ni le popup web
+// ne sont autorisés par Google à l'intérieur d'une app embarquée.
+async function nativeGoogleSignIn(){
+  try{
+    const plugins = window.Capacitor && window.Capacitor.Plugins;
+    const FirebaseAuthentication = plugins && plugins.FirebaseAuthentication;
+    if(!FirebaseAuthentication){
+      console.warn('Plugin FirebaseAuthentication indisponible.');
+      showSignInError();
+      return;
+    }
+    const result = await FirebaseAuthentication.signInWithGoogle();
+    const idToken = result && result.credential && result.credential.idToken;
+    if(!idToken){
+      console.warn('Connexion native Google : pas de idToken reçu.', result);
+      showSignInError();
+      return;
+    }
+    // On réutilise le même échange que pour FedCM (credential Firebase à
+    // partir d'un ID token) pour que le reste de l'app (Firestore, etc., basé
+    // sur le SDK compat _auth) voit exactement la même session connectée.
+    await window._fbSignInWithIdToken(idToken);
+  } catch(e){
+    if(e && (e.code === 'auth/popup-closed-by-user' || e.message === 'USER_CANCELLED')) return;
+    console.warn('Erreur connexion Google native :', e);
+    showSignInError();
+  }
+}
+
 // Mode diagnostic temporaire (bug "missing initial state") : désactive le
 // repli automatique vers l'ancien flux signInWithPopup, pour isoler si le
 // problème vient de FedCM lui-même ou du fallback qui réintroduit l'ancien
@@ -1081,6 +1123,13 @@ async function attemptPopupSignIn(){
 const DIAG_MODE_NO_POPUP_FALLBACK = true;
 
 async function handleSignIn(){
+  // Dans l'app Android installée, ni FedCM ni le popup web ne peuvent
+  // fonctionner (Google bloque volontairement l'OAuth dans les WebViews) :
+  // on passe directement par le plugin natif, sans tenter les flux web.
+  if(isNativeApp()){
+    await nativeGoogleSignIn();
+    return;
+  }
   const gisReady = window.google && google.accounts && google.accounts.id;
   if(!gisReady){
     console.log("DIAG: Google Identity Services indisponible au clic.");
@@ -2357,7 +2406,7 @@ Observe dans les images, quand c'est visible :
 RESTE HONNÊTE sur la méthode : tu analyses des instantanés espacés dans le temps, pas un mouvement continu. Ne prétends jamais avoir vu un geste précis "se produire" entre deux images — décris ce que tu observes sur chaque image ou en comparant les images entre elles, sans inventer de mouvement que tu n'as pas pu voir.
 Si le cadrage est mauvais (personne partiellement hors champ, trop sombre, trop loin) sur une majorité d'images, dis-le clairement plutôt que d'inventer une analyse.
 
-Reste concis : chaque point tient en une phrase courte (max ~15 mots). Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
+Reste concis : chaque point tient en une phrase courte (max ~15 mots). Relis mentalement tes phrases avant de valider, en particulier les accords sujet-verbe et en genre/nombre. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
 {"score_gestuelle":<0-100>,"resume_gestuelle":"<1 phrase d'ensemble>","points_forts_gestuelle":["<1>","<2>"],"ameliorations_gestuelle":["<1>","<2>"]}`;
 
   try{
@@ -2437,6 +2486,8 @@ Repère de notation : utilise directement la précision (${dictionAccuracy}%) co
 
 Le défi suivant ne doit jamais proposer une durée précise (cet exercice dure toujours ${currentEx.duration} secondes, ce n'est pas modifiable) — concentre-toi plutôt sur quels mots retravailler.
 
+IMPORTANT sur ton propre français : relis mentalement chaque phrase que tu écris avant de la valider, en particulier les accords sujet-verbe (ex : "tes efforts portent leurs fruits" et non "tes efforts porte ses fruits") et les accords en genre/nombre. Une faute d'accord dans le feedback du coach nuit à sa crédibilité.
+
 Génère un feedback bienveillant sur cet exercice d'articulation. Si des mots semblent avoir posé difficulté (déduits de la comparaison), mentionne-les précisément. Reste concis : chaque point tient en une phrase courte. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
 {"score":<0-100>,"titre_feedback":"<court et encourageant>","conseil_coach":"<2-3 phrases chaleureuses>","points_forts":["<1>","<2>","<3>"],"ameliorations":["<1>","<2>","<3>"],"defi_suivant":"<défi concret>"}` : `Tu es Coach Awa, une coach experte en prise de parole en public, spécialisée pour le contexte africain (Sénégal, Dakar). Tu t'exprimes avec chaleur et bienveillance, comme une mentor proche de ses apprenants.
 
@@ -2470,6 +2521,8 @@ Priorise TOUJOURS les axes d'amélioration par ordre d'impact réel sur la perfo
 Les corrections linguistiques mineures (catégorie 5) ne doivent apparaître dans les améliorations QUE si les catégories 1 à 4 sont déjà solides — ne jamais remonter un détail linguistique secondaire au détriment d'un enjeu de fond plus important.
 
 Sois concret et transparent : quand c'est pertinent, appuie-toi sur des passages précis de la transcription (courtes citations entre guillemets) plutôt que des conseils génériques, pour que l'apprenant comprenne exactement ce qui fonctionne ou pas dans SON discours à lui.
+
+IMPORTANT sur ton propre français : relis mentalement chaque phrase que tu écris avant de la valider, en particulier les accords sujet-verbe (ex : "tes émotions créent" et non "tes émotions crée" — un sujet au pluriel prend un verbe au pluriel) et les accords en genre/nombre des adjectifs et participes. Une faute d'accord dans le feedback du coach nuit à sa crédibilité — vérifie-toi avec la même rigueur que celle que tu demandes à l'apprenant sur son propre discours.
 
 IMPORTANT sur le réalisme des améliorations : cet exercice ne dure que ${currentEx.duration} secondes. Si tu suggères d'ajouter une idée, un exemple ou un argument, précise aussi ce qu'il faudrait raccourcir ou retirer ailleurs pour lui faire de la place — ne demande jamais simplement "d'ajouter" du contenu à un discours déjà à son maximum de temps, ce n'est pas réalisable. Si le discours est déjà dense, privilégie des améliorations de forme (clarté, rythme, structure) plutôt que d'ajout de contenu.
 
@@ -2793,6 +2846,8 @@ ${essaisTexte}
 Contexte de l'exercice : ${currentEx.context}
 
 En t'inspirant du meilleur de ces tentatives (les idées fortes, les formulations réussies), rédige une version finale : un discours fluide, bien structuré (introduction, développement, conclusion), débarrassé des hésitations et répétitions, prêt à être mémorisé et prononcé. Reste fidèle au fond et au style de l'apprenant plutôt que d'inventer un discours totalement différent.
+
+Ce texte sera lu tel quel par l'apprenant : relis-le mentalement avant de valider pour t'assurer qu'il est grammaticalement impeccable (accords sujet-verbe, genre/nombre, ponctuation), sans aucune faute.
 
 Réponds UNIQUEMENT en JSON valide, sans markdown, sans texte avant ou après :
 {"intro":"<1-2 phrases chaleureuses de Coach Awa présentant ce discours>","texte_discours":"<le discours structuré final, prêt à être lu ou mémorisé>"}`;
