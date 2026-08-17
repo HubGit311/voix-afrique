@@ -1048,12 +1048,23 @@ const GOOGLE_CLIENT_ID = "258066291963-led0t4sleoclgrbqhb79t9k8i513pfts.apps.goo
 // Affiche un message d'erreur de connexion clair dans la barre d'auth, plutôt
 // que de laisser l'utilisateur planté sans explication (utilisé par les deux
 // méthodes de connexion, FedCM et popup classique).
-function showSignInError(){
+//
+// DIAGNOSTIC TEMPORAIRE (17/08/2026) : affiche le vrai code/message d'erreur
+// technique au lieu du texte générique, pour identifier pourquoi la connexion
+// Google native échoue toujours après le correctif SHA-1. À retirer une fois
+// le diagnostic terminé (repasser au texte générique ci-dessus).
+function showSignInError(err){
   const bar = document.getElementById('auth-bar');
   if(bar){
     bar.className = 'auth-bar signed-out';
+    let detail = '';
+    if(err){
+      const code = err.code || '(pas de code)';
+      const msg = err.message || String(err);
+      detail = ` [DEBUG: code=${code} — ${msg}]`;
+    }
     bar.innerHTML = `
-      <span style="color:var(--gold);font-size:12px;flex:1">⚠️ La connexion Google a échoué (souci réseau ou navigateur). Réessaie, ou continue sans te connecter — tes exercices fonctionnent quand même.</span>
+      <span style="color:var(--gold);font-size:12px;flex:1">⚠️ La connexion Google a échoué.${detail}</span>
       <button class="auth-btn signin" onclick="handleSignIn()">Réessayer</button>
     `;
   }
@@ -1066,7 +1077,7 @@ async function handleGoogleCredentialResponse(response){
     await window._fbSignInWithIdToken(response.credential);
   } catch(e){
     console.warn('Erreur connexion Google (FedCM) :', e);
-    showSignInError();
+    showSignInError(e);
   }
 }
 
@@ -1080,7 +1091,7 @@ async function attemptPopupSignIn(){
   } catch(e) {
     if(e.code === 'auth/popup-closed-by-user') return;
     console.warn('Erreur connexion (popup) :', e);
-    showSignInError();
+    showSignInError(e);
   }
 }
 
@@ -1095,14 +1106,14 @@ async function nativeGoogleSignIn(){
     const FirebaseAuthentication = plugins && plugins.FirebaseAuthentication;
     if(!FirebaseAuthentication){
       console.warn('Plugin FirebaseAuthentication indisponible.');
-      showSignInError();
+      showSignInError({code:'PLUGIN_INDISPONIBLE', message:'Le plugin FirebaseAuthentication n\'a pas été trouvé.'});
       return;
     }
     const result = await FirebaseAuthentication.signInWithGoogle();
     const idToken = result && result.credential && result.credential.idToken;
     if(!idToken){
       console.warn('Connexion native Google : pas de idToken reçu.', result);
-      showSignInError();
+      showSignInError({code:'NO_ID_TOKEN', message:'Résultat reçu sans idToken : ' + JSON.stringify(result)});
       return;
     }
     // On réutilise le même échange que pour FedCM (credential Firebase à
@@ -1112,7 +1123,7 @@ async function nativeGoogleSignIn(){
   } catch(e){
     if(e && (e.code === 'auth/popup-closed-by-user' || e.message === 'USER_CANCELLED')) return;
     console.warn('Erreur connexion Google native :', e);
-    showSignInError();
+    showSignInError(e);
   }
 }
 
