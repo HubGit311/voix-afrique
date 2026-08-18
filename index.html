@@ -1109,15 +1109,13 @@ async function nativeGoogleSignIn(){
       showSignInError({code:'PLUGIN_INDISPONIBLE', message:'Le plugin FirebaseAuthentication n\'a pas été trouvé.'});
       return;
     }
-    // RE-TEST (18/08/2026) : useCredentialManager repassé à true (comportement
-    // par défaut du plugin). Le NoCredentialException initial pourrait avoir
-    // été causé par le même bug d'empaquetage que le code 10 rencontré
-    // ensuite (rgcfaIncludeGoogle mal placé — corrigé dans variables.gradle).
-    // Confirmé via `gradlew :capacitor-firebase-authentication:dependencies`
-    // que play-services-auth est maintenant réellement bundlé (implementation,
-    // pas compileOnly).
+    // RETOUR à false (18/08/2026) : useCredentialManager:true échoue plus
+    // tôt (NoCredentialException, aucun sélecteur de compte affiché) même
+    // avec play-services-auth confirmé bundlé. Le chemin false reste celui
+    // qui va le plus loin (affiche le sélecteur de compte), même s'il
+    // échoue ensuite avec le code 10 après sélection.
     const result = await FirebaseAuthentication.signInWithGoogle({
-      useCredentialManager: true
+      useCredentialManager: false
     });
     const idToken = result && result.credential && result.credential.idToken;
     if(!idToken){
