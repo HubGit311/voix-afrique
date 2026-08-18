@@ -1109,12 +1109,15 @@ async function nativeGoogleSignIn(){
       showSignInError({code:'PLUGIN_INDISPONIBLE', message:'Le plugin FirebaseAuthentication n\'a pas été trouvé.'});
       return;
     }
-    // TEST DIAGNOSTIC (17/08/2026) : useCredentialManager désactivé pour
-    // isoler un bug connu du plugin (NoCredentialException / "No credentials
-    // available") lié à l'API Android Credential Manager. Voir
-    // https://github.com/capawesome-team/capacitor-firebase/issues/878
+    // RE-TEST (18/08/2026) : useCredentialManager repassé à true (comportement
+    // par défaut du plugin). Le NoCredentialException initial pourrait avoir
+    // été causé par le même bug d'empaquetage que le code 10 rencontré
+    // ensuite (rgcfaIncludeGoogle mal placé — corrigé dans variables.gradle).
+    // Confirmé via `gradlew :capacitor-firebase-authentication:dependencies`
+    // que play-services-auth est maintenant réellement bundlé (implementation,
+    // pas compileOnly).
     const result = await FirebaseAuthentication.signInWithGoogle({
-      useCredentialManager: false
+      useCredentialManager: true
     });
     const idToken = result && result.credential && result.credential.idToken;
     if(!idToken){
