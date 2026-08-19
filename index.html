@@ -1058,6 +1058,19 @@ function isNativeApp(){
   return !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
 }
 
+// Détecte les mini-navigateurs intégrés à d'autres apps (WhatsApp, Instagram,
+// Facebook, Messenger, TikTok, LinkedIn, Line...), ouverts quand on clique sur
+// un lien depuis ces apps. Comme pour le WebView natif ci-dessus, Google
+// bloque volontairement l'OAuth dans ces contextes (même raison :
+// "disallowed_useragent", mesure anti-phishing) — impossible à contourner
+// côté code, il faut inviter l'utilisateur à ouvrir le lien dans son
+// navigateur normal (option généralement présente dans le menu ⋮ de ces
+// mini-navigateurs, du type "Ouvrir dans le navigateur").
+function isInAppBrowser(){
+  const ua = navigator.userAgent || '';
+  return /\bWhatsApp\b|FBAN|FBAV|Instagram|Line\/|MicroMessenger|TikTok|LinkedInApp/i.test(ua);
+}
+
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
 function renderAuthBar(user){
   const bar = document.getElementById('auth-bar');
@@ -1118,6 +1131,46 @@ function showSignInError(err){
       <div class="signin-error-actions">
         <button class="signin-error-btn dismiss" onclick="document.getElementById('signin-error-overlay').remove()">Plus tard</button>
         <button class="signin-error-btn retry" onclick="document.getElementById('signin-error-overlay').remove();handleSignIn()">Réessayer</button>
+      </div>
+    </div>
+  `;
+  overlay.addEventListener('click', (e) => { if(e.target === overlay) overlay.remove(); });
+  document.body.appendChild(overlay);
+}
+
+// Message spécifique quand on détecte un mini-navigateur intégré (WhatsApp,
+// Instagram...) : pas de bouton "Réessayer" ici, puisque retenter échouera
+// systématiquement pour la même raison — on guide plutôt vers la vraie
+// solution (ouvrir dans le navigateur normal du téléphone).
+function showInAppBrowserWarning(){
+  const bar = document.getElementById('auth-bar');
+  if(bar){
+    bar.className = 'auth-bar error';
+    bar.innerHTML = `
+      <span style="color:#dc3545;font-size:12px;flex:1">⚠️ Ouvre ce lien dans ton navigateur pour te connecter</span>
+    `;
+  }
+
+  const existing = document.getElementById('signin-error-overlay');
+  if(existing) existing.remove();
+
+  const overlay = document.createElement('div');
+  overlay.id = 'signin-error-overlay';
+  overlay.className = 'signin-error-overlay';
+  overlay.innerHTML = `
+    <div class="signin-error-modal">
+      <div class="signin-error-icon">🌐</div>
+      <div class="signin-error-title">Ouvre ce lien dans ton navigateur</div>
+      <div class="signin-error-body">
+        La connexion Google ne fonctionne pas depuis WhatsApp, Instagram ou
+        Facebook directement — c'est une règle de sécurité de Google, pas un
+        bug d'Awa. Appuie sur le menu <strong>⋮</strong> en haut à droite de
+        cet écran, puis choisis <strong>« Ouvrir dans le navigateur »</strong>
+        (Chrome, Samsung Internet…). Tes exercices restent utilisables ici
+        sans te connecter.
+      </div>
+      <div class="signin-error-actions">
+        <button class="signin-error-btn retry" style="flex:1" onclick="document.getElementById('signin-error-overlay').remove()">J'ai compris</button>
       </div>
     </div>
   `;
@@ -1193,7 +1246,7 @@ async function nativeGoogleSignIn(){
 // repli automatique vers l'ancien flux signInWithPopup, pour isoler si le
 // problème vient de FedCM lui-même ou du fallback qui réintroduit l'ancien
 // mécanisme Firebase. À repasser à false une fois le diagnostic terminé.
-const DIAG_MODE_NO_POPUP_FALLBACK = true;
+const DIAG_MODE_NO_POPUP_FALLBACK = false;
 
 async function handleSignIn(){
   // Dans l'app Android installée, ni FedCM ni le popup web ne peuvent
@@ -1201,6 +1254,13 @@ async function handleSignIn(){
   // on passe directement par le plugin natif, sans tenter les flux web.
   if(isNativeApp()){
     await nativeGoogleSignIn();
+    return;
+  }
+  // Même blocage Google, cause différente : mini-navigateur intégré à une
+  // autre app (WhatsApp, Instagram...). Ni FedCM ni popup ne fonctionneront
+  // ici non plus — inutile de les tenter, on guide directement l'utilisateur.
+  if(isInAppBrowser()){
+    showInAppBrowserWarning();
     return;
   }
   const gisReady = window.google && google.accounts && google.accounts.id;
