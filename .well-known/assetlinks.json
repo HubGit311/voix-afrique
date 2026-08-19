@@ -1,0 +1,13 @@
+[
+  {
+    "relation": ["delegate_permission/common.get_login_creds"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.parolforcesenegal.awa",
+      "sha256_cert_fingerprints": [
+        "2C:45:5A:C9:A8:0C:22:2C:25:5C:7D:68:1E:F2:B1:B0:4E:6B:5A:2F:62:BD:0D:0E:51:91:1D:E7:E2:03:47:9F",
+        "F5:B0:60:7C:F4:F1:DB:0A:70:CF:CE:C1:84:79:2E:6F:AD:29:7C:9B:E1:72:6C:64:01:0F:74:91:36:3C:32:DE"
+      ]
+    }
+  }
+]
