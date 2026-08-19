@@ -2520,7 +2520,15 @@ async function runAnalysis(){
   // Échec technique : transcription totalement vide, OU débit implausiblement
   // bas pour un enregistrement de plus de 15s (ex: 9 mots en 80s) — signe
   // quasi certain d'une capture audio défaillante plutôt qu'un vrai discours.
-  const transcriptionVide = nbMots === 0 || (duration >= 15 && debit < 20);
+  //
+  // Ce deuxième critère (débit/durée) ne s'applique PAS aux exercices de
+  // diction : leur phrase est courte (quelques mots) alors que
+  // l'enregistrement dure souvent 30s pleines (silence avant/après inclus
+  // dans la durée), ce qui donnait un débit artificiellement bas et
+  // déclenchait un faux "échec" malgré une transcription réussie. Pour la
+  // diction, `dictionAccuracy` (comparaison texte attendu / transcrit,
+  // calculée juste après) est un bien meilleur signal de succès.
+  const transcriptionVide = nbMots === 0 || (!currentEx.texteAttendu && duration >= 15 && debit < 20);
 
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   const dictionAccuracy = currentEx.texteAttendu ? computeDictionAccuracy(currentEx.texteAttendu, text) : null;
