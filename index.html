@@ -1217,13 +1217,14 @@ async function nativeGoogleSignIn(){
       showSignInError({code:'PLUGIN_INDISPONIBLE', message:'Le plugin FirebaseAuthentication n\'a pas été trouvé.'});
       return;
     }
-    // RETOUR à false (18/08/2026) : useCredentialManager:true échoue plus
-    // tôt (NoCredentialException, aucun sélecteur de compte affiché) même
-    // avec play-services-auth confirmé bundlé. Le chemin false reste celui
-    // qui va le plus loin (affiche le sélecteur de compte), même s'il
-    // échoue ensuite avec le code 10 après sélection.
+    // RE-TEST (19/08/2026) : useCredentialManager repassé à true suite à
+    // l'ajout des Digital Asset Links (.well-known/assetlinks.json hébergé
+    // sur coach-awa.netlify.app + meta-data asset_statements dans
+    // AndroidManifest.xml). Le NoCredentialException précédent pourrait
+    // avoir été causé par l'absence de cette vérification de domaine,
+    // requise par Credential Manager (contrairement au chemin legacy).
     const result = await FirebaseAuthentication.signInWithGoogle({
-      useCredentialManager: false
+      useCredentialManager: true
     });
     const idToken = result && result.credential && result.credential.idToken;
     if(!idToken){
