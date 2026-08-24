@@ -1224,7 +1224,7 @@ async function nativeGoogleSignIn(){
     // avoir été causé par l'absence de cette vérification de domaine,
     // requise par Credential Manager (contrairement au chemin legacy).
     const result = await FirebaseAuthentication.signInWithGoogle({
-      useCredentialManager: true
+      useCredentialManager: false
     });
     const idToken = result && result.credential && result.credential.idToken;
     if(!idToken){
