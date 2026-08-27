@@ -2823,11 +2823,10 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
         <div class="result-tag">Retour de Coach Awa · ${exTitle}</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
-          ${('speechSynthesis' in window) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
+          ${(('speechSynthesis' in window) || isNativeApp()) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
         </div>
         ${isIOS() ? `<div style="color:var(--muted);font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
-        ${(!isIOS() && !pickFrenchVoice()) ? `<div id="no-french-voice-warning" style="color:#E67E22;font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">⚠️ Aucune voix française trouvée sur ton téléphone — la lecture audio risque de sonner en anglais. Pour corriger : Paramètres → Langues et saisie → Synthèse vocale → installe une voix française.</div>` : ''}
-        <div id="voice-debug-info" style="color:#888;font-size:10px;font-family:monospace;margin-bottom:8px;word-break:break-all"></div>
+        ${(!isIOS() && !isNativeApp() && !pickFrenchVoice()) ? `<div id="no-french-voice-warning" style="color:#E67E22;font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">⚠️ Aucune voix française trouvée sur ton téléphone — la lecture audio risque de sonner en anglais. Pour corriger : Paramètres → Langues et saisie → Synthèse vocale → installe une voix française.</div>` : ''}
          <div class="result-conseil">${fb.conseil_coach}</div>
       </div>
     </div>
@@ -2959,15 +2958,6 @@ function showResult(fb, met, previous, dailyBonus, sessionsBefore){
       <span onclick="addTomorrowReminderToCalendar()" style="font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline">📅 Me rappeler de revenir m'entraîner demain</span>
     </div>
   `;
-const debugEl = document.getElementById('voice-debug-info');
-if(debugEl){
-  const fillDebug = () => {
-    const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-    debugEl.textContent = `[DEBUG] ${voices.length} voix détectées : ` + voices.map(v => v.lang).join(', ');
-  };
-  fillDebug();
-  if(window.speechSynthesis) window.speechSynthesis.onvoiceschanged = fillDebug;
-}
   showPage('result');
 }
 
@@ -3073,11 +3063,27 @@ function pickFrenchVoice(){
 }
 
 let ttsShouldBePlaying = false; // indique si la lecture devrait être en cours (pour la reprendre après verrouillage)
+let nativeTtsSpeaking = false; // état de lecture côté plugin natif (Android/iOS)
 
 function toggleVoiceFeedback(){
-  if(!('speechSynthesis' in window)) return; // API non supportée sur cet appareil
   const btn = document.getElementById('voice-btn');
   if(!btn) return;
+
+  // Dans l'app native (Play Store), la WebView ne relie pas correctement
+  // window.speechSynthesis au moteur TTS d'Android (getVoices() renvoie
+  // toujours une liste vide) — on passe donc par le plugin natif
+  // @capacitor-community/text-to-speech, qui parle directement au moteur
+  // TextToSpeech du système et fonctionne correctement dans une WebView.
+  if(isNativeApp()){
+    if(nativeTtsSpeaking){
+      stopVoiceFeedback();
+      return;
+    }
+    speakVoiceFeedback();
+    return;
+  }
+
+  if(!('speechSynthesis' in window)) return; // API non supportée sur cet appareil
 
   // Si une lecture est en cours, on l'arrête (toggle off)
   if(window.speechSynthesis.speaking || window.speechSynthesis.pending){
@@ -3091,9 +3097,42 @@ function toggleVoiceFeedback(){
   speakVoiceFeedback();
 }
 
-function speakVoiceFeedback(){
-  if(!voiceText || !('speechSynthesis' in window)) return;
+async function speakVoiceFeedback(){
+  if(!voiceText) return;
   const btn = document.getElementById('voice-btn');
+
+  if(isNativeApp()){
+    try{
+      const plugins = window.Capacitor && window.Capacitor.Plugins;
+      const TextToSpeech = plugins && plugins.TextToSpeech;
+      if(!TextToSpeech){
+        console.warn('Plugin TextToSpeech indisponible.');
+        return;
+      }
+      nativeTtsSpeaking = true;
+      ttsShouldBePlaying = true;
+      if(btn){ btn.textContent = '⏸ Lecture en cours…'; btn.classList.add('playing'); }
+      await TextToSpeech.speak({
+        text: voiceText,
+        lang: 'fr-FR',
+        rate: 1.05,
+        pitch: 1.3,
+        volume: 1,
+        category: 'ambient'
+      });
+      nativeTtsSpeaking = false;
+      ttsShouldBePlaying = false;
+      if(btn){ btn.textContent = 'Écouter'; btn.classList.remove('playing'); }
+    } catch(e){
+      nativeTtsSpeaking = false;
+      ttsShouldBePlaying = false;
+      if(btn){ btn.textContent = 'Écouter'; btn.classList.remove('playing'); }
+      console.warn('Erreur synthèse vocale native :', e);
+    }
+    return;
+  }
+
+  if(!('speechSynthesis' in window)) return;
 
   const utter = new SpeechSynthesisUtterance(voiceText);
   utter.lang = 'fr-FR';
@@ -3130,14 +3169,16 @@ function speakVoiceFeedback(){
 
 // Reprend automatiquement la lecture si l'écran vient de se déverrouiller
 // pendant qu'elle était censée être en cours (elle a été coupée par le système).
+// Ne s'applique qu'au chemin web — le plugin natif gère son propre cycle de vie.
 document.addEventListener('visibilitychange', () => {
-  if(!document.hidden && ttsShouldBePlaying && 'speechSynthesis' in window && !window.speechSynthesis.speaking){
+  if(!isNativeApp() && !document.hidden && ttsShouldBePlaying && 'speechSynthesis' in window && !window.speechSynthesis.speaking){
     speakVoiceFeedback();
   }
 });
 
 // Certains navigateurs chargent les voix de façon asynchrone — on les précharge
-if('speechSynthesis' in window){
+// (ne concerne que le chemin web ; l'app native utilise le plugin TTS natif)
+if(!isNativeApp() && 'speechSynthesis' in window){
   window.speechSynthesis.getVoices();
   window.speechSynthesis.onvoiceschanged = () => {
     window.speechSynthesis.getVoices();
@@ -3168,6 +3209,17 @@ function addTomorrowReminderToCalendar(){
 
 function stopVoiceFeedback(){
   ttsShouldBePlaying = false;
+  if(isNativeApp()){
+    const plugins = window.Capacitor && window.Capacitor.Plugins;
+    const TextToSpeech = plugins && plugins.TextToSpeech;
+    if(TextToSpeech && nativeTtsSpeaking){
+      TextToSpeech.stop().catch(()=>{});
+    }
+    nativeTtsSpeaking = false;
+    const btn = document.getElementById('voice-btn');
+    if(btn){ btn.textContent = 'Écouter'; btn.classList.remove('playing'); }
+    return;
+  }
   if('speechSynthesis' in window && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 }
 
