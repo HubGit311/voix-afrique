@@ -2380,9 +2380,15 @@ async function transcribeAndAnalyze(blob){
     diagLog('storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
 
     // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
-    // contrairement au corps d'une requête de fonction Netlify)
+    // contrairement au corps d'une requête de fonction Netlify). Encapsulé
+    // dans un timeout : sans ça, un souci réseau pendant l'upload laissait
+    // l'utilisateur bloqué indéfiniment sur "Envoi de l'enregistrement…",
+    // sans erreur ni possibilité de réessayer (bug corrigé le 04/09).
     diagLog('étape 1: upload Storage — début');
-    await window._fbUploadAudio(storagePath, blob);
+    await Promise.race([
+      window._fbUploadAudio(storagePath, blob),
+      new Promise((_, reject) => setTimeout(() => reject(new Error("L'envoi de l'enregistrement a pris trop de temps — vérifie ta connexion et réessaie.")), 30000))
+    ]);
     diagLog('étape 1: upload Storage — succès');
 
     // 2. Déclenche la fonction background — celle-ci répond immédiatement
