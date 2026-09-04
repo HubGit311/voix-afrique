@@ -2356,6 +2356,23 @@ function generateJobId(){
   return 'job_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
 }
 
+// Convertit un Blob audio en chaîne base64 (sans le préfixe "data:...;base64,"),
+// utilisé par le chemin rapide de transcription (enregistrements courts —
+// voir transcribeAndAnalyze) pour envoyer l'audio directement dans le corps
+// JSON d'une requête, sans passer par Firebase Storage.
+function blobToBase64(blob){
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const result = reader.result || '';
+      const base64 = result.includes(',') ? result.split(',')[1] : result;
+      resolve(base64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
+  });
+}
+
 // Envoie l'audio enregistré vers Firebase Storage, puis déclenche la fonction
 // serveur "background" (jusqu'à 15 min d'exécution, contre 10-26s pour une
 // fonction Netlify classique) qui se charge de la transcription (Whisper via
@@ -2368,64 +2385,110 @@ async function transcribeAndAnalyze(blob){
 
   diagLog('transcribeAndAnalyze: début, jobId =', jobId, 'blob taille =', blob.size, 'blob type =', blob.type);
 
-  try{
-    updateAnalyzingMsg("Envoi de l'enregistrement…");
+  // Chemin rapide pour les enregistrements courts : tous les exercices sauf
+  // Discours Libre restent sous ce seuil (le plus long exercice structuré
+  // fait 150s). Pour eux, un appel direct et synchrone à une fonction
+  // Netlify classique suffit largement (transcription Whisper de quelques
+  // secondes pour un audio court) — on évite ainsi l'upload Storage, le
+  // déclenchement de la fonction background et l'écoute Firestore, qui
+  // n'ont d'intérêt que pour contourner la limite de durée d'exécution
+  // d'une fonction classique sur un DISCOURS LONG. Seul Discours Libre
+  // (jusqu'à 900s) continue d'utiliser le circuit Storage/background/
+  // Firestore ci-dessous.
+  const SHORT_RECORDING_THRESHOLD_SEC = 180;
+  const isShortRecording = elapsed <= SHORT_RECORDING_THRESHOLD_SEC;
 
-    const extension = (blob.type && blob.type.includes('mp4')) ? 'm4a'
-      : (blob.type && blob.type.includes('aac')) ? 'aac' : 'webm';
-    // Le segment uid/anon permet aux règles de sécurité Storage de savoir
-    // qui a le droit d'écrire où (voir Firebase Console → Storage → Rules).
-    const ownerSegment = currentUser ? currentUser.uid : 'anon';
-    const storagePath = `audio-uploads/${ownerSegment}/${jobId}.${extension}`;
-    diagLog('storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
+  if(isShortRecording){
+    try{
+      updateAnalyzingMsg("Envoi de l'enregistrement…");
+      diagLog('chemin rapide: conversion en base64 — début');
+      const audioBase64 = await blobToBase64(blob);
+      diagLog('chemin rapide: conversion en base64 — succès, taille =', audioBase64.length);
 
-    // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
-    // contrairement au corps d'une requête de fonction Netlify). Encapsulé
-    // dans un timeout : sans ça, un souci réseau pendant l'upload laissait
-    // l'utilisateur bloqué indéfiniment sur "Envoi de l'enregistrement…",
-    // sans erreur ni possibilité de réessayer (bug corrigé le 04/09).
-    diagLog('étape 1: upload Storage — début');
-    await Promise.race([
-      window._fbUploadAudio(storagePath, blob),
-      new Promise((_, reject) => setTimeout(() => reject(new Error("L'envoi de l'enregistrement a pris trop de temps — vérifie ta connexion et réessaie.")), 30000))
-    ]);
-    diagLog('étape 1: upload Storage — succès');
+      updateAnalyzingMsg("Transcription en cours…");
+      const res = await fetchWithTimeout('/.netlify/functions/speech-to-text-sync', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ audioBase64, mimeType: blob.type })
+      }, 25000);
 
-    // 2. Déclenche la fonction background — celle-ci répond immédiatement
-    // (202) et continue son travail de son côté ; on ne l'attend donc pas
-    // avec le même timeout que les autres appels serveur.
-    diagLog('étape 2: déclenchement fonction background — début');
-    const triggerRes = await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ jobId, storagePath, mimeType: blob.type })
-    }, 10000);
-    diagLog('étape 2: réponse reçue, statut HTTP =', triggerRes.status, triggerRes.ok);
-    if(!triggerRes.ok){
-      const errBody = await triggerRes.text().catch(()=>'(illisible)');
-      throw new Error(`Déclenchement de la fonction background échoué: HTTP ${triggerRes.status} — ${errBody.slice(0,200)}`);
+      if(!res.ok){
+        const errBody = await res.text().catch(()=>'(illisible)');
+        throw new Error(`Transcription rapide échouée: HTTP ${res.status} — ${errBody.slice(0,200)}`);
+      }
+
+      const data = await res.json();
+      if(data.error) throw new Error(data.error);
+
+      transcriptFull = (data.text || '').trim() + ' ';
+      segmentTimestamps = [];
+      diagLog('chemin rapide: transcription reçue, longueur texte =', transcriptFull.length);
+
+    } catch(err){
+      diagLogError('ERREUR capturée (chemin rapide):', err);
+      lastErr = err;
     }
 
-    updateAnalyzingMsg("Transcription en cours — patience pour un discours long…");
+  } else {
+    try{
+      updateAnalyzingMsg("Envoi de l'enregistrement…");
 
-    // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
-    // Plafond généreux (20 min) pour couvrir les discours les plus longs.
-    diagLog('étape 3: écoute Firestore — début');
-    const result = await waitForTranscription(jobId, 20 * 60 * 1000);
-    diagLog('étape 3: résultat reçu de Firestore =', result);
+      const extension = (blob.type && blob.type.includes('mp4')) ? 'm4a'
+        : (blob.type && blob.type.includes('aac')) ? 'aac' : 'webm';
+      // Le segment uid/anon permet aux règles de sécurité Storage de savoir
+      // qui a le droit d'écrire où (voir Firebase Console → Storage → Rules).
+      const ownerSegment = currentUser ? currentUser.uid : 'anon';
+      const storagePath = `audio-uploads/${ownerSegment}/${jobId}.${extension}`;
+      diagLog('storagePath =', storagePath, 'currentUser =', currentUser ? currentUser.uid : null);
 
-    if(result.status === 'error'){
-      throw new Error(result.error || 'Erreur de transcription côté serveur');
+      // 1. Upload direct vers Storage (aucune limite pratique de taille ici,
+      // contrairement au corps d'une requête de fonction Netlify). Encapsulé
+      // dans un timeout : sans ça, un souci réseau pendant l'upload laissait
+      // l'utilisateur bloqué indéfiniment sur "Envoi de l'enregistrement…",
+      // sans erreur ni possibilité de réessayer (bug corrigé le 04/09).
+      diagLog('étape 1: upload Storage — début');
+      await Promise.race([
+        window._fbUploadAudio(storagePath, blob),
+        new Promise((_, reject) => setTimeout(() => reject(new Error("L'envoi de l'enregistrement a pris trop de temps — vérifie ta connexion et réessaie.")), 30000))
+      ]);
+      diagLog('étape 1: upload Storage — succès');
+
+      // 2. Déclenche la fonction background — celle-ci répond immédiatement
+      // (202) et continue son travail de son côté ; on ne l'attend donc pas
+      // avec le même timeout que les autres appels serveur.
+      diagLog('étape 2: déclenchement fonction background — début');
+      const triggerRes = await fetchWithTimeout('/.netlify/functions/speech-to-text-background', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ jobId, storagePath, mimeType: blob.type })
+      }, 10000);
+      diagLog('étape 2: réponse reçue, statut HTTP =', triggerRes.status, triggerRes.ok);
+      if(!triggerRes.ok){
+        const errBody = await triggerRes.text().catch(()=>'(illisible)');
+        throw new Error(`Déclenchement de la fonction background échoué: HTTP ${triggerRes.status} — ${errBody.slice(0,200)}`);
+      }
+
+      updateAnalyzingMsg("Transcription en cours — patience pour un discours long…");
+
+      // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
+      // Plafond généreux (20 min) pour couvrir les discours les plus longs.
+      diagLog('étape 3: écoute Firestore — début');
+      const result = await waitForTranscription(jobId, 20 * 60 * 1000);
+      diagLog('étape 3: résultat reçu de Firestore =', result);
+
+      if(result.status === 'error'){
+        throw new Error(result.error || 'Erreur de transcription côté serveur');
+      }
+
+      transcriptFull = (result.text || '').trim() + ' ';
+      segmentTimestamps = [];
+
+    } catch(err){
+      diagLogError('ERREUR capturée à l\'étape en cours:', err);
+      lastErr = err;
+    } finally {
+      window._fbDeleteTranscriptionDoc(jobId);
     }
-
-    transcriptFull = (result.text || '').trim() + ' ';
-    segmentTimestamps = [];
-
-  } catch(err){
-    diagLogError('ERREUR capturée à l\'étape en cours:', err);
-    lastErr = err;
-  } finally {
-    window._fbDeleteTranscriptionDoc(jobId);
   }
 
   if(lastErr){
