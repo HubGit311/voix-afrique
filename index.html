@@ -513,6 +513,13 @@
   window._fbSaveData = (uid, data) => _db.collection('users').doc(uid).set(data, { merge: true });
   window._fbLoadData = (uid) => _db.collection('users').doc(uid).get();
 
+  // Connexion par email/mot de passe : alternative à Google, plus universelle
+  // (aucun blocage OAuth/WebView, fonctionne identiquement en navigateur et
+  // dans l'app installée, sans plugin natif).
+  window._fbSignUpWithEmail = (email, password) => _auth.createUserWithEmailAndPassword(email, password);
+  window._fbSignInWithEmail = (email, password) => _auth.signInWithEmailAndPassword(email, password);
+  window._fbResetPassword = (email) => _auth.sendPasswordResetEmail(email);
+
   // --- Transcription longue durée (Storage + fonction background) ---
   // Upload direct du blob audio vers Firebase Storage : contourne la limite
   // de taille des requêtes de fonctions Netlify (~6 Mo), essentielle pour
@@ -729,6 +736,24 @@
     <textarea id="free-context-input" placeholder="Ex : présentation de mon projet à des investisseurs, discours pour un anniversaire, soutenance..." style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Lora',serif;font-size:14px;padding:12px;margin-bottom:14px;resize:vertical;box-sizing:border-box"></textarea>
     <button class="feedback-modal-btn whatsapp" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="startFreeExercise()">🎙️ Commencer l'enregistrement</button>
     <button class="feedback-modal-close" onclick="closeFreeContextModal()">Annuler</button>
+  </div>
+</div>
+
+<div id="email-auth-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeEmailAuthModal()">
+  <div class="feedback-modal-box">
+    <div class="feedback-modal-title" id="email-auth-title">Se connecter</div>
+    <div class="feedback-modal-sub" id="email-auth-sub">Avec ton adresse email et un mot de passe</div>
+    <input type="email" id="email-auth-email" placeholder="Adresse email" autocomplete="email" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
+    <input type="password" id="email-auth-password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:14px;box-sizing:border-box">
+    <div id="email-auth-error" style="display:none;color:#dc3545;font-size:12.5px;font-family:'Quicksand',sans-serif;margin-bottom:12px;line-height:1.5"></div>
+    <button class="feedback-modal-btn whatsapp" id="email-auth-submit-btn" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="submitEmailAuth()">Se connecter</button>
+    <div style="text-align:center;margin-top:8px">
+      <span id="email-auth-toggle-mode" onclick="toggleEmailAuthMode()" style="font-size:12.5px;color:var(--gold);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline">Pas encore de compte ? Créer un compte</span>
+    </div>
+    <div style="text-align:center;margin-top:6px">
+      <span onclick="handleForgotPassword()" style="font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline">Mot de passe oublié ?</span>
+    </div>
+    <button class="feedback-modal-close" onclick="closeEmailAuthModal()">Annuler</button>
   </div>
 </div>
 
@@ -1091,6 +1116,7 @@ function renderAuthBar(user){
     bar.innerHTML = `
       <span style="color:var(--gold);font-size:12px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
       <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
+      <button class="auth-btn signin" onclick="openEmailAuthModal()" style="border-color:var(--muted);color:var(--muted)">Autre méthode</button>
     `;
   }
 }
@@ -1303,6 +1329,131 @@ function handleSignOut(){
   if(window._fbSignOut) window._fbSignOut();
   currentUser = null;
   renderAuthBar(null);
+}
+
+// ── Connexion par email/mot de passe (alternative à Google) ────────────────
+// isEmailAuthSignUp : true = mode création de compte, false = mode connexion.
+let isEmailAuthSignUp = false;
+
+function openEmailAuthModal(){
+  isEmailAuthSignUp = false;
+  updateEmailAuthModalTexts();
+  const errEl = document.getElementById('email-auth-error');
+  if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+  const emailEl = document.getElementById('email-auth-email');
+  const pwEl = document.getElementById('email-auth-password');
+  if(emailEl) emailEl.value = '';
+  if(pwEl) pwEl.value = '';
+  document.getElementById('email-auth-modal').classList.add('show');
+}
+
+function closeEmailAuthModal(){
+  document.getElementById('email-auth-modal').classList.remove('show');
+}
+
+function toggleEmailAuthMode(){
+  isEmailAuthSignUp = !isEmailAuthSignUp;
+  updateEmailAuthModalTexts();
+}
+
+function updateEmailAuthModalTexts(){
+  const title = document.getElementById('email-auth-title');
+  const sub = document.getElementById('email-auth-sub');
+  const submitBtn = document.getElementById('email-auth-submit-btn');
+  const toggle = document.getElementById('email-auth-toggle-mode');
+  if(isEmailAuthSignUp){
+    if(title) title.textContent = 'Créer un compte';
+    if(sub) sub.textContent = 'Choisis une adresse email et un mot de passe (6 caractères minimum)';
+    if(submitBtn) submitBtn.textContent = 'Créer mon compte';
+    if(toggle) toggle.textContent = 'Déjà un compte ? Se connecter';
+  } else {
+    if(title) title.textContent = 'Se connecter';
+    if(sub) sub.textContent = 'Avec ton adresse email et un mot de passe';
+    if(submitBtn) submitBtn.textContent = 'Se connecter';
+    if(toggle) toggle.textContent = 'Pas encore de compte ? Créer un compte';
+  }
+  const errEl = document.getElementById('email-auth-error');
+  if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+}
+
+// Traduit les codes d'erreur Firebase Auth les plus courants en messages
+// clairs et actionnables pour l'utilisateur, plutôt que le message technique
+// brut renvoyé par Firebase.
+function friendlyEmailAuthError(err){
+  const code = err && err.code;
+  switch(code){
+    case 'auth/invalid-email':
+      return "Cette adresse email ne semble pas valide.";
+    case 'auth/user-not-found':
+      return "Aucun compte n'existe avec cette adresse email. Crée un compte si c'est ta première visite.";
+    case 'auth/wrong-password':
+    case 'auth/invalid-credential':
+      return "Mot de passe incorrect. Réessaie, ou utilise \"Mot de passe oublié ?\".";
+    case 'auth/email-already-in-use':
+      return "Un compte existe déjà avec cette adresse email. Essaie de te connecter plutôt.";
+    case 'auth/weak-password':
+      return "Ce mot de passe est trop court — utilise au moins 6 caractères.";
+    case 'auth/account-exists-with-different-credential':
+      // Cas fréquent : l'utilisateur s'est déjà connecté avec Google en
+      // utilisant cette même adresse email — on le guide vers la bonne méthode
+      // plutôt que de le laisser face à un blocage silencieux.
+      return "Cette adresse email est déjà associée à un compte Google. Utilise plutôt le bouton \"Se connecter avec Google\".";
+    case 'auth/too-many-requests':
+      return "Trop de tentatives — attends un instant avant de réessayer.";
+    default:
+      return "Une erreur est survenue : " + ((err && err.message) || 'inconnue');
+  }
+}
+
+async function submitEmailAuth(){
+  const emailEl = document.getElementById('email-auth-email');
+  const pwEl = document.getElementById('email-auth-password');
+  const errEl = document.getElementById('email-auth-error');
+  const submitBtn = document.getElementById('email-auth-submit-btn');
+  const email = emailEl ? emailEl.value.trim() : '';
+  const password = pwEl ? pwEl.value : '';
+
+  if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  if(!email || !password){
+    if(errEl){ errEl.textContent = 'Merci de renseigner une adresse email et un mot de passe.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  if(submitBtn){ submitBtn.disabled = true; submitBtn.textContent = isEmailAuthSignUp ? 'Création…' : 'Connexion…'; }
+
+  try{
+    if(isEmailAuthSignUp){
+      await window._fbSignUpWithEmail(email, password);
+    } else {
+      await window._fbSignInWithEmail(email, password);
+    }
+    closeEmailAuthModal();
+  } catch(err){
+    console.warn('Erreur auth email:', err);
+    if(errEl){ errEl.textContent = friendlyEmailAuthError(err); errEl.style.display = 'block'; }
+  } finally {
+    if(submitBtn){ submitBtn.disabled = false; updateEmailAuthModalTexts(); }
+  }
+}
+
+async function handleForgotPassword(){
+  const emailEl = document.getElementById('email-auth-email');
+  const errEl = document.getElementById('email-auth-error');
+  const email = emailEl ? emailEl.value.trim() : '';
+
+  if(!email){
+    if(errEl){ errEl.textContent = "Renseigne d'abord ton adresse email ci-dessus, puis clique à nouveau sur \"Mot de passe oublié ?\"."; errEl.style.display = 'block'; }
+    return;
+  }
+
+  try{
+    await window._fbResetPassword(email);
+    if(errEl){ errEl.style.color = 'var(--green)'; errEl.textContent = 'Un email pour réinitialiser ton mot de passe vient de t\'être envoyé.'; errEl.style.display = 'block'; }
+  } catch(err){
+    console.warn('Erreur réinitialisation mot de passe:', err);
+    if(errEl){ errEl.style.color = '#dc3545'; errEl.textContent = friendlyEmailAuthError(err); errEl.style.display = 'block'; }
+  }
 }
 
 // Sauvegarde la progression dans Firestore
