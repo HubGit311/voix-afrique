@@ -2145,7 +2145,9 @@ function renderReadyZone(){
       ⚠️ Reste sur cette page pendant tout l'enregistrement — changer d'application ou verrouiller l'écran peut interrompre la capture de ta voix
     </div>
     <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
-      🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser
+      ${isNativeApp()
+        ? "🔒 Micro déjà bloqué par le passé ? Va dans Paramètres du téléphone → Applications → Awa → Autorisations → Microphone → Autoriser"
+        : "🔒 Micro déjà bloqué par le passé ? Appuyez sur l'icône près de l'adresse du site → Autorisations → Microphone → Autoriser"}
     </div>
     ${!currentEx.texteAttendu ? `
     <label style="display:flex;align-items:center;gap:10px;background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left;cursor:pointer">
@@ -2467,7 +2469,31 @@ function renderRecordingZone(){
     </div>
     <div id="mic-status" style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif"></div>
     <button class="stop-btn" onclick="stopAndAnalyze()">⏹ Terminer et analyser</button>
+    <button class="feedback-modal-close" onclick="cancelRecording()" style="margin-top:-8px">Annuler l'enregistrement</button>
   `;
+}
+
+// Interrompt l'enregistrement en cours SANS lancer d'analyse — utile quand
+// l'utilisateur veut abandonner (mauvais départ, changement d'avis, test),
+// pour éviter une analyse IA inutile sur un enregistrement qu'il ne veut de
+// toute façon pas garder (demande d'un testeur, 04/09).
+function cancelRecording(){
+  if(analyzing) return; // trop tard, l'analyse est déjà lancée
+  clearInterval(timerInterval);
+  document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
+  releaseWakeLock();
+  stopFrameCapture();
+  if(mediaRecorder){
+    mediaRecorder.onstop = () => {
+      if(micStream){ micStream.getTracks().forEach(t=>t.stop()); micStream = null; }
+    };
+    try{ mediaRecorder.stop(); }catch(_){}
+  } else if(micStream){
+    micStream.getTracks().forEach(t=>t.stop());
+    micStream = null;
+  }
+  audioChunks = [];
+  renderReadyZone();
 }
 
 function stopAndAnalyze(){
@@ -2811,7 +2837,18 @@ async function runAnalysis(){
   // déclenchait un faux "échec" malgré une transcription réussie. Pour la
   // diction, `dictionAccuracy` (comparaison texte attendu / transcrit,
   // calculée juste après) est un bien meilleur signal de succès.
-  const transcriptionVide = nbMots === 0 || (!currentEx.texteAttendu && duration >= 15 && debit < 20);
+  //
+  // Pour la diction spécifiquement, on ajoute un second filet : un silence
+  // total peut parfois être transcrit avec 1 ou 2 mots parasites (bruit
+  // mal interprété par le service de transcription), ce qui contournait le
+  // test "nbMots === 0" et déclenchait une vraie analyse IA sur du vide
+  // (bug remonté par un testeur le 04/09 — feedback générique produit alors
+  // qu'il n'avait rien dit). Un virelangue attendu fait toujours plusieurs
+  // mots : si la transcription en contient beaucoup moins qu'attendu, c'est
+  // très probablement un échec technique, pas une vraie tentative.
+  const expectedWordCount = currentEx.texteAttendu ? countWords(currentEx.texteAttendu) : 0;
+  const dictionTooFewWords = !!currentEx.texteAttendu && nbMots < Math.max(2, Math.ceil(expectedWordCount * 0.25));
+  const transcriptionVide = nbMots === 0 || dictionTooFewWords || (!currentEx.texteAttendu && duration >= 15 && debit < 20);
 
   // Jusqu'à 2 tentatives en cas d'échec réseau ou de parsing
   const dictionAccuracy = currentEx.texteAttendu ? computeDictionAccuracy(currentEx.texteAttendu, text) : null;
