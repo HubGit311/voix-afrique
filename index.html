@@ -747,6 +747,10 @@
     <input type="email" id="email-auth-email" placeholder="Adresse email" autocomplete="email" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="email-auth-password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="email-auth-password-confirm" placeholder="Confirme ton mot de passe" autocomplete="new-password" style="display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:14px;box-sizing:border-box">
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-bottom:14px">
+      <input type="checkbox" id="email-auth-show-password" onchange="toggleEmailAuthPasswordVisibility()" style="width:16px;height:16px;accent-color:var(--gold)">
+      <span style="font-size:12.5px;color:var(--muted);font-family:'Quicksand',sans-serif">👁️ Afficher le mot de passe</span>
+    </label>
     <div id="email-auth-error" style="display:none;color:#dc3545;font-size:12.5px;font-family:'Quicksand',sans-serif;margin-bottom:12px;line-height:1.5"></div>
     <button class="feedback-modal-btn whatsapp" id="email-auth-submit-btn" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="submitEmailAuth()">Se connecter</button>
     <div style="text-align:center;margin-top:8px">
@@ -1354,10 +1358,27 @@ function openEmailAuthModal(){
   const emailEl = document.getElementById('email-auth-email');
   const pwEl = document.getElementById('email-auth-password');
   const pwConfirmEl = document.getElementById('email-auth-password-confirm');
+  const showPwEl = document.getElementById('email-auth-show-password');
   if(emailEl) emailEl.value = '';
   if(pwEl) pwEl.value = '';
   if(pwConfirmEl) pwConfirmEl.value = '';
+  // Repart toujours masqué à l'ouverture, par prudence (cohérent avec le
+  // comportement standard des champs mot de passe).
+  if(showPwEl) showPwEl.checked = false;
+  if(pwEl) pwEl.type = 'password';
+  if(pwConfirmEl) pwConfirmEl.type = 'password';
   document.getElementById('email-auth-modal').classList.add('show');
+}
+
+// Bascule les deux champs mot de passe entre masqué et en clair en même
+// temps, pour permettre à l'utilisateur de vérifier ce qu'il a tapé.
+function toggleEmailAuthPasswordVisibility(){
+  const showPwEl = document.getElementById('email-auth-show-password');
+  const pwEl = document.getElementById('email-auth-password');
+  const pwConfirmEl = document.getElementById('email-auth-password-confirm');
+  const newType = (showPwEl && showPwEl.checked) ? 'text' : 'password';
+  if(pwEl) pwEl.type = newType;
+  if(pwConfirmEl) pwConfirmEl.type = newType;
 }
 
 function closeEmailAuthModal(){
