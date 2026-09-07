@@ -1330,6 +1330,15 @@ function handleSignOut(){
   if(window._fbSignOut) window._fbSignOut();
   currentUser = null;
   renderAuthBar(null);
+  // Vide le cache mémoire des scores (peuplé pour le compte précédent) et
+  // recharge l'affichage sur l'espace de stockage "anon" — sans ça, les
+  // scores du compte qui vient de se déconnecter restaient affichés à
+  // l'écran jusqu'au prochain rechargement complet de la page (même bug de
+  // fond que le cloisonnement du stockage local, corrigé le 04/09).
+  Object.keys(scores).forEach(k => delete scores[k]);
+  hydrateScoresFromHistory();
+  renderHome();
+  updateNavScore();
 }
 
 // ── Connexion par email/mot de passe (alternative à Google) ────────────────
@@ -1485,6 +1494,11 @@ async function loadFromCloud(){
 window._onAuthReady = async (user) => {
   currentUser = user;
   renderAuthBar(user);
+  // Vide le cache mémoire des scores avant de recharger, pour ne jamais
+  // afficher (même brièvement) les scores d'un compte précédent si un
+  // changement de compte survient sans déconnexion explicite entre les deux
+  // (bug de fond corrigé le 04/09, voir aussi handleSignOut()).
+  Object.keys(scores).forEach(k => delete scores[k]);
   if(user){
     // L'utilisateur vient de se connecter : on charge ses données cloud
     const cloudSessions = await loadFromCloud();
@@ -1492,7 +1506,7 @@ window._onAuthReady = async (user) => {
       // Fusionne avec les sessions locales (évite les doublons par date+exId)
       const localSessions = loadSessions();
       const merged = mergeSessions(localSessions, cloudSessions);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      localStorage.setItem(userScopedKey(STORAGE_KEY), JSON.stringify(merged));
     }
     // Synchronise les données locales vers le cloud
     await saveToCloud(loadSessions());
@@ -1536,9 +1550,20 @@ let capturedFrames = [];        // tableau de { dataUrl, atSeconds }
 // ── Stockage local de l'historique ──────────────────────────────────────────
 const STORAGE_KEY = 'voixdafrique_sessions';
 
+// Cloisonne une clé de stockage local par utilisateur connecté (currentUser.uid),
+// ou par un espace "anon" commun si personne n'est connecté. Corrige un bug de
+// confidentialité (04/09) où les données (historique, scores, discours
+// structurés) étaient stockées dans un espace global partagé par tout le
+// monde sur le même navigateur/appareil : se connecter avec un AUTRE compte
+// affichait — et pire, resynchronisait vers le cloud de ce nouveau compte —
+// les données du compte précédemment connecté sur cet appareil.
+function userScopedKey(baseKey){
+  return currentUser ? `${baseKey}_${currentUser.uid}` : `${baseKey}_anon`;
+}
+
 function loadSessions(){
   try{
-    const raw = localStorage.getItem(STORAGE_KEY);
+    const raw = localStorage.getItem(userScopedKey(STORAGE_KEY));
     return raw ? JSON.parse(raw) : [];
   }catch(_){ return []; }
 }
@@ -1546,7 +1571,7 @@ function loadSessions(){
 function saveSession(session){
   const sessions = loadSessions();
   sessions.push(session);
-  try{ localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions)); }catch(_){}
+  try{ localStorage.setItem(userScopedKey(STORAGE_KEY), JSON.stringify(sessions)); }catch(_){}
   // Synchronise vers le cloud si l'utilisateur est connecté
   if(currentUser) saveToCloud(sessions);
 }
@@ -1559,12 +1584,13 @@ function getLastSessionForExercise(exId){
 // ── Discours structurés (sauvegarde) ─────────────────────────────────────────
 // Une fois généré, le discours structuré reste consultable depuis l'historique,
 // pas seulement au moment où il a été créé. Stocké localement sur l'appareil,
-// par exercice (le dernier généré remplace le précédent pour cet exercice).
+// par exercice (le dernier généré remplace le précédent pour cet exercice),
+// et cloisonné par utilisateur (voir userScopedKey ci-dessus).
 const STRUCTURED_SPEECHES_KEY = 'voixdafrique_structured_speeches';
 
 function loadStructuredSpeeches(){
   try{
-    const raw = localStorage.getItem(STRUCTURED_SPEECHES_KEY);
+    const raw = localStorage.getItem(userScopedKey(STRUCTURED_SPEECHES_KEY));
     return raw ? JSON.parse(raw) : {};
   }catch(_){ return {}; }
 }
@@ -1572,7 +1598,7 @@ function loadStructuredSpeeches(){
 function saveStructuredSpeech(exId, data){
   const all = loadStructuredSpeeches();
   all[exId] = data;
-  try{ localStorage.setItem(STRUCTURED_SPEECHES_KEY, JSON.stringify(all)); }catch(_){}
+  try{ localStorage.setItem(userScopedKey(STRUCTURED_SPEECHES_KEY), JSON.stringify(all)); }catch(_){}
 }
 
 function getStructuredSpeech(exId){
@@ -1581,19 +1607,20 @@ function getStructuredSpeech(exId){
 
 // ── Streak Freeze (gel de streak) ────────────────────────────────────────────
 // Protège le streak d'un jour manqué occasionnel, à la façon de Duolingo.
-// Stocké localement sur l'appareil pour l'instant (pas encore synchronisé au cloud).
+// Stocké localement sur l'appareil pour l'instant (pas encore synchronisé au
+// cloud), et cloisonné par utilisateur (voir userScopedKey ci-dessus).
 const STREAK_FREEZE_KEY = 'voixdafrique_streak_freeze';
 const MAX_STREAK_FREEZES = 2;
 
 function loadStreakFreeze(){
   try{
-    const raw = localStorage.getItem(STREAK_FREEZE_KEY);
+    const raw = localStorage.getItem(userScopedKey(STREAK_FREEZE_KEY));
     return raw ? JSON.parse(raw) : { available: 0, usedDates: [], lastAwardedAtStreak: 0 };
   }catch(_){ return { available: 0, usedDates: [], lastAwardedAtStreak: 0 }; }
 }
 
 function saveStreakFreeze(data){
-  try{ localStorage.setItem(STREAK_FREEZE_KEY, JSON.stringify(data)); }catch(_){}
+  try{ localStorage.setItem(userScopedKey(STREAK_FREEZE_KEY), JSON.stringify(data)); }catch(_){}
 }
 
 function todayDateKey(){
