@@ -745,7 +745,8 @@
     <div class="feedback-modal-title" id="email-auth-title">Se connecter</div>
     <div class="feedback-modal-sub" id="email-auth-sub">Avec ton adresse email et un mot de passe</div>
     <input type="email" id="email-auth-email" placeholder="Adresse email" autocomplete="email" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
-    <input type="password" id="email-auth-password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:14px;box-sizing:border-box">
+    <input type="password" id="email-auth-password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
+    <input type="password" id="email-auth-password-confirm" placeholder="Confirme ton mot de passe" autocomplete="new-password" style="display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:14px;box-sizing:border-box">
     <div id="email-auth-error" style="display:none;color:#dc3545;font-size:12.5px;font-family:'Quicksand',sans-serif;margin-bottom:12px;line-height:1.5"></div>
     <button class="feedback-modal-btn whatsapp" id="email-auth-submit-btn" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="submitEmailAuth()">Se connecter</button>
     <div style="text-align:center;margin-top:8px">
@@ -1352,8 +1353,10 @@ function openEmailAuthModal(){
   if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
   const emailEl = document.getElementById('email-auth-email');
   const pwEl = document.getElementById('email-auth-password');
+  const pwConfirmEl = document.getElementById('email-auth-password-confirm');
   if(emailEl) emailEl.value = '';
   if(pwEl) pwEl.value = '';
+  if(pwConfirmEl) pwConfirmEl.value = '';
   document.getElementById('email-auth-modal').classList.add('show');
 }
 
@@ -1371,16 +1374,22 @@ function updateEmailAuthModalTexts(){
   const sub = document.getElementById('email-auth-sub');
   const submitBtn = document.getElementById('email-auth-submit-btn');
   const toggle = document.getElementById('email-auth-toggle-mode');
+  const pwConfirmEl = document.getElementById('email-auth-password-confirm');
   if(isEmailAuthSignUp){
     if(title) title.textContent = 'Créer un compte';
     if(sub) sub.textContent = 'Choisis une adresse email et un mot de passe (6 caractères minimum)';
     if(submitBtn) submitBtn.textContent = 'Créer mon compte';
     if(toggle) toggle.textContent = 'Déjà un compte ? Se connecter';
+    // La confirmation n'a de sens qu'à la création d'un compte — inutile
+    // (et perturbant) de redemander le mot de passe deux fois pour une
+    // simple connexion à un compte existant.
+    if(pwConfirmEl) pwConfirmEl.style.display = 'block';
   } else {
     if(title) title.textContent = 'Se connecter';
     if(sub) sub.textContent = 'Avec ton adresse email et un mot de passe';
     if(submitBtn) submitBtn.textContent = 'Se connecter';
     if(toggle) toggle.textContent = 'Pas encore de compte ? Créer un compte';
+    if(pwConfirmEl){ pwConfirmEl.style.display = 'none'; pwConfirmEl.value = ''; }
   }
   const errEl = document.getElementById('email-auth-error');
   if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
@@ -1418,15 +1427,25 @@ function friendlyEmailAuthError(err){
 async function submitEmailAuth(){
   const emailEl = document.getElementById('email-auth-email');
   const pwEl = document.getElementById('email-auth-password');
+  const pwConfirmEl = document.getElementById('email-auth-password-confirm');
   const errEl = document.getElementById('email-auth-error');
   const submitBtn = document.getElementById('email-auth-submit-btn');
   const email = emailEl ? emailEl.value.trim() : '';
   const password = pwEl ? pwEl.value : '';
+  const passwordConfirm = pwConfirmEl ? pwConfirmEl.value : '';
 
   if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
 
   if(!email || !password){
     if(errEl){ errEl.textContent = 'Merci de renseigner une adresse email et un mot de passe.'; errEl.style.display = 'block'; }
+    return;
+  }
+
+  // La confirmation n'est demandée qu'à la création d'un compte — évite de
+  // créer un compte avec un mot de passe mal tapé (faute de frappe) que
+  // l'utilisateur ne pourrait alors plus jamais retaper correctement.
+  if(isEmailAuthSignUp && password !== passwordConfirm){
+    if(errEl){ errEl.textContent = 'Les deux mots de passe ne correspondent pas.'; errEl.style.display = 'block'; }
     return;
   }
 
@@ -1441,9 +1460,16 @@ async function submitEmailAuth(){
     closeEmailAuthModal();
   } catch(err){
     console.warn('Erreur auth email:', err);
-    if(errEl){ errEl.textContent = friendlyEmailAuthError(err); errEl.style.display = 'block'; }
+    if(errEl){ errEl.style.color = '#dc3545'; errEl.textContent = friendlyEmailAuthError(err); errEl.style.display = 'block'; }
   } finally {
-    if(submitBtn){ submitBtn.disabled = false; updateEmailAuthModalTexts(); }
+    // Réinitialise uniquement le bouton (texte/état), SANS appeler
+    // updateEmailAuthModalTexts() qui effacerait aussitôt le message
+    // d'erreur affiché juste au-dessus (bug corrigé le 07/09 : l'écran
+    // semblait "figé" car l'erreur clignotait puis disparaissait aussitôt).
+    if(submitBtn){
+      submitBtn.disabled = false;
+      submitBtn.textContent = isEmailAuthSignUp ? 'Créer mon compte' : 'Se connecter';
+    }
   }
 }
 
