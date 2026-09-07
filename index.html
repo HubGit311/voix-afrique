@@ -1428,7 +1428,12 @@ function friendlyEmailAuthError(err){
       return "Aucun compte n'existe avec cette adresse email. Crée un compte si c'est ta première visite.";
     case 'auth/wrong-password':
     case 'auth/invalid-credential':
-      return "Mot de passe incorrect. Réessaie, ou utilise \"Mot de passe oublié ?\".";
+      // Depuis une évolution récente de Firebase (mesure de sécurité), ce
+      // code générique couvre à la fois "mauvais mot de passe" ET "aucun
+      // compte avec cette adresse" — impossible de distinguer les deux côté
+      // technique. Le message doit donc rester honnête sur cette ambiguïté
+      // plutôt que d'affirmer à tort que c'est le mot de passe (07/09).
+      return "Adresse email ou mot de passe incorrect. Vérifie que ton adresse email est bien orthographiée, réessaie ton mot de passe, ou utilise \"Mot de passe oublié ?\" si tu penses avoir déjà un compte. Si c'est ta première visite, crée plutôt un compte.";
     case 'auth/email-already-in-use':
       return "Un compte existe déjà avec cette adresse email. Essaie de te connecter plutôt.";
     case 'auth/weak-password':
