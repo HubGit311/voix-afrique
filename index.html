@@ -1159,8 +1159,9 @@ function showSignInError(err){
       <div class="signin-error-icon">⚠️</div>
       <div class="signin-error-title">Connexion impossible</div>
       <div class="signin-error-body">
-        <strong>[DEBUG]</strong> code: ${err && err.code} — message: ${err && err.message}
-        <br><br>
+        On n'a pas réussi à te connecter avec Google. Vérifie ta connexion
+        internet et réessaie — sinon tes exercices restent utilisables sans
+        te connecter.
       </div>
       <div class="signin-error-actions">
         <button class="signin-error-btn dismiss" onclick="document.getElementById('signin-error-overlay').remove()">Plus tard</button>
