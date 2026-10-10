@@ -577,7 +577,7 @@
   <div class="hero">
     <div class="pill">✦ Coach vocal propulsé par l'IA</div>
     <h1>Parlez avec<br><span class="gradient-text">Puissance & Impact</span></h1>
-    <p class="hero-sub">Coach Awa analyse votre voix en temps réel et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
+    <p class="hero-sub">Coach Awa analyse votre discours et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
     <div class="launch-badge">
       <span style="font-size:16px">🚀</span>
       <div style="text-align:left">
@@ -664,7 +664,7 @@
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:10px">🎤 Le projet</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.8">
-      Awa est un coach IA de prise de parole en public, conçu pour aider chacun à progresser en toute autonomie — pitchs, discours, entretiens, présentations professionnelles. Le projet est développé par Moutar, sous la marque ParoleForceSenegal, actuellement en phase de bêta avec un petit groupe de testeurs.
+      Awa est un coach IA de prise de parole en public, conçu pour aider chacun à progresser en toute autonomie — pitchs, discours, interviews, présentations professionnelles. Le projet est développé par Moutar, sous la marque ParoleForceSenegal, actuellement en phase de bêta avec un petit groupe de testeurs.
     </p>
   </div>
 
@@ -3544,7 +3544,7 @@ function addTomorrowReminderToCalendar(){
   const fmtUTC = d => d.toISOString().replace(/[-:]/g,'').split('.')[0] + 'Z';
 
   const title = encodeURIComponent("🎤 Séance Awa — Entraîne-toi à la prise de parole");
-  const details = encodeURIComponent("Reviens t'entraîner sur Awa : https://brilliant-truffle-dae61d.netlify.app/");
+  const details = encodeURIComponent("Reviens t'entraîner sur Awa : https://coach-awa.netlify.app/");
   const url = `https://calendar.google.com/calendar/render?action=TEMPLATE&text=${title}&dates=${fmtUTC(tomorrow)}/${fmtUTC(end)}&details=${details}`;
 
   window.open(url, '_blank');
