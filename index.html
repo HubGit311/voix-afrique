@@ -3161,6 +3161,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   // l'invitant à réessayer, mais rien n'est comptabilisé tant qu'il n'a pas
   // un vrai essai réussi.
   if(transcriptionVide){
+    if(myRun !== analysisRunId) return; // analyse abandonnée (bouton Réessayer)
     showResult(feedback, {debit:0,parasites:{},totalParasites:0,anglicismes:{},totalAnglicismes:0,nbMots:0,duration,fluency}, null, false, loadSessions());
     return;
   }
@@ -3213,6 +3214,7 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
   const sessionsAfter = loadSessions();
   checkNewBadges(sessionsBefore, sessionsAfter);
 
+  if(myRun !== analysisRunId) return; // analyse abandonnée (bouton Réessayer)
   showResult(feedback,{debit,parasites,totalParasites,anglicismes,totalAnglicismes,nbMots,duration,fluency}, previous, isDailyBonus, sessionsBefore);
 }
 
@@ -3375,7 +3377,6 @@ function showResult(fb, met, previous, dailyBonus, sessionsBefore){
       <div id="structured-speech-result" style="width:100%"></div>
     </div>` : '';
 
-  if(myRun !== analysisRunId) return; // analyse abandonnée par l'utilisateur (bouton Réessayer)
   document.getElementById('result-content').innerHTML = html + structuredOfferHTML + `
     <div class="actions">
       <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">RÉESSAYER</button>
