@@ -1589,6 +1589,9 @@ let elapsed = 0;
 let timerInterval = null;
 let transcriptFull = "";
 let analyzing = false;
+let recAttemptId = 0;        // identifie la tentative de démarrage micro en cours (ignore les réponses tardives d'une tentative abandonnée)
+let analysisRunId = 0;       // idem pour l'analyse : permet d'abandonner une analyse trop longue sans qu'elle écrase le nouvel essai
+let cameraFallbackNote = false;
 let micStream = null;
 let mediaRecorder = null; // enregistrement audio (Android, iOS, desktop), transcrit ensuite via Whisper
 let recordingWasBackgrounded = false; // vrai si l'appli est passée en arrière-plan pendant l'enregistrement (cause fréquente d'échec)
@@ -2297,8 +2300,7 @@ function startRecording(){
   // 2. Enregistrement audio (Android, iOS, desktop) via MediaRecorder, transcrit
   // ensuite par un service serveur (Whisper) — un seul flux fiable pour tout le
   // monde, plus de bips ni de bug de duplication liés à la Web Speech API.
-  startRecordingServer();
-  startTimer();
+  startRecordingServer(); // le chrono démarre dans mediaRecorder.onstart, c'est-à-dire seulement quand le micro est réellement actif
   requestWakeLock();
 }
 
@@ -2364,13 +2366,17 @@ async function startRecordingServer(){
   // sans popup de permission visible. Sans ce timeout, l'utilisateur reste
   // face à un écran silencieux sans comprendre ce qui se passe.
   let micTimedOut = false;
+  const myAttempt = ++recAttemptId;
+  cameraFallbackNote = false;
   const micTimeout = setTimeout(() => {
+    if(myAttempt !== recAttemptId) return;
     micTimedOut = true;
     const el = document.getElementById('mic-status');
     if(el){
-      el.innerHTML = isMiuiBrowser()
+      const retryBtn = ` <button onclick="retryMicNow()" style="display:block;margin:10px auto 0;padding:8px 16px;border-radius:8px;border:1px solid var(--gold);background:none;color:var(--gold);font-weight:700;font-family:'Quicksand',sans-serif;cursor:pointer">🔄 Réessayer le micro</button>`;
+      el.innerHTML = (isMiuiBrowser()
         ? "⚠️ Le micro ne répond pas. Sur MIUI (Xiaomi/Redmi/Poco), va dans Réglages du téléphone → Applications → Gérer les applications → ton navigateur → Autorisations → Microphone → Autoriser, puis reviens ici et recharge la page. Si le problème persiste, essaie d'ouvrir ce lien dans Chrome plutôt que le navigateur par défaut."
-        : "⚠️ Le micro ne répond pas après plusieurs secondes. Vérifie qu'aucune autre appli n'utilise le micro, puis recharge la page.";
+        : "⚠️ Le micro ne répond pas après plusieurs secondes. Vérifie qu'aucune autre appli n'utilise le micro, puis réessaie.") + retryBtn;
     }
   }, 8000);
 
@@ -2383,8 +2389,27 @@ async function startRecordingServer(){
     const constraints = videoEnabled
       ? { audio: true, video: { facingMode: 'user', width: { ideal: 640 } } }
       : { audio: true };
-    const stream = await navigator.mediaDevices.getUserMedia(constraints);
+    let stream;
+    try{
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    } catch(firstErr){
+      // Micro + caméra sont demandés ensemble : si la caméra est refusée ou
+      // indisponible, toute la demande échoue. On retente en audio seul pour
+      // ne pas bloquer l'exercice (si c'est le micro qui est refusé, ce second
+      // essai échoue aussi et l'erreur habituelle s'affiche).
+      if(!videoEnabled) throw firstErr;
+      stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      videoEnabled = false;
+      cameraFallbackNote = true;
+      const pw = document.getElementById('video-preview-wrap');
+      if(pw && pw.parentElement) pw.parentElement.style.display = 'none';
+    }
     clearTimeout(micTimeout);
+    if(myAttempt !== recAttemptId){
+      // Tentative abandonnée entre-temps (bouton Réessayer) : on libère ce flux.
+      stream.getTracks().forEach(t=>t.stop());
+      return;
+    }
     if(micTimedOut) {
       // La permission a fini par répondre après le timeout : on continue quand
       // même normalement plutôt que de laisser l'utilisateur bloqué sur le
@@ -2401,6 +2426,9 @@ async function startRecordingServer(){
         // Caméra indisponible malgré la demande : on continue en audio seul,
         // sans bloquer l'exercice pour autant.
         videoEnabled = false;
+        cameraFallbackNote = true;
+        const pw2 = document.getElementById('video-preview-wrap');
+        if(pw2 && pw2.parentElement) pw2.parentElement.style.display = 'none';
       }
     }
 
@@ -2416,8 +2444,13 @@ async function startRecordingServer(){
     };
 
     mediaRecorder.onstart = () => {
+      // Le micro est réellement actif : c'est seulement maintenant que le chrono démarre.
+      clearInterval(timerInterval);
+      startTimer();
+      const recLabel = document.getElementById('rec-label');
+      if(recLabel) recLabel.textContent = '● ENREGISTREMENT EN COURS';
       const el = document.getElementById('mic-status');
-      if(el) el.textContent = "🎙️ Micro actif, parle !";
+      if(el) el.textContent = "🎙️ Micro actif, parle !" + (cameraFallbackNote ? " (caméra indisponible : on continue en audio seul)" : "");
       const liveEl = document.getElementById('live-transcript');
       if(liveEl) liveEl.textContent = "L'enregistrement est en cours, la transcription apparaîtra après \"Terminer\".";
     };
@@ -2428,6 +2461,7 @@ async function startRecordingServer(){
     mediaRecorder.start();
   } catch(err){
     clearTimeout(micTimeout);
+    if(myAttempt !== recAttemptId) return;
     const el = document.getElementById('mic-status');
     if(el){
       if(err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError'){
@@ -2477,6 +2511,18 @@ function setupFrameCapture(track){
     document.body.appendChild(hiddenVideoEl);
   }
   hiddenVideoEl.play().catch(()=>{}); // certains navigateurs exigent un appel explicite
+  const checkedVideoEl = hiddenVideoEl;
+  setTimeout(() => {
+    if(hiddenVideoEl === checkedVideoEl && checkedVideoEl && checkedVideoEl.videoWidth === 0){
+      // Aucune image reçue de la caméra (aperçu noir) : on l'abandonne, l'audio continue.
+      stopFrameCapture();
+      videoEnabled = false;
+      const pw = document.getElementById('video-preview-wrap');
+      if(pw && pw.parentElement) pw.parentElement.style.display = 'none';
+      const el = document.getElementById('mic-status');
+      if(el && mediaRecorder && mediaRecorder.state === 'recording') el.textContent = "🎙️ Micro actif, parle ! (caméra indisponible : on continue en audio seul)";
+    }
+  }, 4000);
 
   const targetFrameCount = 12;
   const maxFrames = 15; // garde-fou coût/tokens, même pour un discours de 15 min
@@ -2550,7 +2596,7 @@ function renderRecordingZone(){
     <div class="waveform">${bars}</div>
     <div>
       <div class="timer-big" id="timer-display">${fmt(currentEx.duration)}</div>
-      <div class="rec-label">● ENREGISTREMENT EN COURS</div>
+      <div class="rec-label" id="rec-label">⏳ EN ATTENTE DU MICRO…</div>
       <div style="font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;margin-top:4px">temps restant (min:s)</div>
     </div>
     <div class="progress-bar-bg" style="width:100%">
@@ -2570,6 +2616,14 @@ function renderRecordingZone(){
 // l'utilisateur veut abandonner (mauvais départ, changement d'avis, test),
 // pour éviter une analyse IA inutile sur un enregistrement qu'il ne veut de
 // toute façon pas garder (demande d'un testeur, 04/09).
+// Bouton « Réessayer le micro » : abandonne la tentative bloquée et en relance une propre.
+function retryMicNow(){
+  if(analyzing) return;
+  recAttemptId++; // invalide la tentative précédente
+  cancelRecording();
+  startRecording();
+}
+
 function cancelRecording(){
   if(analyzing) return; // trop tard, l'analyse est déjà lancée
   clearInterval(timerInterval);
@@ -2787,6 +2841,12 @@ async function transcribeAndAnalyze(blob){
 }
 
 // Met à jour le message affiché pendant l'analyse, si la zone existe déjà
+function abandonAnalysisAndRetry(){
+  analysisRunId++; // l'analyse en cours sera ignorée quand elle se terminera
+  analyzing = false;
+  retryCurrentExercise();
+}
+
 function updateAnalyzingMsg(text){
   const el = document.getElementById('analyzing-msg');
   if(el) el.textContent = text;
@@ -2845,8 +2905,17 @@ function showAnalyzingZone(){
     <div>
       <div class="analyzing-title">Coach Awa analyse ton discours…</div>
       <div class="analyzing-msg" id="analyzing-msg">Préparation de l'enregistrement…</div>
+      <div id="analyzing-slow" style="display:none;margin-top:16px;text-align:center">
+        <div style="font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;margin-bottom:8px">Ça prend plus de temps que prévu. Vérifie ta connexion internet.</div>
+        <button onclick="abandonAnalysisAndRetry()" style="padding:9px 18px;border-radius:8px;border:1px solid var(--gold);background:none;color:var(--gold);font-weight:700;font-family:'Quicksand',sans-serif;cursor:pointer">🔄 Réessayer l'exercice</button>
+      </div>
     </div>
   `;
+  const slowRun = analysisRunId;
+  setTimeout(() => {
+    const box = document.getElementById('analyzing-slow');
+    if(box && slowRun === analysisRunId && analyzing) box.style.display = 'block';
+  }, 45000);
   // Le message affiché est désormais mis à jour explicitement à chaque étape
   // réelle du pipeline (voir updateAnalyzingMsg), plutôt que sur un minuteur
   // fixe — indispensable pour les discours longs dont la transcription peut
@@ -2905,6 +2974,7 @@ Reste concis : chaque point tient en une phrase courte (max ~15 mots). Relis men
 }
 
 async function runAnalysis(){
+  const myRun = analysisRunId;
   updateAnalyzingMsg("Analyse du débit et des mots parasites…");
   const text = transcriptFull.trim();
   const duration = elapsed > 0 ? elapsed : 1; // évite d'utiliser par erreur la durée totale prévue si l'utilisateur arrête très tôt
@@ -3305,6 +3375,7 @@ function showResult(fb, met, previous, dailyBonus, sessionsBefore){
       <div id="structured-speech-result" style="width:100%"></div>
     </div>` : '';
 
+  if(myRun !== analysisRunId) return; // analyse abandonnée par l'utilisateur (bouton Réessayer)
   document.getElementById('result-content').innerHTML = html + structuredOfferHTML + `
     <div class="actions">
       <button class="btn-primary" onclick="stopVoiceFeedback();retryCurrentExercise()">RÉESSAYER</button>
