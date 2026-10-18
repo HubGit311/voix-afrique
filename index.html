@@ -49,8 +49,8 @@
   /* HOME */
   .hero{text-align:center;margin-bottom:56px}
   .pill{
-    display:inline-block;padding:5px 18px;
-    background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);
+    display:inline-block;padding:5px 0;
+    background:none;border:none;
     border-radius:20px;margin-bottom:28px;
     font-family:'Quicksand',sans-serif;font-size:12px;color:var(--gold);letter-spacing:3px;text-transform:uppercase;
   }
@@ -60,8 +60,8 @@
   .stats{display:flex;gap:40px;justify-content:center;flex-wrap:wrap;margin-bottom:8px}
   .launch-badge{
     display:inline-flex;align-items:center;gap:12px;
-    background:rgba(212,168,67,.06);border:1px solid rgba(212,168,67,.25);
-    border-radius:14px;padding:14px 22px;margin:0 auto;
+    background:none;border:none;
+    border-radius:14px;padding:0;margin:0 auto;
   }
   .stat-val{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:700;color:var(--gold)}
   .stat-lab{font-family:'Quicksand',sans-serif;font-size:12px;color:var(--muted);letter-spacing:1px}
@@ -85,7 +85,7 @@
   .badge{
     display:inline-block;padding:3px 10px;border-radius:20px;
     font-size:11px;font-weight:700;font-family:'Quicksand',sans-serif;letter-spacing:1px;text-transform:uppercase;
-    margin-left:8px;
+    margin-left:8px;white-space:nowrap;
   }
   .footer-note{text-align:center;margin-top:40px;padding-top:24px;border-top:1px solid var(--border);
     color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif}
@@ -400,7 +400,7 @@
   }
   /* AUTH */
   .auth-bar{
-    display:flex;align-items:center;gap:10px;padding:8px 16px;
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 16px;max-width:100%;box-sizing:border-box;
     background:rgba(39,174,96,.08);border-bottom:1px solid rgba(39,174,96,.2);
     font-size:13px;font-family:'Quicksand',sans-serif;
   }
@@ -568,7 +568,7 @@
 
 <!-- ══ AUTH BAR ════════════════════════════════════════════════════════════════ -->
 <div id="auth-bar" class="auth-bar signed-out">
-  <span style="color:var(--gold);font-size:13px;flex:1;font-weight:600">🔒 Connecte-toi avec Google pour sauvegarder ta progression (optionnel, mais recommandé — sans ça, tout est perdu si tu changes d'appareil ou vides ton navigateur)</span>
+  <span style="color:var(--gold);font-size:13px;flex:1 1 220px;min-width:0;font-weight:600">🔒 Connecte-toi pour sauvegarder ta progression (optionnel, mais recommandé : sans ça, tout est perdu si tu changes d'appareil ou vides ton navigateur)</span>
   <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
 </div>
 
@@ -576,18 +576,18 @@
 <div id="page-home" class="page active">
   <div class="hero">
     <div class="pill">✦ Coach vocal propulsé par l'IA</div>
-    <h1>Parlez avec<br><span class="gradient-text">Puissance & Impact</span></h1>
-    <p class="hero-sub">Coach Awa analyse votre discours et vous donne un feedback personnalisé — comme un expert disponible 24h/24.</p>
+    <h1>Parle avec<br><span class="gradient-text">Puissance & Impact</span></h1>
+    <p class="hero-sub">Coach Awa analyse ton discours et te donne un feedback personnalisé, comme un expert disponible 24h/24.</p>
     <div class="launch-badge">
       <span style="font-size:16px">🚀</span>
       <div style="text-align:left">
         <div style="color:var(--gold);font-weight:700;font-size:14px;font-family:'Quicksand',sans-serif;letter-spacing:.5px">EN PHASE DE LANCEMENT</div>
-        <div style="color:var(--muted);font-size:13px;margin-top:2px">Rejoignez les tout premiers testeurs d'Awa</div>
+        <div style="color:var(--muted);font-size:13px;margin-top:2px">Rejoins les tout premiers testeurs d'Awa</div>
       </div>
     </div>
   </div>
 
-  <div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:10px 16px;margin-bottom:20px;background:var(--card);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;text-align:center;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;justify-content:center;padding:4px 16px;margin-bottom:20px;background:none;border:none;font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;text-align:center;flex-wrap:wrap">
     <span>🔒 Tes enregistrements restent privés</span>
     <span style="cursor:pointer;color:var(--gold);text-decoration:underline;white-space:nowrap" onclick="stopVoiceFeedback();showPage('about')">En savoir plus</span>
   </div>
@@ -613,9 +613,9 @@
 
   <div class="level-card" id="level-card-home"></div>
 
-  <div class="section-title">Choisissez votre exercice</div>
-  <div class="section-sub">Enregistrez-vous · Retour de Coach Awa en 30 secondes</div>
-  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">Ces situations reviennent souvent dans la vie professionnelle et personnelle — de la négociation du quotidien aux grands discours publics — et progressent du plus accessible au plus exigeant.</p>
+  <div class="section-title">Choisis ton exercice</div>
+  <div class="section-sub">Enregistre-toi · Retour de Coach Awa en 30 secondes</div>
+  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">Ces situations reviennent souvent dans la vie professionnelle et personnelle, de la négociation du quotidien aux grands discours publics, et progressent du plus accessible au plus exigeant.</p>
 
   <div class="exercises" id="exercises-list"></div>
 
@@ -643,8 +643,8 @@
 <!-- ══ HISTORY ════════════════════════════════════════════════════════════════ -->
 <div id="page-history" class="page">
   <button class="back-btn" onclick="goHome()">← Retour</button>
-  <div class="section-title">📊 Votre progression</div>
-  <div class="section-sub">Suivez votre évolution session après session</div>
+  <div class="section-title">📊 Ta progression</div>
+  <div class="section-sub">Suis ton évolution session après session</div>
   <div id="history-content"></div>
 </div>
 
@@ -664,7 +664,7 @@
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:10px">🎤 Le projet</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.8">
-      Awa est un coach IA de prise de parole en public, conçu pour aider chacun à progresser en toute autonomie — pitchs, discours, interviews, présentations professionnelles. Le projet est développé par Moutar, sous la marque ParoleForceSenegal, actuellement en phase de bêta avec un petit groupe de testeurs.
+      Awa est un coach IA de prise de parole en public, conçu pour aider chacun à progresser en toute autonomie: pitchs, discours, interviews, présentations professionnelles. Le projet est développé par Moutar, sous la marque ParoleForceSenegal, actuellement en phase de bêta avec un petit groupe de testeurs.
     </p>
   </div>
 
@@ -674,12 +674,12 @@
       Quand tu enregistres un exercice, voici précisément ce qui se passe :
     </p>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ton audio est envoyé de façon sécurisée (connexion chiffrée) à un service de transcription (Groq, qui héberge le modèle Whisper) pour être converti en texte.</span></div>
-    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">L'enregistrement audio lui-même n'est jamais conservé — il est supprimé une fois la transcription effectuée. Pour les discours longs (mode Discours Libre), l'audio transite brièvement par le stockage Firebase (Google) le temps de la transcription, puis est supprimé.</span></div>
-    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Le texte transcrit est envoyé à Claude (Anthropic) pour générer le feedback de Coach Awa. Si tu actives l'option caméra (bêta), quelques images fixes sont aussi envoyées à Claude pour analyser ta posture et ta gestuelle — elles ne sont pas conservées.</span></div>
-    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ce qui est sauvegardé dans ton compte : le texte de tes discours, tes scores, et les feedbacks reçus — visibles uniquement par toi, stockés sur Firebase (Google).</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">L'enregistrement audio lui-même n'est jamais conservé, il est supprimé une fois la transcription effectuée. Pour les discours longs (mode Discours Libre), l'audio transite brièvement par le stockage Firebase (Google) le temps de la transcription, puis est supprimé.</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Le texte transcrit est envoyé à Claude (Anthropic) pour générer le feedback de Coach Awa. Si tu actives l'option caméra (bêta), quelques images fixes sont aussi envoyées à Claude pour analyser ta posture et ta gestuelle, elles ne sont pas conservées.</span></div>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ce qui est sauvegardé dans ton compte : le texte de tes discours, tes scores, et les feedbacks reçus, visibles uniquement par toi, stockés sur Firebase (Google).</span></div>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Personne d'autre que toi n'a accès à tes enregistrements ou à ton historique.</span></div>
     <p style="color:var(--muted);font-size:12px;line-height:1.7;margin-top:14px;font-style:italic">
-      Awa est un projet en phase de test — cette page décrit honnêtement notre fonctionnement actuel, mais ne constitue pas une politique de confidentialité formelle. Une question ? Utilise le bouton 🐛 pour nous contacter directement.
+      Awa est un projet en phase de test, cette page décrit honnêtement notre fonctionnement actuel, mais ne constitue pas une politique de confidentialité formelle. Une question ? Utilise le bouton 🐛 pour nous contacter directement.
     </p>
   </div>
 
@@ -697,8 +697,8 @@
 <div id="page-diction" class="page">
   <button class="back-btn" onclick="stopVoiceFeedback();goHome()">← Retour</button>
   <div class="section-title">🗣️ Exercices de diction</div>
-  <div class="section-sub">Lis le virelangue à voix haute — Coach Awa compare ce qui a été dit au texte exact</div>
-  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">La précision affichée compare ta transcription au texte attendu — un bon indice d'articulation claire, même si ce n'est pas une analyse directe du son. Un score parfois bas peut aussi venir d'une petite erreur de transcription automatique sur un virelangue difficile, pas forcément d'une mauvaise prononciation — ne te décourage pas si ça arrive.</p>
+  <div class="section-sub">Lis le virelangue à voix haute. Coach Awa compare ce qui a été dit au texte exact</div>
+  <p style="color:var(--muted);font-size:13px;line-height:1.6;margin:-14px 0 20px;font-style:italic">La précision affichée compare ta transcription au texte attendu, un bon indice d'articulation claire, même si ce n'est pas une analyse directe du son. Un score parfois bas peut aussi venir d'une petite erreur de transcription automatique sur un virelangue difficile, pas forcément d'une mauvaise prononciation. Ne te décourage pas si ça arrive.</p>
   <div class="exercises" id="diction-list"></div>
 </div>
 
@@ -733,7 +733,7 @@
 <div id="free-context-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeFreeContextModal()">
   <div class="feedback-modal-box">
     <div class="feedback-modal-title">🎤 Discours Libre</div>
-    <div class="feedback-modal-sub">Sur quoi porte ton discours ? (optionnel — aide Coach Awa à te conseiller)</div>
+    <div class="feedback-modal-sub">Sur quoi porte ton discours ? (optionnel, aide Coach Awa à te conseiller)</div>
     <textarea id="free-context-input" placeholder="Ex : présentation de mon projet à des investisseurs, discours pour un anniversaire, soutenance..." style="width:100%;min-height:90px;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Lora',serif;font-size:14px;padding:12px;margin-bottom:14px;resize:vertical;box-sizing:border-box"></textarea>
     <button class="feedback-modal-btn whatsapp" style="background:rgba(212,168,67,.1);border-color:rgba(212,168,67,.4);color:var(--gold)" onclick="startFreeExercise()">🎙️ Commencer l'enregistrement</button>
     <button class="feedback-modal-close" onclick="closeFreeContextModal()">Annuler</button>
@@ -764,22 +764,23 @@
 </div>
 
 <div id="xp-info-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeXPInfoModal()">
-  <div class="feedback-modal-box" style="text-align:left">
-    <div class="feedback-modal-title" style="text-align:center">✨ Comment fonctionnent les XP ?</div>
+  <div class="feedback-modal-box" style="text-align:left;position:relative">
+    <button onclick="closeXPInfoModal()" aria-label="Fermer" style="position:absolute;top:8px;right:10px;background:none;border:none;font-size:22px;line-height:1;color:var(--muted);cursor:pointer;padding:6px 10px">✕</button>
+    <div class="feedback-modal-title" style="text-align:center;padding:0 24px">✨ Points d'expérience : comment ça marche ?</div>
     <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">Chaque exercice terminé te rapporte des <strong style="color:var(--text)">points d'expérience (XP)</strong>, qui font progresser ton niveau :</p>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Ton score à l'exercice (0 à 100) est ajouté directement à tes XP</span></div>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">+15 XP bonus si tu n'as utilisé aucun mot parasite</span></div>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">+25 XP bonus si tu complètes le "Défi du jour" (un exercice différent proposé chaque jour)</span></div>
     <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-top:12px">En accumulant des XP, tu débloques de nouveaux exercices et grimpes les niveaux, de "Débutant Curieux" à "Légende de la Parole" 🏆</p>
     <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-top:12px">🧊 <strong style="color:var(--text)">Gel de streak</strong> : tous les 7 jours de suite, tu gagnes un gel (jusqu'à 2 en réserve) qui protège automatiquement ton streak si tu manques un jour.</p>
-    <button class="feedback-modal-close" onclick="closeXPInfoModal()" style="margin-top:10px">Fermer</button>
+    <button class="feedback-modal-close" onclick="closeXPInfoModal()" style="display:block;width:100%;margin-top:16px;padding:12px;background:var(--gold);color:#fff;border-radius:10px;font-weight:700;font-size:14px">Fermer</button>
   </div>
 </div>
 
 <div id="debit-info-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeDebitInfoModal()">
   <div class="feedback-modal-box" style="text-align:left">
     <div class="feedback-modal-title" style="text-align:center">🎯 D'où vient le repère 120-150 mots/min ?</div>
-    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">C'est un <strong style="color:var(--text)">repère courant en coaching de prise de parole</strong> pour un débit clair et confortable à suivre à l'oral — pas une règle scientifique stricte ni une norme universelle.</p>
+    <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">C'est un <strong style="color:var(--text)">repère courant en coaching de prise de parole</strong> pour un débit clair et confortable à suivre à l'oral, pas une règle scientifique stricte ni une norme universelle.</p>
     <p style="color:var(--muted);font-size:13px;line-height:1.7;margin-bottom:10px">Le bon rythme varie selon le contexte : une improvisation, un discours émouvant ou une présentation technique n'appellent pas forcément le même débit. Considère ce repère comme un point de départ, pas un objectif à atteindre à tout prix.</p>
     <p style="color:var(--muted);font-size:12px;line-height:1.6;font-style:italic">Coach Awa en tient compte dans ses conseils, mais ajuste toujours son analyse au contexte réel de ton discours.</p>
     <button class="feedback-modal-close" onclick="closeDebitInfoModal()" style="margin-top:10px">Fermer</button>
@@ -789,53 +790,53 @@
 <script>
 // ── Data ──────────────────────────────────────────────────────────────────────
 const EXERCISES = [
-  {id:1,emoji:"🎯",title:"Pitch Investisseur",description:"Présentez votre projet en 60 secondes à un investisseur.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:0,
-   context:"Vous parlez à un investisseur potentiel qui vous accorde 60 secondes. Soyez percutant, clair et convaincant.",
+  {id:1,emoji:"🎯",title:"Pitch Investisseur",description:"Présente ton projet en 60 secondes à un investisseur.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:0,
+   context:"Tu parles à un investisseur potentiel qui t'accorde 60 secondes. Sois percutant, clair et convaincant.",
    exemple:"Bonjour, je m'appelle Awa et je dirige Téranga Fresh, une plateforme qui connecte directement les maraîchers de Niayes aux familles dakaroises, sans intermédiaire. Aujourd'hui, 40% des légumes pourrissent avant d'atteindre le marché à cause des circuits trop longs. Nous avons déjà 200 familles abonnées et nos producteurs gagnent 30% de plus. Nous cherchons 15 millions de FCFA pour étendre la livraison à Pikine et Guédiawaye d'ici 6 mois. Je serais ravie de vous montrer nos chiffres en détail."},
-  {id:4,emoji:"🛍️",title:"Négociation au Marché",description:"Défendez votre prix face à un client exigeant, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:0,
-   context:"Vous êtes commerçant(e) au marché de Sandaga, le plus grand marché de Dakar. Un client négocie fort. Restez ferme et convaincant(e) sans le braquer.",
+  {id:4,emoji:"🛍️",title:"Négociation au Marché",description:"Défends ton prix face à un client exigeant, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:0,
+   context:"Tu es commerçant(e) au marché de Sandaga, le plus grand marché de Dakar. Un client négocie fort. Reste ferme et convaincant(e) sans le braquer.",
    exemple:"Je comprends que vous cherchiez le meilleur prix, et je respecte ça. Mais regardez la qualité de ce tissu : c'est du bazin véritable, pas de l'imitation. Je l'ai eu directement du grossiste à Touba, pas de revendeur entre nous deux. À ce prix, vous ne trouverez pas mieux dans tout le marché. Je peux vous faire un petit geste si vous prenez deux pièces, mais en dessous de ce prix, je travaillerais à perte. Qu'en dites-vous ?"},
-  {id:14,emoji:"☕",title:"Pause Café",description:"Parlez avec aisance à un collègue autour d'un café, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:25,
-   context:"Vous croisez un collègue à la machine à café. Faites la conversation naturellement, sans enjeu particulier — juste pour créer du lien.",
+  {id:14,emoji:"☕",title:"Pause Café",description:"Parle avec aisance à un collègue autour d'un café, en 45 secondes.",duration:45,niveau:"Débutant",color:"#27AE60",xpRequis:25,
+   context:"Tu croises un collègue à la machine à café. Fais la conversation naturellement, sans enjeu particulier, juste pour créer du lien.",
    exemple:"Ah, ça fait du bien cette pause ! Dis-moi, ton weekend s'est bien passé ? Moi j'ai enfin fini de monter mes étagères, ça m'a pris trois fois plus de temps que prévu, comme toujours avec le bricolage ! Au fait, tu as vu le mail pour la réunion de vendredi ? J'espère qu'elle ne va pas trop s'éterniser, j'ai plein de choses à boucler avant la fin de semaine. Enfin bref, allez, courage pour cet après-midi !"},
-  {id:5,emoji:"👨‍👩‍👧",title:"Discours de Cérémonie",description:"Prenez la parole à un mariage ou baptême, en 75 secondes.",duration:75,niveau:"Débutant",color:"#27AE60",xpRequis:50,
-   context:"C'est le mariage d'un proche. La famille vous a demandé de dire quelques mots devant tous les invités.",
+  {id:5,emoji:"👨‍👩‍👧",title:"Discours de Cérémonie",description:"Prends la parole à un mariage ou baptême, en 75 secondes.",duration:75,niveau:"Débutant",color:"#27AE60",xpRequis:50,
+   context:"C'est le mariage d'un proche. La famille t'a demandé de dire quelques mots devant tous les invités.",
    exemple:"Chers parents, chers amis, c'est avec une immense joie que je prends la parole aujourd'hui. J'ai connu Fatou depuis l'école primaire, et je peux vous dire qu'elle a toujours eu un cœur immense pour les siens. Aujourd'hui, en la voyant unie à Moussa, je vois deux familles qui s'agrandissent, deux histoires qui n'en font plus qu'une. Que Dieu vous accorde longue vie ensemble, beaucoup d'enfants, et que votre foyer soit toujours rempli de paix. Je vous souhaite tout le bonheur du monde."},
-  {id:15,emoji:"🏖️",title:"Retrouvailles Entre Amis",description:"Racontez une anecdote de vacances avec humour, en 60 secondes.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:75,
-   context:"Vous retrouvez des amis après un moment, et l'un d'eux vous demande de raconter votre dernier voyage. Amusez-les avec une anecdote vécue.",
+  {id:15,emoji:"🏖️",title:"Retrouvailles Entre Amis",description:"Raconte une anecdote de vacances avec humour, en 60 secondes.",duration:60,niveau:"Débutant",color:"#27AE60",xpRequis:75,
+   context:"Tu retrouves des amis après un moment, et l'un d'eux te demande de raconter ton dernier voyage. Amuse-les avec une anecdote vécue.",
    exemple:"Alors attends, il faut que je vous raconte ce qui m'est arrivé ! On arrive à l'hôtel, super content, et la dame nous dit que notre réservation... n'existe pas ! Total panique, on est là avec nos valises, à minuit passé. Finalement on a fini dans un petit hôtel improvisé tenu par un monsieur adorable qui nous a même préparé un thé à trois heures du matin. Franchement, c'est devenu le meilleur souvenir du voyage — on rigole encore rien qu'en y repensant !"},
-  {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motivez votre équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
-   context:"Votre équipe est devant vous, légèrement découragée. Donnez-leur l'énergie pour avancer.",
+  {id:2,emoji:"🔥",title:"Discours de Motivation",description:"Motive ton équipe en 90 secondes avant un grand défi.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:100,
+   context:"Ton équipe est devant toi, légèrement découragée. Donne-lui l'énergie pour avancer.",
    exemple:"Je sais que les deux dernières semaines ont été dures. Les chiffres n'étaient pas là, et certains d'entre vous doutent. C'est normal. Mais regardez le chemin parcouru : il y a six mois, on partait de zéro. Aujourd'hui, on a une équipe soudée et un produit que nos clients adorent. Ce qui nous manque, ce n'est pas le talent — c'est la confiance. Alors aujourd'hui, je vous demande une chose : donnons tout, ensemble, pendant les 30 prochains jours. Pas pour moi, pas pour l'entreprise — pour ce qu'on construit tous ensemble. On y va ?"},
-  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Le client avec qui vous aviez rendez-vous vient d'annuler par SMS, 5 minutes avant. Réagissez en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
-   context:"Vous aviez tout préparé pour ce rendez-vous important. Le client annule à la dernière minute par SMS, sans grande explication. Vous devez maintenant en parler calmement à votre équipe, qui attendait ce moment avec vous.",
+  {id:16,emoji:"🌦️",title:"Accueillir l'Imprévu",description:"Le client avec qui tu avais rendez-vous vient d'annuler par SMS, 5 minutes avant. Réagis en 60 secondes.",duration:60,niveau:"Intermédiaire",color:"#E67E22",xpRequis:125,
+   context:"Tu avais tout préparé pour ce rendez-vous important. Le client annule à la dernière minute par SMS, sans grande explication. Tu dois maintenant en parler calmement à ton équipe, qui attendait ce moment avec toi.",
    exemple:"Bon, apparemment le rendez-vous est décalé à la semaine prochaine — ce n'est pas ce qu'on avait prévu, mais ce n'est pas grave du tout. Ça nous laisse même un peu plus de temps pour peaufiner notre présentation, ce qui n'est pas plus mal. Je vais en profiter pour caler deux ou trois autres choses cette après-midi du coup. On reste flexibles, l'essentiel c'est qu'on avance dans la bonne direction, peu importe le timing exact !"},
-  {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défendez un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
-   context:"Vous présentez un projet pour votre quartier devant le maire et le conseil municipal. Soyez structuré(e) et crédible.",
+  {id:6,emoji:"🏛️",title:"Prise de Parole en Mairie",description:"Défends un projet communautaire devant le conseil, en 90 secondes.",duration:90,niveau:"Intermédiaire",color:"#E67E22",xpRequis:150,
+   context:"Tu présentes un projet pour ton quartier devant le maire et le conseil municipal. Sois structuré(e) et crédible.",
    exemple:"Monsieur le Maire, mesdames et messieurs les conseillers, je viens vous présenter un projet porté par 30 familles de notre quartier : la réhabilitation du terrain vague de la rue 14 en jardin communautaire. Aujourd'hui, cet espace attire les déchets et l'insécurité. Demain, il pourrait nourrir nos familles et rassembler nos enfants. Nous avons déjà mobilisé des bénévoles et obtenu un partenariat avec une ONG locale pour les semences. Nous demandons simplement l'autorisation municipale et un accès à l'eau. Ce projet ne coûtera rien à la mairie, mais changera la vie de tout un quartier."},
-  {id:7,emoji:"💰",title:"Pitch devant un Bailleur",description:"Convaincez un bailleur de fonds international, en 100 secondes.",duration:100,niveau:"Intermédiaire",color:"#E67E22",xpRequis:200,
-   context:"Une ONG internationale évalue votre projet pour un financement. Montrez l'impact concret et la rigueur de votre démarche.",
+  {id:7,emoji:"💰",title:"Pitch devant un Bailleur",description:"Convaincs un bailleur de fonds international, en 100 secondes.",duration:100,niveau:"Intermédiaire",color:"#E67E22",xpRequis:200,
+   context:"Une ONG internationale évalue ton projet pour un financement. Montre l'impact concret et la rigueur de ta démarche.",
    exemple:"Notre organisation forme des jeunes filles déscolarisées de Kaolack aux métiers du numérique. En deux ans, nous avons formé 150 jeunes filles, dont 80% ont trouvé un emploi ou créé leur propre activité dans les six mois suivants. Notre coût par bénéficiaire est de 45 000 FCFA, soit trois fois moins que la moyenne du secteur, car nous utilisons des formateurs locaux et des outils open-source. Avec un financement de 20 millions de FCFA sur 18 mois, nous pourrions former 400 jeunes filles supplémentaires dans trois nouvelles régions. Nous avons un système de suivi rigoureux et publions nos résultats trimestriellement. Je peux vous partager notre rapport d'impact détaillé dès aujourd'hui."},
-  {id:3,emoji:"🌍",title:"Vision pour l'Afrique",description:"Partagez votre vision pour le Sénégal de demain en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:300,
-   context:"Vous avez la parole devant une grande assemblée citoyenne à Dakar. Inspirez, convainquez, mobilisez.",
+  {id:3,emoji:"🌍",title:"Vision pour l'Afrique",description:"Partage ta vision pour le Sénégal de demain en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:300,
+   context:"Tu as la parole devant une grande assemblée citoyenne à Dakar. Inspire, convaincs, mobilise.",
    exemple:"Mes chers compatriotes, nous sommes à un tournant. Le Sénégal de demain ne se construira pas en attendant que d'autres le fassent à notre place. Il se construira par chacun de nous, dans nos quartiers, nos écoles, nos entreprises. J'imagine un Sénégal où nos jeunes n'ont plus besoin de traverser l'océan pour réussir, parce que les opportunités existent ici, chez nous. Un Sénégal où nos terres nourrissent nos familles avant d'enrichir d'autres pays. Un Sénégal où la technologie sert notre développement, pas seulement notre consommation. Cela commence aujourd'hui, avec nous, dans cette salle. Ne soyons pas spectateurs de notre avenir — soyons-en les bâtisseurs."},
-  {id:8,emoji:"📺",title:"Interview Télévisée",description:"Répondez avec assurance à des questions pièges, en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:400,
-   context:"Vous êtes interviewé(e) sur une chaîne nationale sur un sujet sensible. Restez calme, clair(e) et maître de votre message.",
+  {id:8,emoji:"📺",title:"Interview Télévisée",description:"Réponds avec assurance à des questions pièges, en 2 minutes.",duration:120,niveau:"Avancé",color:"#C0392B",xpRequis:400,
+   context:"Tu es interviewé(e) sur une chaîne nationale sur un sujet sensible. Reste calme, clair(e) et maître de ton message.",
    exemple:"C'est une question légitime, et je vais y répondre directement. Oui, nous avons rencontré des difficultés au début du projet, je ne vais pas le nier. Mais ce qui compte, c'est ce que nous avons appris et comment nous avons ajusté notre approche. Aujourd'hui, les résultats parlent d'eux-mêmes : nos indicateurs sont en hausse de 60% par rapport à l'année dernière. Je préfère qu'on parle de transparence plutôt que de perfection — nous assumons nos erreurs et nous progressons. C'est exactement ce que les Sénégalais attendent de nous, et c'est ce que nous continuerons à faire."},
-  {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défendez l'accès à l'éducation pour tous les enfants, devant une foule, en 2m30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
-   context:"Vous prenez la parole lors d'un grand rassemblement citoyen pour défendre l'accès à l'éducation pour tous les enfants, y compris les plus éloignés des grandes villes.",
+  {id:9,emoji:"⚖️",title:"Plaidoyer Public",description:"Défends l'accès à l'éducation pour tous les enfants, devant une foule, en 2 min 30.",duration:150,niveau:"Avancé",color:"#C0392B",xpRequis:500,
+   context:"Tu prends la parole lors d'un grand rassemblement citoyen pour défendre l'accès à l'éducation pour tous les enfants, y compris les plus éloignés des grandes villes.",
    exemple:"Aujourd'hui, je ne parle pas seulement en mon nom. Je parle au nom de milliers d'enfants qui marchent chaque matin des kilomètres pour rejoindre une école qui manque de tout. Je parle au nom de ces enseignants qui donnent sans compter, malgré des classes de 80 élèves. Ce n'est pas une fatalité — c'est un choix que nous pouvons changer ensemble. Chaque enfant scolarisé aujourd'hui, c'est une famille qui sortira de la pauvreté demain. Je demande à chacun d'entre vous, à nos décideurs, à nos entreprises : investissons dans l'éducation comme on investirait dans notre avenir commun, parce que c'est exactement ce que c'est. L'éducation n'attend pas. Nos enfants n'attendent pas. Agissons maintenant."},
-  {id:10,emoji:"🥂",title:"Toast Improvisé",description:"Portez un toast surprise et mémorable en 45 secondes.",duration:45,niveau:"Expert",color:"#5B4FE8",xpRequis:600,
-   context:"On vous tend le micro à l'improviste, en pleine fête, pour porter un toast. Soyez chaleureux, bref et marquant — c'est un exercice court mais qui demande beaucoup d'aisance.",
+  {id:10,emoji:"🥂",title:"Toast Improvisé",description:"Porte un toast surprise et mémorable en 45 secondes.",duration:45,niveau:"Expert",color:"#5B4FE8",xpRequis:600,
+   context:"On te tend le micro à l'improviste, en pleine fête, pour porter un toast. Sois chaleureux, bref et marquant. C'est un exercice court mais qui demande beaucoup d'aisance.",
    exemple:"Je ne m'attendais pas à prendre la parole ce soir, mais je ne pouvais pas laisser passer ce moment sans dire un mot. Regardez autour de vous : que de chemin parcouru, que de sourires réunis dans cette salle ! À nos hôtes, qui nous ont ouvert leur maison et leur cœur ce soir. Que cette soirée ne soit que le début d'encore beaucoup d'autres moments comme celui-ci. Levons nos verres à l'amitié, à la famille, et à tout ce qui nous rassemble ! Santé !"},
-  {id:11,emoji:"🛡️",title:"Discours de Crise",description:"Une erreur de votre équipe a affecté vos clients. Rassurez-les en 75 secondes.",duration:75,niveau:"Expert",color:"#5B4FE8",xpRequis:750,
-   context:"Une erreur interne (un retard de livraison, un bug, une mauvaise communication) a affecté vos clients. Prenez la parole publiquement pour rassurer, sans minimiser ni paniquer.",
+  {id:11,emoji:"🛡️",title:"Discours de Crise",description:"Une erreur de ton équipe a affecté tes clients. Rassure-les en 75 secondes.",duration:75,niveau:"Expert",color:"#5B4FE8",xpRequis:750,
+   context:"Une erreur interne (un retard de livraison, un bug, une mauvaise communication) a affecté tes clients. Prends la parole publiquement pour rassurer, sans minimiser ni paniquer.",
    exemple:"Je sais que ce qui s'est passé a inquiété beaucoup d'entre vous, et vous avez raison de vouloir des réponses claires. Je ne vais pas chercher d'excuses : nous avons commis une erreur, et nous en assumons pleinement la responsabilité. Depuis hier, toute notre équipe travaille pour corriger la situation et s'assurer que cela ne se reproduise plus. Nous vous tiendrons informés à chaque étape, sans rien cacher. Je comprends votre frustration, et je vous demande votre confiance le temps de vous prouver, par des actes, que nous la méritons encore."},
-  {id:12,emoji:"💼",title:"Négociation Salariale",description:"Demandez une augmentation avec assurance et arguments solides, en 60 secondes.",duration:60,niveau:"Expert",color:"#5B4FE8",xpRequis:900,
-   context:"Vous êtes face à votre responsable pour discuter d'une augmentation. Soyez factuel, confiant, sans agressivité ni excès de modestie.",
+  {id:12,emoji:"💼",title:"Négociation Salariale",description:"Demande une augmentation avec assurance et arguments solides, en 60 secondes.",duration:60,niveau:"Expert",color:"#5B4FE8",xpRequis:900,
+   context:"Tu es face à ton responsable pour discuter d'une augmentation. Sois factuel, confiant, sans agressivité ni excès de modestie.",
    exemple:"Merci de prendre le temps d'en discuter avec moi. Depuis un an, j'ai pris en charge deux projets majeurs qui ont dépassé nos objectifs de 20%, et j'ai formé trois nouveaux collègues sur nos outils internes. Je pense sincèrement apporter aujourd'hui une valeur supérieure à ce que reflète mon salaire actuel. Je souhaiterais donc qu'on envisage ensemble une revalorisation, en cohérence avec ces résultats. Je reste bien sûr ouvert à en discuter et à comprendre les contraintes de votre côté."},
-  {id:13,emoji:"🕊️",title:"Discours d'Hommage",description:"Rendez un hommage sincère et touchant à quelqu'un de cher, en 90 secondes.",duration:90,niveau:"Expert",color:"#5B4FE8",xpRequis:1100,
-   context:"Vous prenez la parole pour honorer la mémoire ou les réalisations d'une personne importante pour vous ou votre communauté. Trouvez le ton juste entre émotion et dignité.",
+  {id:13,emoji:"🕊️",title:"Discours d'Hommage",description:"Rends un hommage sincère et touchant à quelqu'un de cher, en 90 secondes.",duration:90,niveau:"Expert",color:"#5B4FE8",xpRequis:1100,
+   context:"Tu prends la parole pour honorer la mémoire ou les réalisations d'une personne importante pour toi ou ta communauté. Trouve le ton juste entre émotion et dignité.",
    exemple:"Il y a des personnes qui traversent nos vies sans vraiment les marquer, et puis il y a des personnes comme elle, qui les transforment en profondeur. Je me souviens encore de sa patience, de sa générosité, de cette capacité qu'elle avait à faire sentir à chacun qu'il comptait vraiment. Elle n'a jamais cherché la reconnaissance, et pourtant, regardez combien de vies elle a touchées, combien d'entre nous sont ici aujourd'hui grâce à elle. Son héritage ne se mesure pas en mots, mais dans chacun de nos gestes qui lui ressemblent désormais. Merci pour tout."},
 ];
 
@@ -1106,6 +1107,14 @@ function isInAppBrowser(){
 }
 
 // ── Firebase Auth & Cloud Sync ────────────────────────────────────────────────
+// Affiche uniquement le prénom (ou la partie avant @ de l'email) : un nom
+// complet à l'écran peut être vu par les personnes autour dans un lieu public.
+function authShortName(user){
+  const dn = (user && user.displayName) ? user.displayName.trim() : '';
+  if(dn) return dn.split(/\s+/)[0];
+  const em = (user && user.email) ? user.email : '';
+  return em ? em.split('@')[0] : 'Moi';
+}
 function renderAuthBar(user){
   const bar = document.getElementById('auth-bar');
   if(!bar) return;
@@ -1113,14 +1122,14 @@ function renderAuthBar(user){
     bar.className = 'auth-bar';
     bar.innerHTML = `
       ${user.photoURL ? `<img class="auth-avatar" src="${user.photoURL}" alt="">` : '👤'}
-      <span class="auth-name">${user.displayName || user.email}</span>
+      <span class="auth-name">${authShortName(user)}</span>
       <span class="sync-indicator visible" id="sync-dot">✓ Sauvegardé</span>
       <button class="auth-btn signout" onclick="handleSignOut()">Déconnexion</button>
     `;
   } else {
     bar.className = 'auth-bar signed-out';
     bar.innerHTML = `
-      <span style="color:var(--gold);font-size:12px;flex:1">🔒 Connectez-vous pour sauvegarder votre progression</span>
+      <span style="color:var(--gold);font-size:12px;flex:1 1 100%;min-width:0">🔒 Connecte-toi pour sauvegarder ta progression</span>
       <button class="auth-btn signin" onclick="handleSignIn()">Se connecter avec Google</button>
       <button class="auth-btn signin" onclick="openEmailAuthModal()" style="border-color:var(--muted);color:var(--muted)">Autre méthode</button>
     `;
@@ -1160,7 +1169,7 @@ function showSignInError(err){
       <div class="signin-error-title">Connexion impossible</div>
       <div class="signin-error-body">
         On n'a pas réussi à te connecter avec Google. Vérifie ta connexion
-        internet et réessaie — sinon tes exercices restent utilisables sans
+        internet et réessaie, sinon tes exercices restent utilisables sans
         te connecter.
       </div>
       <div class="signin-error-actions">
@@ -1438,14 +1447,14 @@ function friendlyEmailAuthError(err){
     case 'auth/email-already-in-use':
       return "Un compte existe déjà avec cette adresse email. Essaie de te connecter plutôt.";
     case 'auth/weak-password':
-      return "Ce mot de passe est trop court — utilise au moins 6 caractères.";
+      return "Ce mot de passe est trop court, utilise au moins 6 caractères.";
     case 'auth/account-exists-with-different-credential':
       // Cas fréquent : l'utilisateur s'est déjà connecté avec Google en
       // utilisant cette même adresse email — on le guide vers la bonne méthode
       // plutôt que de le laisser face à un blocage silencieux.
       return "Cette adresse email est déjà associée à un compte Google. Utilise plutôt le bouton \"Se connecter avec Google\".";
     case 'auth/too-many-requests':
-      return "Trop de tentatives — attends un instant avant de réessayer.";
+      return "Trop de tentatives, attends un instant avant de réessayer.";
     default:
       return "Une erreur est survenue : " + ((err && err.message) || 'inconnue');
   }
@@ -1719,7 +1728,7 @@ function checkAndAwardStreakFreeze(currentStreak){
   freezeData.available = Math.min(MAX_STREAK_FREEZES, freezeData.available + 1);
   freezeData.lastAwardedAtStreak = currentStreak;
   saveStreakFreeze(freezeData);
-  setTimeout(()=> showBadgeToast({emoji:'🧊', title:'Nouveau gel de streak !', nom:`${currentStreak} jours de suite — un gel en réserve (${freezeData.available}/${MAX_STREAK_FREEZES})`}), 800);
+  setTimeout(()=> showBadgeToast({emoji:'🧊', title:'Nouveau gel de streak !', nom:`${currentStreak} jours de suite, un gel en réserve (${freezeData.available}/${MAX_STREAK_FREEZES})`}), 800);
 }
 
 // Récupère les tentatives récentes (avec texte transcrit disponible) pour un
@@ -1843,6 +1852,8 @@ function checkNewBadges(sessionsBefore, sessionsAfter){
 }
 
 // ── Utils ─────────────────────────────────────────────────────────────────────
+const nivLabel = n => n === 'Intermédiaire' ? 'Moyen' : n;
+const fmtLabel = s => { const m = Math.floor(s/60), r = s%60; return m === 0 ? `${r} s` : (r === 0 ? `${m} min` : `${m} min ${String(r).padStart(2,'0')} s`); };
 const fmt = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
 
 // Fetch avec délai maximum : évite qu'un appel réseau bloqué (Whisper, Claude)
@@ -1854,7 +1865,7 @@ async function fetchWithTimeout(url, options, timeoutMs=25000){
     return await fetch(url, { ...options, signal: controller.signal });
   } catch(err){
     if(err.name === 'AbortError'){
-      throw new Error(`Le service n'a pas répondu dans les ${Math.round(timeoutMs/1000)}s — réessaie dans un instant.`);
+      throw new Error(`Le service n'a pas répondu dans les ${Math.round(timeoutMs/1000)}s, réessaie dans un instant.`);
     }
     throw err;
   } finally {
@@ -2002,7 +2013,7 @@ function renderHome(){
           <div style="flex:1">
             <div class="ex-title">
               ${ex.title}
-              <span class="badge" style="background:${ex.color}18;color:${ex.color};border:1px solid ${ex.color}44">${ex.niveau}</span>
+              <span class="badge" style="background:${ex.color}18;color:${ex.color};border:1px solid ${ex.color}44">${nivLabel(ex.niveau)}</span>
               ${scores[ex.id]?`<span class="ex-score">Score : ${scores[ex.id]}/100</span>`:''}
             </div>
             <div class="ex-desc">${ex.description}</div>
@@ -2016,9 +2027,9 @@ function renderHome(){
           <div style="flex:1">
             <div class="ex-title">
               ${ex.title}
-              <span class="badge" style="background:rgba(122,122,154,.15);color:var(--muted);border:1px solid rgba(122,122,154,.3)">${ex.niveau}</span>
+              <span class="badge" style="background:rgba(122,122,154,.15);color:var(--muted);border:1px solid rgba(122,122,154,.3)">${nivLabel(ex.niveau)}</span>
             </div>
-            <div class="ex-desc">Débloqué à ${ex.xpRequis} XP (vous avez ${currentXP} XP)</div>
+            <div class="ex-desc">Débloqué à ${ex.xpRequis} XP (tu as ${currentXP} XP)</div>
           </div>
         </div>`;
     }
@@ -2071,7 +2082,7 @@ function renderDailyCard(){
     <div class="daily-icon">${challenge.emoji}</div>
     <div style="flex:1;min-width:160px">
       <div class="daily-title">${challenge.title}</div>
-      <div class="daily-sub">${done ? 'Défi du jour complété — revenez demain !' : challenge.description}</div>
+      <div class="daily-sub">${done ? 'Défi du jour complété, reviens demain !' : challenge.description}</div>
       ${!done ? `<div style="margin-top:8px;font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline" onclick="event.stopPropagation();changeDailyChallenge()">🔄 Ce sujet ne te plaît pas ? En changer</div>` : ''}
     </div>
     <div class="daily-xp-tag ${done?'done':''}" onclick="event.stopPropagation();openXPInfoModal()">${done ? '✓ Bonus reçu' : `+${DAILY_BONUS_XP} XP bonus ⓘ`}</div>
@@ -2176,7 +2187,7 @@ function retryExerciseById(exId){
       renderRecordPage();
       showPage('record');
     } else {
-      alert("Le sujet d'improvisation change chaque jour — celui-ci n'est plus disponible aujourd'hui. Le défi du jour actuel t'attend sur l'accueil !");
+      alert("Le sujet d'improvisation change chaque jour, celui-ci n'est plus disponible aujourd'hui. Le défi du jour actuel t'attend sur l'accueil !");
       goHome();
     }
   } else if(typeof exId === 'string' && exId.indexOf('diction-') === 0){
@@ -2192,7 +2203,7 @@ function renderRecordPage(){
     <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
       <span style="font-size:24px">${currentEx.emoji}</span>
       <div>
-        <span class="badge" style="background:${currentEx.color}18;color:${currentEx.color};border:1px solid ${currentEx.color}44">${currentEx.niveau}</span>
+        <span class="badge" style="background:${currentEx.color}18;color:${currentEx.color};border:1px solid ${currentEx.color}44">${nivLabel(currentEx.niveau)}</span>
         <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:20px;margin-top:4px">${currentEx.title}</div>
       </div>
     </div>
@@ -2209,21 +2220,21 @@ function renderReadyZone(){
   videoEnabled = false; // toujours décoché par défaut sur un nouvel exercice
   const isFree = currentEx.id === 'libre';
   const dureeTxt = isFree
-    ? `Durée max : ${fmt(currentEx.duration)} · Arrête quand tu veux · Le micro démarre dès que tu appuies sur Démarrer`
-    : `Durée max : ${fmt(currentEx.duration)} · Tu peux terminer avant si tu as fini · Le micro démarre dès que tu appuies sur Démarrer`;
+    ? `Durée max : ${fmtLabel(currentEx.duration)} · Arrête quand tu veux · Le micro démarre dès que tu appuies sur Démarrer`
+    : `Durée max : ${fmtLabel(currentEx.duration)} · Tu peux terminer avant si tu as fini · Le micro démarre dès que tu appuies sur Démarrer`;
   document.getElementById('rec-zone').innerHTML=`
     <div style="width:90px;height:90px;border-radius:50%;background:rgba(212,168,67,.1);border:2px solid rgba(212,168,67,.3);display:flex;align-items:center;justify-content:center;font-size:36px">🎙️</div>
     <div>
-      <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:22px;margin-bottom:8px">Prêt à vous lancer ?</div>
+      <div style="font-family:'Cormorant Garamond',serif;color:var(--text);font-size:22px;margin-bottom:8px">Prêt à te lancer ?</div>
       <div style="color:var(--muted);font-size:14px;font-family:'Quicksand',sans-serif">${dureeTxt}</div>
     </div>
     <div style="background:rgba(212,168,67,.08);border:1px solid rgba(212,168,67,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left">
       <div style="color:var(--gold);font-size:13px;font-family:'Quicksand',sans-serif;line-height:1.7">
-        💡 Prépare ton discours à l'avance ou improvise directement — les deux fonctionnent ! Clique sur Démarrer · Autorise le micro si demandé · Parle clairement en français
+        💡 Prépare ton discours à l'avance ou improvise directement, les deux fonctionnent ! Clique sur Démarrer · Autorise le micro si demandé · Parle clairement en français
       </div>
     </div>
     <div style="color:var(--red);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
-      ⚠️ Reste sur cette page pendant tout l'enregistrement — changer d'application ou verrouiller l'écran peut interrompre la capture de ta voix
+      ⚠️ Reste sur cette page pendant tout l'enregistrement: changer d'application ou verrouiller l'écran peut interrompre la capture de ta voix
     </div>
     <div style="color:var(--muted);font-size:12px;font-family:'Quicksand',sans-serif;text-align:left;width:100%">
       ${isNativeApp()
@@ -2233,7 +2244,7 @@ function renderReadyZone(){
     ${!currentEx.texteAttendu ? `
     <label style="display:flex;align-items:center;gap:10px;background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.25);border-radius:10px;padding:12px 16px;width:100%;text-align:left;cursor:pointer">
       <input type="checkbox" id="video-toggle" onchange="videoEnabled=this.checked" style="width:18px;height:18px;accent-color:#5B4FE8;flex-shrink:0">
-      <span style="color:var(--text);font-size:13px;font-family:'Quicksand',sans-serif;line-height:1.5">🎥 Filmer aussi (bêta) — reçois en plus un retour de Coach Awa sur ta posture et ta gestuelle. Seules quelques images fixes sont analysées, jamais la vidéo entière.</span>
+      <span style="color:var(--text);font-size:13px;font-family:'Quicksand',sans-serif;line-height:1.5">🎥 Filmer aussi (bêta), reçois en plus un retour de Coach Awa sur ta posture et ta gestuelle. Seules quelques images fixes sont analysées, jamais la vidéo entière.</span>
     </label>` : ''}
     ${currentEx.exemple ? `
     <button class="example-toggle-btn" onclick="toggleExample()" id="example-toggle-btn">
@@ -2265,7 +2276,7 @@ function requestMicAndStart(){
     if(el){
       el.insertAdjacentHTML('beforeend', `
         <div style="background:rgba(212,168,67,.1);border:1px solid rgba(212,168,67,.35);border-radius:10px;padding:14px 16px;margin-top:12px;text-align:center">
-          <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">🔒 Connecte-toi avec Google pour utiliser le Discours Libre — c'est nécessaire pour l'enregistrement sécurisé des discours longs.</div>
+          <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">🔒 Connecte-toi avec Google pour utiliser le Discours Libre, c'est nécessaire pour l'enregistrement sécurisé des discours longs.</div>
           <button class="btn-primary" onclick="handleSignIn()">Se connecter avec Google</button>
         </div>
       `);
@@ -2341,7 +2352,7 @@ function handleVisibilityDuringRecording(){
   // d'attendre la fin de l'exercice pour découvrir l'échec.
   if(recordingWasBackgrounded && mediaRecorder && mediaRecorder.state === 'recording'){
     const el = document.getElementById('mic-status');
-    if(el) el.innerHTML = "⚠️ Tu as quitté l'application — l'enregistrement a pu être interrompu pendant ce temps. Termine et vérifie, ou recommence pour être sûr.";
+    if(el) el.innerHTML = "⚠️ Tu as quitté l'application, l'enregistrement a pu être interrompu pendant ce temps. Termine et vérifie, ou recommence pour être sûr.";
   }
 }
 
@@ -2406,9 +2417,9 @@ async function startRecordingServer(){
 
     mediaRecorder.onstart = () => {
       const el = document.getElementById('mic-status');
-      if(el) el.textContent = "🎙️ Micro actif — parlez !";
+      if(el) el.textContent = "🎙️ Micro actif, parle !";
       const liveEl = document.getElementById('live-transcript');
-      if(liveEl) liveEl.textContent = "L'enregistrement est en cours — la transcription apparaîtra après \"Terminer\".";
+      if(liveEl) liveEl.textContent = "L'enregistrement est en cours, la transcription apparaîtra après \"Terminer\".";
     };
 
     recordingWasBackgrounded = false;
@@ -2540,6 +2551,7 @@ function renderRecordingZone(){
     <div>
       <div class="timer-big" id="timer-display">${fmt(currentEx.duration)}</div>
       <div class="rec-label">● ENREGISTREMENT EN COURS</div>
+      <div style="font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;margin-top:4px">temps restant (min:s)</div>
     </div>
     <div class="progress-bar-bg" style="width:100%">
       <div class="progress-bar" id="progress-fill" style="width:0%"></div>
@@ -2707,7 +2719,7 @@ async function transcribeAndAnalyze(blob){
       diagLog('étape 1: upload Storage — début');
       await Promise.race([
         window._fbUploadAudio(storagePath, blob),
-        new Promise((_, reject) => setTimeout(() => reject(new Error("L'envoi de l'enregistrement a pris trop de temps — vérifie ta connexion et réessaie.")), 30000))
+        new Promise((_, reject) => setTimeout(() => reject(new Error("L'envoi de l'enregistrement a pris trop de temps, vérifie ta connexion et réessaie.")), 30000))
       ]);
       diagLog('étape 1: upload Storage — succès');
 
@@ -2726,7 +2738,7 @@ async function transcribeAndAnalyze(blob){
         throw new Error(`Déclenchement de la fonction background échoué: HTTP ${triggerRes.status} — ${errBody.slice(0,200)}`);
       }
 
-      updateAnalyzingMsg("Transcription en cours — patience pour un discours long…");
+      updateAnalyzingMsg("Transcription en cours, patience pour un discours long…");
 
       // 3. Écoute Firestore jusqu'à ce que le résultat soit prêt (ou erreur).
       // Plafond généreux (20 min) pour couvrir les discours les plus longs.
@@ -2804,7 +2816,7 @@ function waitForTranscription(jobId, maxWaitMs){
       if(settled) return;
       settled = true;
       unsubscribe();
-      reject(new Error('Délai dépassé — le serveur met plus de temps que prévu à répondre.'));
+      reject(new Error('Délai dépassé, le serveur met plus de temps que prévu à répondre.'));
     }, maxWaitMs);
 
     const unsubscribe = window._fbListenTranscription(jobId, (data, err) => {
@@ -2831,7 +2843,7 @@ function showAnalyzingZone(){
   document.getElementById('rec-zone').innerHTML=`
     <div class="spinner"></div>
     <div>
-      <div class="analyzing-title">Coach Awa analyse votre discours…</div>
+      <div class="analyzing-title">Coach Awa analyse ton discours…</div>
       <div class="analyzing-msg" id="analyzing-msg">Préparation de l'enregistrement…</div>
     </div>
   `;
@@ -2977,6 +2989,7 @@ Génère un feedback bienveillant sur cet exercice d'articulation. Si des mots s
 
 IMPORTANT : "Awa" est TON PROPRE prénom en tant que coach — ce n'est jamais le prénom de l'apprenant. Ne t'adresse jamais à l'apprenant en l'appelant "Awa".
 Tutoie systématiquement l'apprenant (utilise "tu"/"ton"/"ta"/"tes", jamais "vous"/"votre"/"vos"), du début à la fin de ton feedback, y compris dans le défi suivant.
+N'utilise jamais le tiret long « — » dans ta réponse : préfère les virgules, les deux-points ou les points.
 ${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}" — adresse-toi à lui/elle par ce prénom dans ton feedback.` : `Tu ne connais pas le prénom de l'apprenant — adresse-toi à lui/elle avec "tu" sans utiliser de prénom inventé (ex: "Tu as..." plutôt que "Awa, tu as...").`}
 
 Un apprenant vient de faire l'exercice : "${currentEx.title}"
@@ -3056,18 +3069,18 @@ Génère un feedback bienveillant et motivant. Reste concis : chaque point fort 
     feedback = transcriptionVide
       ? (recordingWasBackgrounded
         ? {score:50,titre_feedback:"L'enregistrement a été interrompu",
-           conseil_coach:`Tu as quitté l'application pendant l'enregistrement — c'est probablement pour ça que ta voix n'a pas été captée. Le navigateur suspend souvent le micro dès qu'on change d'appli. [Diagnostic : ${errMsg}]`,
+           conseil_coach:`Tu as quitté l'application pendant l'enregistrement, c'est probablement pour ça que ta voix n'a pas été captée. Le navigateur suspend souvent le micro dès qu'on change d'appli. [Diagnostic : ${errMsg}]`,
            points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
            ameliorations:["Reste sur cette page pendant tout l'enregistrement, sans changer d'appli ni verrouiller l'écran","Si tu dois lire des notes, garde-les affichées à côté sur papier ou un autre appareil","Réessaie l'enregistrement sans quitter l'application cette fois"],
            defi_suivant:"Recommence sans changer d'application pendant l'enregistrement."}
         : {score:50,titre_feedback:"Aucune voix détectée",
-           conseil_coach:`On n'a pas réussi à capter ta voix cette fois — ça arrive occasionnellement. Le plus simple : clique sur "Réessayer" et relance l'enregistrement tout de suite, ça fonctionne presque toujours au second essai. [Diagnostic : ${errMsg}]`,
+           conseil_coach:`On n'a pas réussi à capter ta voix cette fois, ça arrive occasionnellement. Le plus simple : clique sur "Réessayer" et relance l'enregistrement tout de suite, ça fonctionne presque toujours au second essai. [Diagnostic : ${errMsg}]`,
            points_forts:["Tu as tenté l'exercice","Bonne initiative de pratique","Persévérance"],
            ameliorations:["Réessaie l'enregistrement immédiatement, sans attendre","Vérifie que le micro est bien autorisé dans les paramètres du navigateur","Parle dès le début de l'enregistrement"],
            defi_suivant:"Clique sur Réessayer et relance l'enregistrement tout de suite."})
       : {score:65,titre_feedback:"Bonne session ! (analyse simplifiée)",
          conseil_coach:`Ta voix a bien été captée. Coach Awa était temporairement indisponible, mais continue à pratiquer. [Diagnostic : ${errMsg}]`,
-         points_forts:["Tu as osé te lancer — c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
+         points_forts:["Tu as osé te lancer, c'est déjà un grand pas","Effort et persévérance visibles","Bonne initiative de pratique"],
          ameliorations:["Structure en 3 parties : intro, corps, conclusion","Travaille les silences intentionnels","Réduis les mots parasites si besoin"],
          defi_suivant:"Répète cet exercice 3 fois cette semaine."};
   }
@@ -3166,10 +3179,10 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
         <div class="result-tag">Retour de Coach Awa · ${exTitle}</div>
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
           <div class="result-title" style="margin-bottom:0">${fb.titre_feedback}</div>
-          ${(('speechSynthesis' in window) || isNativeApp()) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
+          ${(!window._hideVoiceBtn && (('speechSynthesis' in window) || isNativeApp())) ? `<button class="voice-btn" id="voice-btn" onclick="toggleVoiceFeedback()">Écouter</button>` : ''}
         </div>
         ${isIOS() ? `<div style="color:var(--muted);font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">💡 Voix masculine ? Installe une voix féminine française : Réglages → Accessibilité → Contenu énoncé → Voix → Français</div>` : ''}
-        ${(!isIOS() && !isNativeApp() && !pickFrenchVoice()) ? `<div id="no-french-voice-warning" style="color:#E67E22;font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">⚠️ Aucune voix française trouvée sur ton téléphone — la lecture audio risque de sonner en anglais. Pour corriger : Paramètres → Langues et saisie → Synthèse vocale → installe une voix française.</div>` : ''}
+        ${(!isIOS() && !isNativeApp() && !pickFrenchVoice()) ? `<div id="no-french-voice-warning" style="color:#E67E22;font-size:11px;font-family:'Quicksand',sans-serif;margin-bottom:8px">⚠️ Aucune voix française trouvée sur ton téléphone, la lecture audio risque de sonner en anglais. Pour corriger : Paramètres → Langues et saisie → Synthèse vocale → installe une voix française.</div>` : ''}
          <div class="result-conseil">${fb.conseil_coach}</div>
       </div>
     </div>
@@ -3195,7 +3208,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
       <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">${fb.gesture.resume_gestuelle}</div>
       ${(fb.gesture.points_forts_gestuelle||[]).map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
       ${(fb.gesture.ameliorations_gestuelle||[]).map(a=>`<div class="result-item"><span style="color:#E67E22;flex-shrink:0">→</span><span class="result-item-text" style="color:var(--text)">${a}</span></div>`).join('')}
-      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;line-height:1.5">Analyse basée sur quelques images fixes de ta vidéo, pas un suivi continu du mouvement — à prendre comme un premier repère.</div>
+      <div style="margin-top:10px;font-size:11px;color:var(--muted);font-family:'Quicksand',sans-serif;line-height:1.5">Analyse basée sur quelques images fixes de ta vidéo, pas un suivi continu du mouvement, à prendre comme un premier repère.</div>
     </div>` : ''}
 
     <div class="two-col">
@@ -3321,7 +3334,7 @@ async function generateStructuredSpeech(){
 
   const prompt = `Tu es Coach Awa, une coach experte en prise de parole en public. "Awa" est TON PROPRE prénom, jamais celui de l'apprenant.
 ${learnerFirstName ? `Le prénom de l'apprenant est "${learnerFirstName}".` : `Tu ne connais pas le prénom de l'apprenant.`}
-Tutoie systématiquement l'apprenant (jamais "vous").
+Tutoie systématiquement l'apprenant (jamais "vous"). N'utilise jamais le tiret long « — » dans ta réponse : préfère les virgules, les deux-points ou les points.
 
 Un apprenant a répété l'exercice "${currentEx.title}" plusieurs fois. Voici ses ${transcripts.length} dernières tentatives, dans l'ordre chronologique :
 
@@ -3592,7 +3605,7 @@ function renderDictionList(){
       <div style="flex:1">
         <div class="ex-title">
           Virelangue
-          <span class="badge" style="background:#5B4FE818;color:#5B4FE8;border:1px solid #5B4FE844">${item.niveau}</span>
+          <span class="badge" style="background:#5B4FE818;color:#5B4FE8;border:1px solid #5B4FE844">${nivLabel(item.niveau)}</span>
         </div>
         <div class="ex-desc" style="font-style:italic">"${item.texte}"</div>
       </div>
@@ -3638,7 +3651,9 @@ function openHistoryDetail(key){
   const displayTitle = (session.exId === 'improv' && session.topicText)
     ? `${session.exTitle} — ${session.topicText}`
     : session.exTitle;
+  window._hideVoiceBtn = true;
   const html = buildResultHTML(fb, met, displayTitle, dateHTML);
+  window._hideVoiceBtn = false;
 
   const savedSpeech = getStructuredSpeech(session.exId);
   const speechLinkHTML = savedSpeech ? `
@@ -3681,7 +3696,7 @@ function renderHistory(){
       <div class="empty-state">
         <div class="empty-state-icon">🎙️</div>
         <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:8px">Aucune session pour l'instant</div>
-        <div style="font-size:14px;font-family:'Quicksand',sans-serif">Faites votre premier exercice pour démarrer votre suivi !</div>
+        <div style="font-size:14px;font-family:'Quicksand',sans-serif">Fais ton premier exercice pour démarrer ton suivi !</div>
       </div>`;
     return;
   }
@@ -3760,7 +3775,7 @@ function renderHistory(){
 function buildProgressChart(sessions){
   if(sessions.length === 1){
     return `<div style="text-align:center;padding:30px;color:var(--muted);font-family:'Quicksand',sans-serif;font-size:13px">
-      Faites une 2ᵉ session pour voir votre courbe de progression
+      Fais une 2ᵉ session pour voir ta courbe de progression
     </div>`;
   }
 
