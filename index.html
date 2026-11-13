@@ -485,6 +485,7 @@
   const _db = firebase.firestore();
   const _storage = firebase.storage();
   const _provider = new firebase.auth.GoogleAuthProvider();
+  _provider.setCustomParameters({ prompt: 'select_account' });
 
   // ── Diagnostic temporaire (bug connexion Google "missing initial state") ──
   // Permet de vérifier depuis la console du navigateur d'un testeur si son
@@ -516,7 +517,13 @@
   // Connexion par email/mot de passe : alternative à Google, plus universelle
   // (aucun blocage OAuth/WebView, fonctionne identiquement en navigateur et
   // dans l'app installée, sans plugin natif).
-  window._fbSignUpWithEmail = (email, password) => _auth.createUserWithEmailAndPassword(email, password);
+  window._fbSignUpWithEmail = async (email, password, displayName) => {
+    const cred = await _auth.createUserWithEmailAndPassword(email, password);
+    if(displayName && cred.user){
+      try{ await cred.user.updateProfile({ displayName }); }catch(e){ console.warn('updateProfile', e); }
+    }
+    return cred;
+  };
   window._fbSignInWithEmail = (email, password) => _auth.signInWithEmailAndPassword(email, password);
   window._fbResetPassword = (email) => _auth.sendPasswordResetEmail(email);
 
@@ -744,6 +751,7 @@
   <div class="feedback-modal-box">
     <div class="feedback-modal-title" id="email-auth-title">Se connecter</div>
     <div class="feedback-modal-sub" id="email-auth-sub">Avec ton adresse email et un mot de passe</div>
+    <input type="text" id="email-auth-name" placeholder="Nom et prénom" autocomplete="name" style="display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
     <input type="email" id="email-auth-email" placeholder="Adresse email" autocomplete="email" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="email-auth-password" placeholder="Mot de passe" autocomplete="current-password" style="width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
     <input type="password" id="email-auth-password-confirm" placeholder="Confirme ton mot de passe" autocomplete="new-password" style="display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:14px;box-sizing:border-box">
@@ -1267,6 +1275,8 @@ async function nativeGoogleSignIn(){
     // AndroidManifest.xml). Le NoCredentialException précédent pourrait
     // avoir été causé par l'absence de cette vérification de domaine,
     // requise par Credential Manager (contrairement au chemin legacy).
+    // Oublie le compte précédent côté Google pour afficher le sélecteur de compte.
+    try{ await FirebaseAuthentication.signOut(); }catch(_){}
     const result = await FirebaseAuthentication.signInWithGoogle({
       useCredentialManager: false
     });
@@ -1319,6 +1329,7 @@ async function handleSignIn(){
     google.accounts.id.initialize({
       client_id: GOOGLE_CLIENT_ID,
       callback: handleGoogleCredentialResponse,
+      auto_select: false,
       use_fedcm_for_prompt: true
     });
     google.accounts.id.prompt((notification) => {
@@ -1343,6 +1354,11 @@ async function handleSignIn(){
 
 function handleSignOut(){
   if(window._fbSignOut) window._fbSignOut();
+  // Oublie le compte Google choisi pour que la prochaine connexion propose de choisir un compte.
+  try{ if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); }catch(_){}
+  try{ const FA = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication; if(FA && FA.signOut) FA.signOut().catch(()=>{}); }catch(_){}
+  try{ if(recorderActive()) cancelRecording(); }catch(_){}
+  stopVoiceFeedback();
   currentUser = null;
   renderAuthBar(null);
   // Vide le cache mémoire des scores (peuplé pour le compte précédent) et
@@ -1352,7 +1368,7 @@ function handleSignOut(){
   // fond que le cloisonnement du stockage local, corrigé le 04/09).
   Object.keys(scores).forEach(k => delete scores[k]);
   hydrateScoresFromHistory();
-  renderHome();
+  goHome();
   updateNavScore();
 }
 
@@ -1369,6 +1385,7 @@ function openEmailAuthModal(){
   const pwEl = document.getElementById('email-auth-password');
   const pwConfirmEl = document.getElementById('email-auth-password-confirm');
   const showPwEl = document.getElementById('email-auth-show-password');
+  const nameElO = document.getElementById('email-auth-name'); if(nameElO) nameElO.value = '';
   if(emailEl) emailEl.value = '';
   if(pwEl) pwEl.value = '';
   if(pwConfirmEl) pwConfirmEl.value = '';
@@ -1415,7 +1432,9 @@ function updateEmailAuthModalTexts(){
     // (et perturbant) de redemander le mot de passe deux fois pour une
     // simple connexion à un compte existant.
     if(pwConfirmEl) pwConfirmEl.style.display = 'block';
+    const nameEl = document.getElementById('email-auth-name'); if(nameEl) nameEl.style.display = 'block';
   } else {
+    const nameEl2 = document.getElementById('email-auth-name'); if(nameEl2){ nameEl2.style.display = 'none'; nameEl2.value = ''; }
     if(title) title.textContent = 'Se connecter';
     if(sub) sub.textContent = 'Avec ton adresse email et un mot de passe';
     if(submitBtn) submitBtn.textContent = 'Se connecter';
@@ -1469,8 +1488,15 @@ async function submitEmailAuth(){
   const email = emailEl ? emailEl.value.trim() : '';
   const password = pwEl ? pwEl.value : '';
   const passwordConfirm = pwConfirmEl ? pwConfirmEl.value : '';
+  const nameEl = document.getElementById('email-auth-name');
+  const fullName = nameEl ? nameEl.value.trim().replace(/\s+/g,' ') : '';
 
   if(errEl){ errEl.style.display = 'none'; errEl.textContent = ''; }
+
+  if(isEmailAuthSignUp && !fullName){
+    if(errEl){ errEl.textContent = 'Merci de renseigner ton nom et prénom.'; errEl.style.display = 'block'; }
+    return;
+  }
 
   if(!email || !password){
     if(errEl){ errEl.textContent = 'Merci de renseigner une adresse email et un mot de passe.'; errEl.style.display = 'block'; }
@@ -1489,7 +1515,9 @@ async function submitEmailAuth(){
 
   try{
     if(isEmailAuthSignUp){
-      await window._fbSignUpWithEmail(email, password);
+      await window._fbSignUpWithEmail(email, password, fullName);
+      // onAuthStateChanged a pu s'exécuter avant la mise à jour du profil : on rafraîchit l'affichage du nom.
+      if(window._fbUser){ currentUser = window._fbUser; renderAuthBar(window._fbUser); }
     } else {
       await window._fbSignInWithEmail(email, password);
     }
@@ -1553,8 +1581,13 @@ async function loadFromCloud(){
 }
 
 // Appelé quand l'état d'authentification change
+let lastAuthUid = null;
 window._onAuthReady = async (user) => {
+  // Changement de compte : retour à l'accueil, jamais sur la page du compte précédent.
+  const switched = !!(user && lastAuthUid && lastAuthUid !== user.uid);
+  if(user) lastAuthUid = user.uid;
   currentUser = user;
+  if(switched){ try{ if(recorderActive()) cancelRecording(); }catch(_){} stopVoiceFeedback(); goHome(); }
   renderAuthBar(user);
   // Vide le cache mémoire des scores avant de recharger, pour ne jamais
   // afficher (même brièvement) les scores d'un compte précédent si un
@@ -1929,15 +1962,34 @@ const ANGLICISMES = {
   "buzz":"engouement", "fake":"faux", "news":"actualités",
   "must-have":"indispensable", "best-seller":"succès de librairie",
   "flyer":"prospectus", "selfie":"égoportrait", "checker":"vérifier",
-  "input":"donnée d'entrée", "output":"résultat"
+  "input":"donnée d'entrée", "output":"résultat",
+
+  // Ajouts (retour testeuse 11/11)
+  "soft skills":"compétences comportementales", "softskills":"compétences comportementales",
+  "soft skill":"compétence comportementale", "hard skills":"compétences techniques",
+  "hard skill":"compétence technique", "coaching":"accompagnement", "speech":"discours",
+  "pitch deck":"présentation", "leadership":"capacité à mener", "lead":"piste commerciale",
+  "deal":"accord", "feeling":"ressenti", "weekend":"fin de semaine", "mood":"humeur",
+  "trend":"tendance", "insight":"éclairage", "rush":"course contre la montre",
+  "game changer":"révolution", "win-win":"gagnant-gagnant", "back office":"arrière-guichet",
+  "front office":"accueil", "blog":"blogue", "follower":"abonné", "community":"communauté",
+  "sales":"ventes", "stand-up":"réunion debout", "scoop":"exclusivité", "leaders":"meneurs",
+  "happy":"heureux", "love":"amour", "fun":"amusant"
 };
 
 function detectAnglicismes(t){
-  const lower=t.toLowerCase(), found={};
-  Object.keys(ANGLICISMES).forEach(m=>{
-    const escaped = m.replace(/[-]/g, '\\-');
-    const matches=lower.match(new RegExp(`\\b${escaped}\\b`,'g'));
-    if(matches) found[m]=matches.length;
+  // On normalise : minuscules, apostrophes typographiques, et on ne compte
+  // chaque occurrence qu'une fois (les clés les plus longues d'abord, ex.
+  // "soft skills" avant "skills", puis le texte reconnu est masqué).
+  let lower=t.toLowerCase().replace(/[’‘]/g,"'"), found={};
+  const keys = Object.keys(ANGLICISMES).sort((a,b)=>b.length-a.length);
+  keys.forEach(m=>{
+    const escaped = m.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/[ -]/g,'[ \\-]?');
+    // frontières adaptées aux lettres accentuées (\b ne les gère pas bien)
+    const re = new RegExp(`(^|[^a-zà-ÿ])(${escaped})(s?)(?=$|[^a-zà-ÿ])`,'g');
+    let count=0;
+    lower = lower.replace(re,(all,pre)=>{ count++; return pre+' '; });
+    if(count) found[m]=count;
   });
   return found;
 }
@@ -2444,6 +2496,7 @@ async function startRecordingServer(){
     };
 
     mediaRecorder.onstart = () => {
+      startMicSilenceWatch(audioOnlyStream);
       // Le micro est réellement actif : c'est seulement maintenant que le chrono démarre.
       clearInterval(timerInterval);
       startTimer();
@@ -2624,8 +2677,52 @@ function retryMicNow(){
   startRecording();
 }
 
+// Surveille le micro pendant les premières secondes : si le flux est coupé ou
+// ne transmet que du silence numérique absolu (micro bloqué/occupé), on alerte
+// tout de suite au lieu d'attendre la fin du discours. Un silence ordinaire
+// (la personne ne parle pas encore) ne déclenche rien : le bruit ambiant
+// donne toujours un signal non nul.
+let micWatchTimer = null, micWatchCtx = null;
+function stopMicSilenceWatch(){
+  clearInterval(micWatchTimer); micWatchTimer = null;
+  if(micWatchCtx){ try{ micWatchCtx.close(); }catch(_){} micWatchCtx = null; }
+}
+function showMicProblem(){
+  stopMicSilenceWatch();
+  const el = document.getElementById('mic-status');
+  if(el) el.innerHTML = "⚠️ Je n'entends aucun son : le micro semble bloqué ou utilisé par une autre appli. Ferme les autres applis (appel, enregistreur…) puis réessaie." +
+    ` <button onclick="retryMicNow()" style="display:block;margin:10px auto 0;padding:8px 16px;border-radius:8px;border:1px solid var(--gold);background:none;color:var(--gold);font-weight:700;font-family:'Quicksand',sans-serif;cursor:pointer">🔄 Réessayer le micro</button>`;
+}
+function startMicSilenceWatch(stream){
+  stopMicSilenceWatch();
+  try{
+    const track = stream.getAudioTracks()[0];
+    if(!track) return;
+    track.onended = () => { if(recorderActive()) showMicProblem(); };
+    const AC = window.AudioContext || window.webkitAudioContext;
+    if(!AC) return;
+    micWatchCtx = new AC();
+    const src = micWatchCtx.createMediaStreamSource(stream);
+    const an = micWatchCtx.createAnalyser(); an.fftSize = 512;
+    src.connect(an);
+    const buf = new Uint8Array(an.fftSize);
+    let ticks = 0, heard = false;
+    micWatchTimer = setInterval(()=>{
+      if(!recorderActive()){ stopMicSilenceWatch(); return; }
+      ticks++;
+      an.getByteTimeDomainData(buf);
+      for(let i=0;i<buf.length;i++){ if(Math.abs(buf[i]-128) > 0){ heard = true; break; } }
+      if(heard){ stopMicSilenceWatch(); return; }
+      if(track.readyState === 'ended' || ticks >= 5) showMicProblem();
+    }, 1000);
+  }catch(e){ console.warn('Surveillance micro indisponible', e); }
+}
+
+function recorderActive(){ return !!(mediaRecorder && mediaRecorder.state === 'recording'); }
+
 function cancelRecording(){
   if(analyzing) return; // trop tard, l'analyse est déjà lancée
+  stopMicSilenceWatch();
   clearInterval(timerInterval);
   document.removeEventListener('visibilitychange', handleVisibilityDuringRecording);
   releaseWakeLock();
@@ -2646,6 +2743,7 @@ function cancelRecording(){
 function stopAndAnalyze(){
   if(analyzing) return;
   analyzing = true;
+  stopMicSilenceWatch();
 
   clearInterval(timerInterval);
   showAnalyzingZone();
@@ -2949,9 +3047,10 @@ Observe dans les images, quand c'est visible :
 
 RESTE HONNÊTE sur la méthode : tu analyses des instantanés espacés dans le temps, pas un mouvement continu. Ne prétends jamais avoir vu un geste précis "se produire" entre deux images — décris ce que tu observes sur chaque image ou en comparant les images entre elles, sans inventer de mouvement que tu n'as pas pu voir.
 Si le cadrage est mauvais (personne partiellement hors champ, trop sombre, trop loin) sur une majorité d'images, dis-le clairement plutôt que d'inventer une analyse.
+RÈGLE STRICTE SUR LE VISAGE : ne commente le regard, les expressions ou le "regard figé" QUE si un visage humain est nettement visible et que les yeux sont distinguables sur au moins la moitié des images. Si aucun visage n'est clairement visible (visage masqué, trop sombre, trop petit, hors cadre, ou image d'un autre objet / d'une pièce / d'un plafond), mets "visage_visible":false, ne parle pas du regard, et dis simplement en une phrase que le cadrage ne permet pas d'analyser (ex : "Ton visage n'est pas visible : place la caméra à hauteur du visage"). Ne déduis jamais une posture à partir d'un objet ou d'une partie du décor.
 
 Reste concis : chaque point tient en une phrase courte (max ~15 mots). Relis mentalement tes phrases avant de valider, en particulier les accords sujet-verbe et en genre/nombre. Réponds UNIQUEMENT en JSON valide sans markdown, sans texte avant ou après :
-{"score_gestuelle":<0-100>,"resume_gestuelle":"<1 phrase d'ensemble>","points_forts_gestuelle":["<1>","<2>"],"ameliorations_gestuelle":["<1>","<2>"]}`;
+{"visage_visible":<true|false>,"score_gestuelle":<0-100>,"resume_gestuelle":"<1 phrase d'ensemble>","points_forts_gestuelle":["<1>","<2>"],"ameliorations_gestuelle":["<1>","<2>"]}`;
 
   try{
     const res = await fetchWithTimeout("/.netlify/functions/claude-feedback",{
@@ -3231,7 +3330,7 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
     `<span class="parasite-tag">"${m}" ×${c}</span>`).join('');
 
   const anglicismeTags = Object.entries(met.anglicismes||{}).map(([m,c])=>
-    `<span class="anglicisme-tag">"${m}" → "${ANGLICISMES[m]}" ${c>1?`×${c}`:''}</span>`).join('');
+    `<span class="anglicisme-tag">"${m}" → "${ANGLICISMES[m] || ''}" ${c>1?`×${c}`:''}</span>`).join('');
 
   return `
     <div class="score-header">
@@ -3265,17 +3364,17 @@ function buildResultHTML(fb, met, exTitle, extraBlocksHTML){
       <div class="metrics-title">📊 Analyse Vocale</div>
       ${metricBar("Débit de parole", met.debit, 220, debitColor, " mots/min")}
       ${metricBar("Mots parasites", met.totalParasites, 20, parasiteColor, " détectés")}
+      ${parasiteTags?`<div class="parasites-list" style="margin:-6px 0 14px">${parasiteTags}</div>`:''}
       ${metricBar("Anglicismes", met.totalAnglicismes, 10, anglicismeColor, " détectés")}
+      ${anglicismeTags?`<div class="parasites-list" style="margin:-6px 0 14px">${anglicismeTags}</div>`:''}
       ${metricBar("Volume du discours", met.nbMots, Math.max(50, Math.round(met.duration/60*220)), "#5B4FE8", " mots")}
       ${met.fluency && met.fluency.score!==null ? metricBar("Score de fluidité", met.fluency.score, 100, met.fluency.score>=70?"#27AE60":met.fluency.score>=45?"#E67E22":"#C0392B", "/100") : ''}
-      ${parasiteTags?`<div class="parasites-list">${parasiteTags}</div>`:''}
-      ${anglicismeTags?`<div class="parasites-list" style="margin-top:8px">${anglicismeTags}</div>`:''}
       ${met.fluency && met.fluency.longPauses>0 ? `<div style="margin-top:10px;font-size:12px;color:var(--orange);font-family:monospace">⏸ ${met.fluency.longPauses} pause${met.fluency.longPauses>1?'s':''} longue${met.fluency.longPauses>1?'s':''} détectée${met.fluency.longPauses>1?'s':''} (hésitations probables)</div>` : ''}
       <div style="margin-top:12px;font-size:12px;color:var(--muted);font-family:monospace">Repère indicatif : 120–150 mots/min <span onclick="openDebitInfoModal()" style="cursor:pointer;color:var(--gold)">ⓘ</span> · Durée : ${fmt(met.duration)}</div>
     </div>
 
     ${fb.gesture ? `
-    <div class="result-card" style="background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.2)">
+    <div class="result-card" style="background:rgba(91,79,232,.06);border:1px solid rgba(91,79,232,.2);margin-bottom:20px">
       <div class="result-card-title" style="color:#5B4FE8">🎥 Posture & Gestuelle <span style="font-weight:400;font-size:11px;color:var(--muted);text-transform:none;letter-spacing:0">(bêta)</span></div>
       <div style="color:var(--text);font-size:14px;font-family:'Quicksand',sans-serif;margin-bottom:10px">${fb.gesture.resume_gestuelle}</div>
       ${(fb.gesture.points_forts_gestuelle||[]).map(p=>`<div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">${p}</span></div>`).join('')}
@@ -3784,7 +3883,8 @@ function renderHistory(){
   const chartSVG = buildProgressChart(chronological);
 
   const unlockedIds = new Set(getUnlockedBadges(chronological).map(b=>b.id));
-  const badgesHTML = BADGES.map(b=>{
+  const badgesSorted = BADGES.slice().sort((a,b)=> (unlockedIds.has(b.id)?1:0) - (unlockedIds.has(a.id)?1:0));
+  const badgesHTML = badgesSorted.map(b=>{
     const unlocked = unlockedIds.has(b.id);
     return `
       <div class="badge-card ${unlocked?'unlocked':'locked'}">
