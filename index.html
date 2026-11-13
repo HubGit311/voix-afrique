@@ -527,6 +527,29 @@
   window._fbSignInWithEmail = (email, password) => _auth.signInWithEmailAndPassword(email, password);
   window._fbResetPassword = (email) => _auth.sendPasswordResetEmail(email);
 
+  // ── Suppression de compte (exigée par Google Play) ──
+  window._fbProviderIds = () => (_auth.currentUser ? _auth.currentUser.providerData.map(p => p.providerId) : []);
+  window._fbDeleteAccount = async () => {
+    const u = _auth.currentUser;
+    if(!u) throw new Error('Aucun utilisateur connecté');
+    // 1) données cloud d'abord (impossible une fois le compte supprimé)
+    const ref = _db.collection('users').doc(u.uid);
+    try{ await ref.delete(); }
+    catch(e){
+      // Repli si les règles Firestore interdisent la suppression : on vide le document.
+      await ref.set({ sessions: [], deleted: true, updatedAt: Date.now() });
+    }
+    // 2) puis le compte Firebase (peut exiger une connexion récente)
+    await u.delete();
+  };
+  window._fbReauthPassword = (pw) => {
+    const u = _auth.currentUser;
+    return u.reauthenticateWithCredential(firebase.auth.EmailAuthProvider.credential(u.email, pw));
+  };
+  window._fbReauthGoogleIdToken = (idToken) =>
+    _auth.currentUser.reauthenticateWithCredential(firebase.auth.GoogleAuthProvider.credential(idToken));
+  window._fbReauthGooglePopup = () => _auth.currentUser.reauthenticateWithPopup(_provider);
+
   // --- Transcription longue durée (Storage + fonction background) ---
   // Upload direct du blob audio vers Firebase Storage : contourne la limite
   // de taille des requêtes de fonctions Netlify (~6 Mo), essentielle pour
@@ -693,9 +716,10 @@
   <div style="background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;margin-bottom:20px">
     <div style="font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--text);margin-bottom:10px">🗑️ Supprimer mon compte et mes données (Awa)</div>
     <p style="color:var(--muted);font-size:14px;line-height:1.8;margin-bottom:12px">
-      Pour demander la suppression de ton compte Awa et de tes données, envoie-nous un message via le bouton 🐛 en bas de l'écran (WhatsApp ou email), en précisant l'adresse email associée à ton compte Google et l'objet « Suppression de compte ».
+      Connecté(e), tu peux supprimer toi-même ton compte et tes données, immédiatement, avec le bouton ci-dessous. Sinon, envoie-nous un message via le bouton 🐛 en bas de l'écran (WhatsApp ou email), en précisant l'adresse email de ton compte et l'objet « Suppression de compte ».
     </p>
-    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Données supprimées sous 30 jours maximum : ton adresse email, tes discours enregistrés (texte transcrit), tes scores, tes feedbacks, et ton compte Firebase.</span></div>
+    <button onclick="openDeleteAccountModal()" style="display:block;width:100%;margin:0 0 14px;padding:12px;border-radius:10px;border:1px solid #dc3545;background:none;color:#dc3545;font-weight:700;font-size:14px;font-family:'Quicksand',sans-serif;cursor:pointer">🗑️ Supprimer mon compte</button>
+    <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Sont supprimés : ton adresse email, tes discours enregistrés (texte transcrit), tes scores, tes feedbacks, et ton compte Firebase. Par le bouton, la suppression est immédiate ; par message, sous 30 jours maximum.</span></div>
     <div class="result-item"><span style="color:#27AE60;flex-shrink:0">●</span><span class="result-item-text" style="color:var(--text)">Rien d'autre n'est conservé : comme indiqué plus haut, l'audio brut et les images de la caméra ne sont jamais stockés, quelle que soit ta demande.</span></div>
   </div>
 </div>
@@ -768,6 +792,19 @@
       <span onclick="handleForgotPassword()" style="font-size:12px;color:var(--muted);font-family:'Quicksand',sans-serif;cursor:pointer;text-decoration:underline">Mot de passe oublié ?</span>
     </div>
     <button class="feedback-modal-close" onclick="closeEmailAuthModal()">Annuler</button>
+  </div>
+</div>
+
+<div id="delete-account-modal" class="feedback-modal-overlay" onclick="if(event.target===this) closeDeleteAccountModal()">
+  <div class="feedback-modal-box" style="text-align:left">
+    <div class="feedback-modal-title" style="text-align:center">🗑️ Supprimer mon compte</div>
+    <div id="delete-account-body" style="color:var(--muted);font-size:14px;line-height:1.6;font-family:'Quicksand',sans-serif;margin:8px 0 14px">
+      Cette action est <strong>définitive</strong> : ton compte, ton historique, tes scores et tes discours enregistrés seront supprimés. Il n'y a pas de retour en arrière.
+    </div>
+    <input type="password" id="delete-account-password" placeholder="Ton mot de passe" autocomplete="current-password" style="display:none;width:100%;background:var(--surface);border:1px solid var(--border);border-radius:10px;color:var(--text);font-family:'Quicksand',sans-serif;font-size:14px;padding:12px;margin-bottom:10px;box-sizing:border-box">
+    <div id="delete-account-error" style="display:none;color:#dc3545;font-size:13px;font-family:'Quicksand',sans-serif;margin-bottom:10px"></div>
+    <button class="feedback-modal-btn" id="delete-account-confirm-btn" style="background:#dc3545;border-color:#dc3545;color:#fff;font-weight:700" onclick="confirmDeleteAccount()">Supprimer définitivement</button>
+    <button class="feedback-modal-close" id="delete-account-cancel-btn" onclick="closeDeleteAccountModal()">Annuler</button>
   </div>
 </div>
 
@@ -1556,9 +1593,122 @@ async function handleForgotPassword(){
   }
 }
 
+// ── Suppression de compte ────────────────────────────────────────────────────
+let accountDeleting = false;
+let deleteNeedsPassword = false;
+
+function openDeleteAccountModal(){
+  const body = document.getElementById('delete-account-body');
+  const btn = document.getElementById('delete-account-confirm-btn');
+  const err = document.getElementById('delete-account-error');
+  const pw = document.getElementById('delete-account-password');
+  deleteNeedsPassword = false;
+  if(err){ err.style.display = 'none'; err.textContent = ''; }
+  if(pw){ pw.style.display = 'none'; pw.value = ''; }
+  if(!currentUser){
+    if(body) body.textContent = "Tu n'es pas connecté(e). Connecte-toi d'abord avec le compte à supprimer, puis reviens ici.";
+    if(btn) btn.style.display = 'none';
+  } else {
+    if(body) body.innerHTML = "Cette action est <strong>définitive</strong> : ton compte, ton historique, tes scores et tes discours enregistrés seront supprimés. Il n'y a pas de retour en arrière.";
+    if(btn){ btn.style.display = 'block'; btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+  }
+  document.getElementById('delete-account-modal').classList.add('show');
+}
+function closeDeleteAccountModal(){
+  if(accountDeleting) return;
+  document.getElementById('delete-account-modal').classList.remove('show');
+}
+function deleteAccountShowError(msg){
+  const err = document.getElementById('delete-account-error');
+  if(err){ err.textContent = msg; err.style.display = 'block'; }
+}
+async function reauthWithGoogleForDelete(){
+  if(isNativeApp()){
+    const FA = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication;
+    if(!FA) throw new Error('Plugin indisponible');
+    try{ await FA.signOut(); }catch(_){}
+    const r = await FA.signInWithGoogle({ useCredentialManager: false });
+    const idToken = r && r.credential && r.credential.idToken;
+    if(!idToken) throw new Error('Pas de jeton Google');
+    await window._fbReauthGoogleIdToken(idToken);
+  } else {
+    await window._fbReauthGooglePopup();
+  }
+}
+function deleteAccountLocalCleanup(keys){
+  try{ (keys || []).forEach(k => localStorage.removeItem(k)); }catch(_){}
+}
+async function confirmDeleteAccount(){
+  if(accountDeleting || !currentUser) return;
+  const btn = document.getElementById('delete-account-confirm-btn');
+  const cancel = document.getElementById('delete-account-cancel-btn');
+  const pwEl = document.getElementById('delete-account-password');
+  const err = document.getElementById('delete-account-error');
+  if(err){ err.style.display = 'none'; err.textContent = ''; }
+  // Clés calculées maintenant : l'état de connexion change pendant la suppression.
+  const keysToClear = [STORAGE_KEY, STRUCTURED_SPEECHES_KEY, STREAK_FREEZE_KEY].map(k => userScopedKey(k));
+  accountDeleting = true;
+  if(btn){ btn.disabled = true; btn.textContent = 'Suppression…'; }
+  if(cancel) cancel.disabled = true;
+  const finish = () => {
+    deleteAccountLocalCleanup(keysToClear);
+    try{ const FA = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.FirebaseAuthentication; if(FA && FA.signOut) FA.signOut().catch(()=>{}); }catch(_){}
+    try{ if(window.google && google.accounts && google.accounts.id) google.accounts.id.disableAutoSelect(); }catch(_){}
+    currentUser = null; lastAuthUid = null;
+    Object.keys(scores).forEach(k => delete scores[k]);
+    accountDeleting = false;
+    document.getElementById('delete-account-modal').classList.remove('show');
+    renderAuthBar(null);
+    goHome();
+    updateNavScore();
+    showBadgeToast({emoji:'✅', title:'Compte supprimé', nom:'Ton compte et tes données ont été supprimés'});
+  };
+  try{
+    if(deleteNeedsPassword){
+      const pw = pwEl ? pwEl.value : '';
+      if(!pw) throw {code:'app/need-password'};
+      await window._fbReauthPassword(pw);
+    }
+    await window._fbDeleteAccount();
+    finish();
+  } catch(e){
+    console.warn('Suppression de compte :', e);
+    const code = e && e.code;
+    if(code === 'auth/requires-recent-login'){
+      const providers = window._fbProviderIds ? window._fbProviderIds() : [];
+      if(providers.includes('password')){
+        deleteNeedsPassword = true;
+        if(pwEl){ pwEl.style.display = 'block'; pwEl.focus(); }
+        deleteAccountShowError("Pour ta sécurité, saisis ton mot de passe puis confirme.");
+      } else {
+        try{
+          await reauthWithGoogleForDelete();
+          await window._fbDeleteAccount();
+          finish();
+          return;
+        }catch(e2){
+          console.warn('Reconnexion Google pour suppression :', e2);
+          deleteAccountShowError("La reconnexion avec Google a échoué ou a été annulée. Réessaie, ou écris-nous via le bouton 🐛.");
+        }
+      }
+    } else if(code === 'app/need-password'){
+      deleteAccountShowError("Saisis ton mot de passe pour confirmer.");
+    } else if(code === 'auth/wrong-password' || code === 'auth/invalid-credential'){
+      deleteAccountShowError("Mot de passe incorrect.");
+    } else if(code === 'auth/network-request-failed'){
+      deleteAccountShowError("Pas de connexion internet. Réessaie dans un instant.");
+    } else {
+      deleteAccountShowError("La suppression a échoué. Réessaie, ou écris-nous via le bouton 🐛 en bas de l'écran.");
+    }
+    accountDeleting = false;
+    if(btn){ btn.disabled = false; btn.textContent = 'Supprimer définitivement'; }
+    if(cancel) cancel.disabled = false;
+  }
+}
+
 // Sauvegarde la progression dans Firestore
 async function saveToCloud(sessions){
-  if(!currentUser || !window._fbSaveData) return;
+  if(!currentUser || !window._fbSaveData || accountDeleting) return;
   try {
     await window._fbSaveData(currentUser.uid, { sessions, updatedAt: Date.now() });
     const dot = document.getElementById('sync-dot');
